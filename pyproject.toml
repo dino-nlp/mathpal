@@ -52,6 +52,10 @@ bytewax = "0.18.2"
 [tool.poetry.group.superlinked_rag.dependencies]
 superlinked = "^7.2.1"
 
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.30.0"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
