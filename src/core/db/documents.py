@@ -54,6 +54,7 @@ class BaseDocument(BaseModel):
 
     @classmethod
     def get_or_create(cls, **filter_options) -> Optional[str]:
+        logger.info(f"FILTER_OPTION: {filter_options}")
         collection = _database[cls._get_collection_name()]
         try:
             instance = collection.find_one(filter_options)
@@ -103,14 +104,14 @@ class BaseDocument(BaseModel):
 
         return cls.Settings.name
 
-class Grade(BaseModel):
+class GradeDocument(BaseDocument):
     """Đại diện cho một khối lớp."""
     name: str   # Tên hiển thị, ví dụ: "Lớp 5"
     
     class Settings:
         name = "grade"
     
-class Exam(BaseModel):
+class ExamDocument(BaseDocument):
     """Đại diện cho một câu hỏi trong bài thi."""
     content: str
     link: str
