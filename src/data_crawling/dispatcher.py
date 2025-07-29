@@ -1,5 +1,5 @@
 import re
-from utils import get_logger
+from core.logger_utils import get_logger
 from crawlers.base import BaseCrawler
 
 logger = get_logger(__file__)

@@ -22,5 +22,8 @@ local-start: # Build and start your local Docker infrastructure.
 local-stop: # Stop your local Docker infrastructure.
 	docker compose -f docker-compose.yml down --remove-orphans
 
-test-crawler:
+test-crawler: # Test crawler
 	cd src/data_crawling && PYTHONPATH=$(PYTHONPATH) poetry run python main.py
+
+test-mq:
+	cd src/core && PYTHONPATH=$(PYTHONPATH) poetry run python mq.py

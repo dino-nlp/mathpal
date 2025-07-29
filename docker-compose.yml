@@ -30,6 +30,17 @@ services:
     networks:
       - local
     restart: always
+  
+  mq:
+    image: rabbitmq:3-management-alpine
+    container_name: mathpal-mq
+    ports:
+      - "5673:5672"
+      - "15673:15672"
+    volumes:
+      - ./rabbitmq/data/:/var/lib/rabbitmq/
+      - ./rabbitmq/log/:/var/log/rabbitmq
+    restart: always
 
 volumes:
   mongo_data:

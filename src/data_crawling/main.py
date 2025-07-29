@@ -5,7 +5,7 @@ settings.patch_localhost()
 from core.db.documents import GradeDocument
 from crawlers import LoiGiaiHayCrawler
 from dispatcher import CrawlerDispatcher
-from utils import get_logger
+from core.logger_utils import get_logger
 
 logger = get_logger(__file__)
 _dispatcher = CrawlerDispatcher()

@@ -1,6 +1,6 @@
 from crawlers.base import BaseAbstractCrawler
 from core.db.documents import ExamDocument
-from data_crawling.utils import get_logger
+from core.logger_utils import get_logger
 from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, CacheMode, BrowserConfig
 from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 from crawl4ai.async_dispatcher import MemoryAdaptiveDispatcher
@@ -61,10 +61,14 @@ class LoiGiaiHayCrawler(BaseAbstractCrawler):
                         logger.info(f"Duration: {dr.end_time - dr.start_time}")
                         # Save data to database
                         logger.info(f"Content length: {len(result.markdown) if result.markdown else 0}")
-                        instance = self.model(
-                            content=result.markdown, link=result.url, grade_id=kwargs.get("grade_id")
-                        )
-                        instance.save()
+                        
+                        if len(result.markdown) > 20:
+                            instance = self.model(
+                                content=result.markdown, link=result.url, grade_id=kwargs.get("grade_id")
+                            )
+                            instance.save()
+                        else:
+                            logger.info("CRAWLED CONTENT TOO SHORT")
                     else:
                         logger.error(f"Failed to crawl {result.url}: {result.error_message}")
                         

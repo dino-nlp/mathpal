@@ -23,7 +23,7 @@ class AppSettings(BaseSettings):
     # MQ config
     RABBITMQ_DEFAULT_USERNAME: str = "guest"
     RABBITMQ_DEFAULT_PASSWORD: str = "guest"
-    RABBITMQ_HOST: str = "mq"
+    RABBITMQ_HOST: str = "localhost"
     RABBITMQ_PORT: int = 5673
 
     # QdrantDB config
@@ -67,6 +67,7 @@ class AppSettings(BaseSettings):
         self.MONGO_DATABASE_HOST = "mongodb://localhost:30001/?directConnection=true"
         self.QDRANT_DATABASE_HOST = "localhost"
         self.RABBITMQ_HOST = "localhost"
+    
 
 
 settings = AppSettings()
