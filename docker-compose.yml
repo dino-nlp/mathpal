@@ -41,6 +41,22 @@ services:
       - ./rabbitmq/data/:/var/lib/rabbitmq/
       - ./rabbitmq/log/:/var/log/rabbitmq
     restart: always
+  
+  data-crawlers:
+    image: "mathpal-data-crawlers"
+    container_name: mathpal-data-crawlers
+    platform: "linux/amd64"
+    build:
+      context: .
+      dockerfile: .docker/Dockerfile.data_crawlers
+    env_file:
+      - .env
+    ports:
+      - "9010:8080"
+    depends_on:
+      - mongo
+    networks:
+      - local
 
 volumes:
   mongo_data:

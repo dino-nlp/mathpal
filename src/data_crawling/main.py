@@ -1,17 +1,16 @@
 import asyncio
 from typing import Any
-from core.config import settings
-settings.patch_localhost()
+from aws_lambda_powertools import Logger
+from aws_lambda_powertools.utilities.typing import LambdaContext
 from core.db.documents import GradeDocument
 from crawlers import LoiGiaiHayCrawler
 from dispatcher import CrawlerDispatcher
-from core.logger_utils import get_logger
 
-logger = get_logger(__file__)
+logger = Logger(service="mathpal/crawler")
 _dispatcher = CrawlerDispatcher()
 _dispatcher.register("loigiaihay", LoiGiaiHayCrawler)
 
-async def handle(event) -> dict[str, Any]:
+async def handle(event, context: LambdaContext | None = None) -> dict[str, Any]:
     links = event.get("links", [])
     grade_name = event.get("grade_name", "")
     
@@ -24,6 +23,10 @@ async def handle(event) -> dict[str, Any]:
         return {"statusCode": 200, "body": "Link processed successfully"}
     except Exception as e:
         return {"statusCode": 500, "body": f"An error occurred: {str(e)}"}
+
+# AWS Lambda handler wrapper
+def handler(event, context: LambdaContext | None = None) -> dict[str, Any]:
+    return asyncio.run(handle(event, context))
     
     
 if __name__ == "__main__":
@@ -39,4 +42,4 @@ if __name__ == "__main__":
         "links": links,
         "grade_name": "grade_5"
     }
-    asyncio.run(handle(event=event))
+    asyncio.run(handle(event, None))

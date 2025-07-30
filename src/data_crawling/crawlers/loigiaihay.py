@@ -15,7 +15,17 @@ class LoiGiaiHayCrawler(BaseAbstractCrawler):
     def update_configure(self):
         self.browser_config = BrowserConfig(
             headless=True,  # Đổi sang True để tránh vấn đề display
-            verbose=True   # Bật verbose để debug
+            verbose=True,   # Bật verbose để debug
+            extra_args=[
+                "--no-sandbox",
+                "--disable-dev-shm-usage", 
+                "--disable-gpu",
+                "--disable-extensions",
+                "--disable-background-timer-throttling",
+                "--disable-renderer-backgrounding",
+                "--disable-backgrounding-occluded-windows",
+                "--disable-ipc-flooding-protection"
+            ]
         )
 
         self.dispatcher = MemoryAdaptiveDispatcher(

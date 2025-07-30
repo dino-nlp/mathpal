@@ -27,3 +27,7 @@ test-crawler: # Test crawler
 
 test-mq:
 	cd src/core && PYTHONPATH=$(PYTHONPATH) poetry run python mq.py
+
+local-test-crawler: # Make a call to your local AWS Lambda (hosted in Docker) to crawl multiple articles.
+	curl -X POST "http://localhost:9010/2015-03-31/functions/function/invocations" \
+		-d '{"links": ["https://loigiaihay.com/de-thi-vao-lop-6-mon-toan-truong-cau-giay-nam-2023-a142098.html", "https://loigiaihay.com/de-thi-vao-lop-6-mon-toan-truong-luong-the-vinh-2021-co-dap-an-a134641.html", "https://loigiaihay.com/de-thi-vao-lop-6-mon-toan-truong-nguyen-tat-thanh-nam-2025-co-dap-an-a185630.html"], "grade_name": "grade_5"}'

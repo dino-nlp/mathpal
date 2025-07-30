@@ -13,22 +13,18 @@ class AppSettings(BaseSettings):
     #     "mongodb://mongo1:30001,mongo2:30002,mongo3:30003/?replicaSet=my-replica-set"
     # )
     # Single node for development - simpler and more reliable
-    MONGO_DATABASE_HOST: str = "mongodb://mathpal:mathpal@127.0.0.1:27017"
-    # For replica set (if needed in production):
-    # MONGO_DATABASE_HOST: str = (
-    #     "mongodb://localhost:30001,localhost:30002,localhost:30003/?replicaSet=my-replica-set"
-    # )
+    MONGO_DATABASE_HOST: str = "mongodb://mathpal:mathpal@mongo:27017"
     MONGO_DATABASE_NAME: str = "mathpal"
 
     # MQ config
     RABBITMQ_DEFAULT_USERNAME: str = "guest"
     RABBITMQ_DEFAULT_PASSWORD: str = "guest"
-    RABBITMQ_HOST: str = "localhost"
+    RABBITMQ_HOST: str = "mq"
     RABBITMQ_PORT: int = 5673
 
     # QdrantDB config
     QDRANT_CLOUD_URL: str = "str"
-    QDRANT_DATABASE_HOST: str = "localhost"
+    QDRANT_DATABASE_HOST: str = "qdrant"
     QDRANT_DATABASE_PORT: int = 6333
     USE_QDRANT_CLOUD: bool = False
     QDRANT_APIKEY: str | None = None
@@ -64,7 +60,7 @@ class AppSettings(BaseSettings):
     EMBEDDING_MODEL_DEVICE: str = "cpu"
 
     def patch_localhost(self) -> None:
-        self.MONGO_DATABASE_HOST = "mongodb://localhost:30001/?directConnection=true"
+        self.MONGO_DATABASE_HOST = "mongodb://mathpal:mathpal@localhost:27017"
         self.QDRANT_DATABASE_HOST = "localhost"
         self.RABBITMQ_HOST = "localhost"
     
