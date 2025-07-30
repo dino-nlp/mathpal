@@ -9,11 +9,11 @@ class AppSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=ROOT_DIR, env_file_encoding="utf-8")
 
     # MongoDB configs
-    # MONGO_DATABASE_HOST: str = (
-    #     "mongodb://mongo1:30001,mongo2:30002,mongo3:30003/?replicaSet=my-replica-set"
-    # )
+    MONGO_DATABASE_HOST: str = (
+        "mongodb://mongo1:30001,mongo2:30002,mongo3:30003/?replicaSet=my-replica-set"
+    )
     # Single node for development - simpler and more reliable
-    MONGO_DATABASE_HOST: str = "mongodb://mathpal:mathpal@mongo:27017"
+    # MONGO_DATABASE_HOST: str = "mongodb://mathpal:mathpal@mongo:27017"
     MONGO_DATABASE_NAME: str = "mathpal"
 
     # MQ config
@@ -60,7 +60,7 @@ class AppSettings(BaseSettings):
     EMBEDDING_MODEL_DEVICE: str = "cpu"
 
     def patch_localhost(self) -> None:
-        self.MONGO_DATABASE_HOST = "mongodb://mathpal:mathpal@localhost:27017"
+        self.MONGO_DATABASE_HOST = "mongodb://localhost:30001,localhost:30002,localhost:30003/?replicaSet=my-replica-set"
         self.QDRANT_DATABASE_HOST = "localhost"
         self.RABBITMQ_HOST = "localhost"
     

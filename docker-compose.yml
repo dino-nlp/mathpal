@@ -1,17 +1,45 @@
 services:
-  mongo:
-    image: mongo:latest
-    container_name: "mathpal_mongo"
-    logging:
-      options:
-        max-size: 1g
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: "mathpal"
-      MONGO_INITDB_ROOT_PASSWORD: "mathpal"
-    ports:
-      - 27017:27017
+  mongo1:
+    image: mongo:5
+    container_name: mathpal-mongo1
+    command: ["--replSet", "my-replica-set", "--bind_ip_all", "--port", "30001"]
     volumes:
-      - mongo_data:/data/db
+      - mongo-replica-1-data:/data/db
+      - ./.docker/mongo-init.sh:/usr/local/bin/mongo-init.sh:ro
+    ports:
+      - "30001:30001"
+    healthcheck:
+      test: ["CMD", "bash", "/usr/local/bin/mongo-init.sh"]
+      interval: 15s
+      start_period: 60s
+      timeout: 30s
+      retries: 5
+    networks:
+      - local
+    restart: always
+
+  mongo2:
+    image: mongo:5
+    container_name: mathpal-mongo2
+    command: ["--replSet", "my-replica-set", "--bind_ip_all", "--port", "30002"]
+    volumes:
+      - mongo-replica-2-data:/data/db
+      - ./.docker/mongo-init.sh:/usr/local/bin/mongo-init.sh:ro
+    ports:
+      - "30002:30002"
+    networks:
+      - local
+    restart: always
+
+  mongo3:
+    image: mongo:5
+    container_name: mathpal-mongo3
+    command: ["--replSet", "my-replica-set", "--bind_ip_all", "--port", "30003"]
+    volumes:
+      - mongo-replica-3-data:/data/db
+      - ./.docker/mongo-init.sh:/usr/local/bin/mongo-init.sh:ro
+    ports:
+      - "30003:30003"
     networks:
       - local
     restart: always
@@ -54,12 +82,32 @@ services:
     ports:
       - "9010:8080"
     depends_on:
-      - mongo
+      - mongo1
+      - mongo2
+      - mongo3
+    networks:
+      - local
+  
+  data_cdc:
+    image: "mathpal-data-cdc"
+    container_name: mathpal-data-cdc
+    build:
+      context: .
+      dockerfile: .docker/Dockerfile.data_cdc
+    env_file:
+      - .env
+    depends_on:
+      - mongo1
+      - mongo2
+      - mongo3
+      - mq
     networks:
       - local
 
 volumes:
-  mongo_data:
+  mongo-replica-1-data:
+  mongo-replica-2-data:
+  mongo-replica-3-data:
   qdrant_data:
 
 networks:
