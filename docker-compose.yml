@@ -33,6 +33,17 @@ services:
       - "30003:30003"
     restart: always
 
+  mq:
+    image: rabbitmq:3-management-alpine
+    container_name: mathpal-mq
+    ports:
+      - "5673:5672"
+      - "15673:15672"
+    volumes:
+      - ./rabbitmq/data/:/var/lib/rabbitmq/
+      - ./rabbitmq/log/:/var/log/rabbitmq
+    restart: always
+
   qdrant:
     image: qdrant/qdrant:latest
     container_name: mathpal-qdrant
@@ -46,18 +57,7 @@ services:
     volumes:
       - qdrant-data:/qdrant_data
     restart: always
-  
-  mq:
-    image: rabbitmq:3-management-alpine
-    container_name: mathpal-mq
-    ports:
-      - "5673:5672"
-      - "15673:15672"
-    volumes:
-      - ./rabbitmq/data/:/var/lib/rabbitmq/
-      - ./rabbitmq/log/:/var/log/rabbitmq
-    restart: always
-  
+
   data-crawlers:
     image: "mathpal-data-crawlers"
     container_name: mathpal-data-crawlers
@@ -87,7 +87,7 @@ services:
       - mongo2
       - mongo3
       - mq
-  
+
   feature_pipeline:
     image: "mathpal-feature-pipeline"
     container_name: mathpal-feature-pipeline
