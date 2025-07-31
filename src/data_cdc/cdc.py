@@ -42,6 +42,7 @@ def stream_process():
             logger.info(
                 f"Change detected and serialized for a data sample of type {data_type}."
             )
+            # logger.info(f"DATA: \n {data}")
 
             # Send data to rabbitmq
             try:

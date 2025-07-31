@@ -28,7 +28,7 @@ class ExamChunkingHandler(ChunkingDataHandler):
     def chunk(self, data_model: ExamCleanedModel) -> list[ExamChunkModel]:
         data_model_list = []
         text_content = data_model.cleaned_content
-        chunks = chunk_text[text_content]
+        chunks = chunk_text(text_content)
         for chunk in chunks:
             model = ExamChunkModel(
                 entry_id=data_model.entry_id,

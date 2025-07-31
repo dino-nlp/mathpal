@@ -9,3 +9,5 @@ For MongoDB to work with multiple replicas (as we use it in our Docker setup) on
 127.0.0.1       mongo1
 127.0.0.1       mongo2 
 127.0.0.1       mongo3
+
+-  Qdrant UI: localhost:6333/dashboard

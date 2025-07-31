@@ -17,13 +17,13 @@ class CleaningDataHandler(ABC):
 
 class ExamCleaningHandler(CleaningDataHandler):
     def clean(self, data_model: ExamRawModel) -> ExamCleanedModel:
-        joined_text = (
-            "".join(data_model.content.values()) if data_model and data_model.content else None
-        )
+        # Since content is now a string, use it directly instead of joining dict values
+        content_text = data_model.content if data_model and data_model.content else ""
+        
         return ExamCleanedModel(
             entry_id=data_model.entry_id,
             type=data_model.type,
             link=data_model.link,
             grade_id=data_model.grade_id,
-            cleaned_content=clean_text(joined_text)
+            cleaned_content=clean_text(content_text)
         )

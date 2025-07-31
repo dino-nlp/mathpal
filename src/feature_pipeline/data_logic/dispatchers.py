@@ -1,6 +1,7 @@
 from core import get_logger
 from models.base import DataModel
 from models.raw import ExamRawModel
+from pydantic import ValidationError
 
 from data_logic.chunking_data_handlers import ExamChunkingHandler, ChunkingDataHandler
 from data_logic.cleaning_data_handlers import ExamCleaningHandler, CleaningDataHandler
@@ -14,11 +15,36 @@ class RawDispatcher:
         data_type = message.get("type")
 
         logger.info("Received message.", data_type=data_type)
+        logger.debug("Message content.", message=message)
 
         if data_type == "exam":
-            return ExamRawModel(**message)
+            try:
+                # Validate message structure before creating model
+                # Required fields: DataModel (entry_id, type) + ExamRawModel (content, link, grade_id)
+                required_fields = ['type', 'entry_id', 'content', 'link', 'grade_id']
+                missing_fields = [field for field in required_fields if field not in message]
+                
+                if missing_fields:
+                    logger.error("Missing required fields in message.", missing_fields=missing_fields, message_keys=list(message.keys()))
+                    raise ValueError(f"Missing required fields: {missing_fields}")
+                
+                return ExamRawModel(**message)
+            except ValidationError as ve:
+                logger.error("Validation error creating ExamRawModel.", 
+                           error=str(ve), 
+                           message=message,
+                           error_details=ve.errors() if hasattr(ve, 'errors') else 'No error details available')
+                # Re-raise with more context
+                raise ValueError(f"Failed to validate ExamRawModel: {ve}")
+            except Exception as e:
+                logger.error("Unexpected error creating ExamRawModel.", 
+                           error=str(e), 
+                           error_type=type(e).__name__,
+                           message=message)
+                raise ValueError(f"Unexpected error creating ExamRawModel: {e}")
         else:
-            raise ValueError("Unsupported data type")
+            logger.error("Unsupported data type.", data_type=data_type, message=message)
+            raise ValueError(f"Unsupported data type: {data_type}")
 
 
 class CleaningHandlerFactory:
@@ -58,12 +84,12 @@ class ChunkingHandlerFactory:
 
 
 class ChunkingDispatcher:
-    cleaning_factory = ChunkingHandlerFactory
+    chunking_factory = ChunkingHandlerFactory()
 
     @classmethod
     def dispatch_chunker(cls, data_model: DataModel) -> list[DataModel]:
         data_type = data_model.type
-        handler = cls.cleaning_factory.create_handler(data_type)
+        handler = cls.chunking_factory.create_handler(data_type)
         chunk_models = handler.chunk(data_model)
 
         logger.info(
@@ -85,12 +111,12 @@ class EmbeddingHandlerFactory:
 
 
 class EmbeddingDispatcher:
-    cleaning_factory = EmbeddingHandlerFactory
+    embedding_factory = EmbeddingHandlerFactory()
 
     @classmethod
     def dispatch_embedder(cls, data_model: DataModel) -> DataModel:
         data_type = data_model.type
-        handler = cls.cleaning_factory.create_handler(data_type)
+        handler = cls.embedding_factory.create_handler(data_type)
         embedded_chunk_model = handler.embedd(data_model)
 
         logger.info(
