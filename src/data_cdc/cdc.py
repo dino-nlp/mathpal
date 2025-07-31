@@ -33,7 +33,7 @@ def stream_process():
             
             # logger.info(f"Processing change: {change}")
 
-            if data_type not in ["exam", "grade"]:
+            if data_type not in ["exam"]:
                 logger.info(f"Unsupported data type: '{data_type}', skipping...")
                 continue
 

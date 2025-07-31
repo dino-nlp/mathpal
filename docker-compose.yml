@@ -87,6 +87,23 @@ services:
       - mongo2
       - mongo3
       - mq
+  
+  feature_pipeline:
+    image: "mathpal-feature-pipeline"
+    container_name: mathpal-feature-pipeline
+    build:
+      context: .
+      dockerfile: .docker/Dockerfile.feature_pipeline
+    environment:
+      BYTEWAX_PYTHON_FILE_PATH: "main:flow"
+      DEBUG: "false"
+      BYTEWAX_KEEP_CONTAINER_ALIVE: "true"
+    env_file:
+      - .env
+    depends_on:
+      - mq
+      - qdrant
+    restart: always
 
 volumes:
   mongo-replica-1-data:
