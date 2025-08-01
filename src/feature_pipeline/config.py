@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     # Embeddings config
     EMBEDDING_MODEL_ID: str = "BAAI/bge-m3"
     EMBEDDING_MODEL_MAX_INPUT_LENGTH: int = 512
-    EMBEDDING_SIZE: int = 384
+    EMBEDDING_SIZE: int = 1024
     EMBEDDING_MODEL_DEVICE: str = "cpu"
 
     # OpenAI

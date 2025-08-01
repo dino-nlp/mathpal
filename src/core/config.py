@@ -6,7 +6,7 @@ ROOT_DIR = str(Path(__file__).parent.parent.parent)
 
 
 class AppSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=ROOT_DIR, env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(env_file=f"{ROOT_DIR}/.env", env_file_encoding="utf-8")
 
     # MongoDB configs
     MONGO_DATABASE_HOST: str = (

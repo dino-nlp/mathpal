@@ -32,3 +32,10 @@ local-ingest-data: # Ingest all links from data/links.txt in a single batch.
 	curl -X POST "http://localhost:9010/2015-03-31/functions/function/invocations" \
 		-d "{\"grade_name\": \"grade_5\", \"links\": $$links_json}"; \
 	echo "\nDone."
+
+# ======================================
+# -------- RAG Feature Pipeline --------
+# ======================================
+
+local-test-retriever: # Test the RAG retriever using your Poetry env
+	cd src/feature_pipeline && poetry run python -m retriever
