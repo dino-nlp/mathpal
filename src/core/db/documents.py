@@ -115,9 +115,8 @@ class GradeDocument(BaseDocument):
 class ExamDocument(BaseDocument):
     """Đại diện cho một bài thi."""
     question: str
-    image_url: Optional[str]
     solution: str
-    result: Optional[str]
+    link: str # source link
     grade_id: str = Field(alias="grade_id")
     
     class Settings:

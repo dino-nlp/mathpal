@@ -16,10 +16,8 @@ import json
 logger = Logger(service="mathpal/crawler/loigiaihay")
 
 class Proplem(BaseModel):
-    question: str = Field(..., description="Main question of the test, usually starting with 'Câu ...' or 'Bài...'. The question may contain LaTeX formulas")
-    image_url: Optional[str] = Field(None, description="URL of the illustrative image, in case the question requires a diagram for description")
-    solution: str = Field(..., description=" Solution guide, which may contain LaTeX formulas.")
-    result: Optional[str] = Field(None, description="The answers to the multiple-choice questions can be A, B, C, D, or a final number.")
+    question: str = Field(..., description="The main questions of the test are often started with 'Câu...' or 'Bài...'. The questions may contain mathematical formulas or illustrative images")
+    solution: str = Field(..., description="The solution of the test are often started with 'Cách giải...' or 'Hướng dẫn...'. The solutions may contain mathematical formulas or illustrative images.")
 
 class LoiGiaiHayCrawler(BaseAbstractCrawler):
     model = ExamDocument
@@ -42,27 +40,27 @@ class LoiGiaiHayCrawler(BaseAbstractCrawler):
 
         llm_strategy = LLMExtractionStrategy(
             llm_config = LLMConfig(provider=f"openrouter/{settings.OPENROUTER_BASE_MODEL}", api_token=settings.OPENROUTER_KEY),
-            schema=Proplem.model_json_schema(), # Or use model_json_schema()
+            schema=Proplem.model_json_schema(),
             extraction_type="schema",
             instruction="""
-            You are an expert Web Data Extraction agent. Your task is to parse the content of a provided exam and extract **ALL** the questions within it.
+            You are an expert Web Data Extraction agent, You can understand mathematical formulas made by html correctly and understand Vietnamese. 
+            Your task is to parse the content of a provided exam and extract **ALL** the questions and their solutions within it.
             
             **Instructions:**
 
             * Extract all questions sequentially, starting from the first question to the final question.
             * For each question, capture the following data points:
-                * The full `question`.
-                * Associated illustrative `image_url` (if any).
-                * The `solution`.
-                * The `result`.
+                * The `question` are often started with 'Câu...' or 'Bài...' .etc
+                * The `solution`are often started with 'Cách giải...' or 'Hướng dẫn...' .etc
             * All mathematical formulas within the questions and solutions **MUST** be formatted using LaTeX.
+            * Images in the question or solution must be in Markdown format: `![](image_url)`
             * Ignore all non-question content, such as page introductions, comments, advertisements, or related links in the footer.
             * Format the final output to strictly follow the provided `JSON schema` structure.
             """,
             chunk_token_threshold=1000,
             overlap_rate=0.0,
             apply_chunking=True,
-            # input_format="fit_markdown",   # or "html", "fit_markdown"
+            input_format="html",   # or "html", "fit_markdown"
         )
         
         self.run_config = CrawlerRunConfig(
@@ -135,9 +133,8 @@ class LoiGiaiHayCrawler(BaseAbstractCrawler):
                                     # Tạo ExamDocument từ Proplem
                                     exam_doc = ExamDocument(
                                         question=proplem.question,
-                                        image_url=proplem.image_url,
                                         solution=proplem.solution,
-                                        result=proplem.result,
+                                        link=link,
                                         grade_id=kwargs.get("grade_id")
                                     )
                                     
