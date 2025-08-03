@@ -41,3 +41,6 @@ local-ingest-data: # Ingest all links from data/links.txt by calling your local 
 
 local-test-retriever: # Test the RAG retriever using your Poetry env
 	cd src/feature_pipeline && poetry run python -m retriever
+
+local-generate-instruct-dataset: # Generate the fine-tuning instruct dataset using your Poetry env.
+	cd src/feature_pipeline && poetry run python -m generate_dataset.generate
