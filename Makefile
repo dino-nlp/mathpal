@@ -22,16 +22,18 @@ local-start: # Build and start your local Docker infrastructure.
 local-stop: # Stop your local Docker infrastructure.
 	docker compose -f docker-compose.yml down --remove-orphans
 
-local-test-crawler: # Make a call to your local AWS Lambda (hosted in Docker) to crawl multiple articles.
+local-test-crawler: # Make a call to your local AWS Lambda (hosted in Docker) to crawl a Medium article.
 	curl -X POST "http://localhost:9010/2015-03-31/functions/function/invocations" \
-		-d '{"links": ["https://loigiaihay.com/de-thi-vao-lop-6-mon-toan-truong-cau-giay-nam-2023-a142098.html", "https://loigiaihay.com/de-thi-vao-lop-6-mon-toan-truong-luong-the-vinh-2021-co-dap-an-a134641.html", "https://loigiaihay.com/de-thi-vao-lop-6-mon-toan-truong-nguyen-tat-thanh-nam-2025-co-dap-an-a185630.html"], "grade_name": "grade_5"}'
+	  	-d '{"grade_name": "grade_5", "link": "https://loigiaihay.com/de-thi-vao-lop-6-mon-toan-truong-cau-giay-nam-2023-a142098.html"}'
 
-local-ingest-data: # Ingest all links from data/links.txt in a single batch.
-	@echo "Preparing to send all links in a single batch..."
-	@links_json=$$(jq -R . data/links.txt | jq -s .); \
-	curl -X POST "http://localhost:9010/2015-03-31/functions/function/invocations" \
-		-d "{\"grade_name\": \"grade_5\", \"links\": $$links_json}"; \
-	echo "\nDone."
+local-ingest-data: # Ingest all links from data/links.txt by calling your local AWS Lambda hosted in Docker.
+	while IFS= read -r link; do \
+		echo "Processing: $$link"; \
+		curl -X POST "http://localhost:9010/2015-03-31/functions/function/invocations" \
+			-d "{\"grade_name\": \"grade_5\", \"link\": \"$$link\"}"; \
+		echo "\n"; \
+		sleep 2; \
+	done < data/links.txt
 
 # ======================================
 # -------- RAG Feature Pipeline --------

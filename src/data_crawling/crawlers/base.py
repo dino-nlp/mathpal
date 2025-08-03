@@ -11,7 +11,7 @@ class BaseCrawler(ABC):
     model: type[BaseDocument]
 
     @abstractmethod
-    async def extract(self, links: List[str], **kwargs) -> None: ...
+    async def extract(self, link: str, **kwargs) -> None: ...
 
 
 class BaseAbstractCrawler(BaseCrawler, ABC):

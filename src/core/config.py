@@ -35,7 +35,7 @@ class AppSettings(BaseSettings):
     
     # OpenRouter config
     OPENROUTER_KEY: str | None = None
-    OPENROUTER_BASE_MODEL: str = "qwen/qwen3-8b:free"
+    OPENROUTER_BASE_MODEL: str = "qwen/qwen-2.5-72b-instruct:free"
 
     # CometML config
     COMET_API_KEY: str | None = None
@@ -68,6 +68,5 @@ class AppSettings(BaseSettings):
         self.QDRANT_DATABASE_HOST = "localhost"
         self.RABBITMQ_HOST = "localhost"
     
-
 
 settings = AppSettings()
