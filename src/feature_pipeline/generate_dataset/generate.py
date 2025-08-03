@@ -23,6 +23,8 @@ logger.warning(
 
 from comet_ml import Artifact, start
 from core.db.qdrant import QdrantDatabaseConnector
+from datasets import Dataset, DatasetDict, Features, Value, Image as HFImage
+from huggingface_hub import login
 from sklearn.model_selection import train_test_split
 from .file_handler import FileHandler
 
@@ -34,7 +36,7 @@ class DatasetGenerator:
         self.file_handler = file_handler
     
     def generate_training_data(
-        self, collection_name: str, data_type: str, batch_size: int = 3
+        self, collection_name: str, data_type: str, grade_name: str
     ) -> None:
         assert (
             settings.COMET_API_KEY
@@ -47,6 +49,10 @@ class DatasetGenerator:
             settings.COMET_PROJECT
         ), "COMET_PROJECT must be set in settings, fill it in your .env file."
         
+        assert (
+            settings.HUGGINGFACE_ACCESS_TOKEN
+        ), "HUGGINGFACE_ACCESS_TOKEN must be set in settings, fill it in your .env file."
+        
         cleaned_documents = self.fetch_all_cleaned_content(collection_name)
         num_cleaned_documents = len(cleaned_documents)
         logger.info(
@@ -58,6 +64,8 @@ class DatasetGenerator:
             parts = document.split('#### SOLUTION:')
             question_text = parts[0].replace('### QUESTION:', '').strip()
             solution_text = parts[1].strip()
+            if len(question_text) < 20 or len(solution_text)==0:
+                continue
             result_dict = {
                 "question": question_text,
                 "solution": solution_text
@@ -65,7 +73,8 @@ class DatasetGenerator:
             generated_instruct_dataset.append(result_dict)
         
         train_test_split = self._split_dataset(generated_instruct_dataset)
-        self.push_to_comet(train_test_split, data_type, collection_name)
+        self.push_to_comet(train_test_split, data_type, collection_name, grade_name)
+        self.push_to_huggingface(train_test_split, data_type, grade_name)
     
     def _split_dataset(
         self, generated_instruct_dataset: list[dict], test_size: float = 0.1
@@ -92,7 +101,8 @@ class DatasetGenerator:
         self,
         train_test_split: tuple[list[dict], list[dict]],
         data_type: str,
-        collection_name: str,
+        collection_name: str, 
+        grade_name: str,
         output_dir: Path = Path("generated_dataset"),
     ) -> None:
         output_dir.mkdir(exist_ok=True)
@@ -117,7 +127,7 @@ class DatasetGenerator:
 
             logger.info("Data written to file successfully")
 
-            artifact = Artifact(f"{data_type}-instruct-dataset")
+            artifact = Artifact(f"{data_type}-{grade_name}-instruct-dataset")
             artifact.add(file_name_training_data)
             artifact.add(file_name_testing_data)
             logger.info(f"Artifact created.")
@@ -131,6 +141,47 @@ class DatasetGenerator:
                 f"Failed to create Comet artifact and push it to Comet.",
             )
 
+    def push_to_huggingface(
+        self, 
+        train_test_split: tuple[list[dict], list[dict]], 
+        data_type: str,
+        grade_name: str,):
+        
+        # Login to huggingface
+        login(token=settings.HUGGINGFACE_ACCESS_TOKEN)
+        logger.info("✅ Đã đăng nhập Hugging Face thành công")
+        
+        # create dataset
+        features = Features({
+            'question': Value('string'),
+            'solution': Value('string')
+        })
+        train_data, test_data = train_test_split
+        train_dataset = Dataset.from_list(train_data, features=features)
+        test_dataset = Dataset.from_list(test_data, features=features)
+        dataset_dict = DatasetDict({
+            'train': train_dataset,
+            'test': test_dataset
+        })
+        
+        # Upload to huggingface
+        repo_id=f"ngohongthai/{data_type}-{grade_name}-instruct-dataset"
+        print(f"🚀 Đang upload dataset lên Hugging Face: {repo_id}")
+        
+        try:
+            # Upload dataset
+            dataset_dict.push_to_hub(
+                repo_id=repo_id,
+                private=False,  # Đặt True nếu muốn dataset private
+                commit_message="Initial dataset upload"
+            )
+            
+            print(f"✅ Đã upload dataset thành công!")
+            print(f"🔗 Dataset URL: https://huggingface.co/datasets/{repo_id}")
+            
+        except Exception as e:
+            print(f"❌ Lỗi khi upload dataset: {e}")
+        
     def fetch_all_cleaned_content(self, collection_name: str) -> list:
         all_cleaned_contents = []
 
@@ -150,6 +201,7 @@ if __name__ == "__main__":
     
     collection_name = "cleaned_exams"
     data_type = "exam"
+    grade_name = "sixth_grade"
     
     logger.info(
         "Generating training data.",
@@ -158,5 +210,5 @@ if __name__ == "__main__":
     )
     
     dataset_generator.generate_training_data(
-        collection_name=collection_name, data_type=data_type
+        collection_name=collection_name, data_type=data_type, grade_name=grade_name
     )
