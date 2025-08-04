@@ -44,3 +44,10 @@ local-test-retriever: # Test the RAG retriever using your Poetry env
 
 local-generate-instruct-dataset: # Generate the fine-tuning instruct dataset using your Poetry env.
 	cd src/feature_pipeline && poetry run python -m generate_dataset.generate
+
+# ===================================================
+# -- Training & Inference pipelines --
+# ===================================================
+
+download-instruct-dataset: # Download the fine-tuning instruct dataset using your Poetry env.
+	cd src/training_pipeline && PYTHONPATH=$(PYTHONPATH) poetry run python download_dataset.py
