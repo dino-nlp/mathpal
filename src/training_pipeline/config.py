@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 
 @dataclass
 class CometConfig:
-    """Comet ML configuration với tính năng model registry"""
+    """Comet ML configuration với tính năng model registry và Opik integration"""
     # API Keys - REQUIRED
     api_key: Optional[str] = None
     workspace: Optional[str] = None
@@ -24,14 +24,15 @@ class CometConfig:
         "vietnamese",
         "sixth-grade",
         "fine-tuning",
-        "unsloth"
+        "unsloth",
+        "comet-ml"  # Primary tracking với Comet ML
     ])
     
-    # Logging settings
+    # Logging settings - optimized theo best practices
     auto_metric_logging: bool = True
     auto_param_logging: bool = True
-    auto_histogram_weight_logging: bool = True
-    auto_histogram_gradient_logging: bool = True
+    auto_histogram_weight_logging: bool = False  # Disable để tiết kiệm memory và bandwidth
+    auto_histogram_gradient_logging: bool = False  # Disable để tiết kiệm memory và bandwidth  
     auto_histogram_activation_logging: bool = False  # Tiết kiệm memory
     auto_output_logging: str = "default"
     
@@ -54,29 +55,35 @@ class CometConfig:
 
 @dataclass
 class ModelConfig:
-    """Cấu hình model tối ưu cho T4 GPU"""
+    """Cấu hình model tối ưu cho T4 GPU theo Unsloth best practices mới nhất"""
     # Base model settings
     model_name: str = "unsloth/gemma-3n-E2B-it"
     max_seq_length: int = 2048  # Phù hợp với T4 memory
     load_in_4bit: bool = True   # Quan trọng cho T4
+    load_in_8bit: bool = False  # Không sử dụng cùng lúc với 4bit
     full_finetuning: bool = False
+    dtype: Optional[str] = None  # Auto-detect tốt nhất
     
-    # LoRA settings - tối ưu cho hiệu suất
+    # LoRA settings - theo Unsloth best practices mới nhất
     lora_r: int = 16            # Tăng từ 8 để better performance
-    lora_alpha: int = 16        # Matched với lora_r  
-    lora_dropout: float = 0.0   # Optimized cho Unsloth
-    lora_bias: str = "none"     # Optimized cho Unsloth
+    lora_alpha: int = 16        # Matched với lora_r để stable training
+    lora_dropout: float = 0.0   # Optimized cho Unsloth = 0 is optimized
+    lora_bias: str = "none"     # Optimized cho Unsloth = "none" is optimized
     
-    # Target modules - comprehensive coverage
+    # Target modules - comprehensive coverage theo Unsloth recommendations
     target_modules: List[str] = field(default_factory=lambda: [
         "q_proj", "k_proj", "v_proj", "o_proj",
         "gate_proj", "up_proj", "down_proj"
     ])
     
-    # Memory optimization
-    use_gradient_checkpointing: str = "unsloth"  # Unsloth optimized
-    use_rslora: bool = False
-    random_state: int = 42
+    # Memory optimization - theo Unsloth docs mới nhất
+    use_gradient_checkpointing: str = "unsloth"  # "unsloth" uses 30% less VRAM
+    use_rslora: bool = False    # Rank stabilized LoRA
+    loftq_config: Optional[str] = None  # LoftQ config
+    random_state: int = 3407    # Unsloth recommended seed
+    
+    # Packing optimization
+    packing: bool = True        # Packs short sequences together to save time!
 
 
 @dataclass  
@@ -105,7 +112,8 @@ class TrainingConfig:
     # Training schedule - optimized cho 1000 samples
     num_train_epochs: int = 3           # Đủ cho 1000 samples
     max_steps: int = -1                 # Use epochs instead
-    eval_strategy: str = "epoch"        # Evaluate sau mỗi epoch
+    eval_strategy: str = "steps"        # Evaluate theo steps để tương thích với save_strategy
+    eval_steps: int = 100               # Evaluate mỗi 100 steps
     
     # Batch size settings - optimized cho T4 
     per_device_train_batch_size: int = 1
@@ -127,10 +135,10 @@ class TrainingConfig:
     bf16: bool = False                  # T4 không support BF16
     dataloader_pin_memory: bool = True
     
-    # Logging và saving
+    # Logging và saving - đảm bảo consistency với eval_strategy
     logging_steps: int = 10
-    save_strategy: str = "epoch"
-    save_steps: int = 500
+    save_strategy: str = "steps"        # Thay đổi để match với eval_strategy
+    save_steps: int = 100               # Save mỗi 100 steps, cùng với eval_steps
     save_total_limit: int = 3           # Giữ 3 checkpoints
     
     # Evaluation settings
@@ -143,9 +151,9 @@ class TrainingConfig:
     early_stopping_patience: int = 2
     early_stopping_threshold: float = 0.001
     
-    # Reproducibility
-    seed: int = 42
-    data_seed: int = 42
+    # Reproducibility - match với model config
+    seed: int = 3407        # Unsloth recommended seed
+    data_seed: int = 3407   # Consistency across configs
     
     # Memory optimization
     remove_unused_columns: bool = True
