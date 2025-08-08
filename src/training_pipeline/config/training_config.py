@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from typing import Optional, Dict, Any
-from .base_config import BaseConfig
+from base_config import BaseConfig
 
 
 @dataclass
