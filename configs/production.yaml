@@ -1,0 +1,44 @@
+# Production Configuration
+# Full configuration for production training
+
+# Model settings
+model_name: "unsloth/gemma-3n-E4B-it"
+max_seq_length: 2048
+load_in_4bit: true
+full_finetuning: false
+
+# Dataset settings
+dataset_name: "ngohongthai/exam-sixth_grade-instruct-dataset"
+train_split: "train"
+test_split: "test"
+
+# Output settings
+output_dir: "outputs/production-models"
+experiment_name: "production_v1"
+
+# Training hyperparameters
+max_steps: 1000
+per_device_train_batch_size: 2
+gradient_accumulation_steps: 8
+learning_rate: 0.0001
+warmup_ratio: 0.05
+weight_decay: 0.01
+logging_steps: 10
+save_steps: 100
+
+# LoRA settings (balanced)
+lora_r: 16
+lora_alpha: 16
+lora_dropout: 0.1
+lora_bias: "none"
+
+# System settings
+use_gradient_checkpointing: true
+report_to: "comet_ml"
+seed: 42
+optim: "adamw_torch_fused"
+lr_scheduler_type: "cosine"
+
+# Training settings
+train_on_responses_only: true
+dataset_text_field: "text"

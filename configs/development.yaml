@@ -1,0 +1,40 @@
+# Development Configuration
+# Quick configuration for development and testing
+
+# Model settings
+model_name: "unsloth/gemma-3n-E4B-it"
+max_seq_length: 1024  # Smaller for faster development
+load_in_4bit: true
+full_finetuning: false
+
+# Dataset settings
+dataset_name: "ngohongthai/exam-sixth_grade-instruct-dataset"
+train_split: "train"
+
+# Output settings
+output_dir: "outputs/dev-experiments"
+experiment_name: "dev_test"
+
+# Training hyperparameters (minimal for quick testing)
+max_steps: 20
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 4
+learning_rate: 0.0002
+warmup_ratio: 0.1
+weight_decay: 0.01
+logging_steps: 2
+save_steps: 10
+
+# LoRA settings (lightweight)
+lora_r: 4
+lora_alpha: 8
+lora_dropout: 0.0
+
+# System settings
+report_to: "none"  # Disable tracking for development
+seed: 42
+optim: "adamw_torch_fused"
+lr_scheduler_type: "linear"
+
+# Training settings
+train_on_responses_only: true
