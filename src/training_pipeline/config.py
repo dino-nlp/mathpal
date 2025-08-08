@@ -260,6 +260,7 @@ def get_optimized_config_for_t4() -> ExperimentConfig:
     config.training.per_device_train_batch_size = 1
     config.training.gradient_accumulation_steps = 8  # Effective batch = 8
     config.training.fp16 = True
+    config.training.bf16 = False  # CRITICAL: T4 không support bf16
     config.training.optim = "adamw_8bit"
     
     # Optimize cho 1000 samples
@@ -272,6 +273,9 @@ def get_optimized_config_for_t4() -> ExperimentConfig:
     # Early stopping để tránh overfitting
     config.training.early_stopping_patience = 3
     config.training.load_best_model_at_end = True
+    
+    # Auto-fix precision cho T4 (extra safety)
+    config = auto_fix_precision_for_gpu(config)
     
     return config
 
@@ -288,6 +292,32 @@ def get_config_for_larger_gpu() -> ExperimentConfig:
     config.training.gradient_accumulation_steps = 8
     config.training.bf16 = True  # Better cho A100
     config.training.optim = "adamw_torch_fused"
+    
+    # Auto-fix bf16 for T4 even in larger GPU config
+    config = auto_fix_precision_for_gpu(config)
+    
+    return config
+
+
+def auto_fix_precision_for_gpu(config: ExperimentConfig) -> ExperimentConfig:
+    """
+    Tự động fix precision settings dựa trên GPU type
+    """
+    try:
+        import torch
+        if torch.cuda.is_available():
+            gpu_name = torch.cuda.get_device_name(0).lower()
+            if "t4" in gpu_name:
+                # T4 không support bf16
+                if config.training.bf16:
+                    print(f"🛡️  AUTO-FIX: Disabling bf16 for T4 GPU (detected: {gpu_name})")
+                    config.training.bf16 = False
+                    config.training.fp16 = True
+                print(f"✅ GPU-optimized config for: {gpu_name}")
+            else:
+                print(f"✅ Using original config for: {gpu_name}")
+    except Exception as e:
+        print(f"⚠️  Could not auto-fix precision: {e}")
     
     return config
 

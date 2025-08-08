@@ -244,6 +244,15 @@ class TrainingWrapper:
         """Create SFTTrainer với optimized configuration"""
         logger.info("🏋️ Creating trainer...")
         
+        # Safety check: Force bf16=False for T4 GPU
+        import torch
+        if torch.cuda.is_available():
+            gpu_name = torch.cuda.get_device_name(0).lower()
+            if "t4" in gpu_name and self.config.training.bf16:
+                logger.warning("🛡️  SAFETY: Disabling bf16 for T4 GPU (not supported)")
+                self.config.training.bf16 = False
+                self.config.training.fp16 = True
+        
         # Prepare model for training theo working notebook pattern
         from unsloth import FastModel
         FastModel.for_training(self.model_manager.model)

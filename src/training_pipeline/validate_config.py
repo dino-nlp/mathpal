@@ -161,10 +161,12 @@ def main():
         print("🎉 TẤT CẢ KIỂM TRA HOÀN TẤT THÀNH CÔNG!")
         print("\n✅ Các vấn đề đã được sửa:")
         print("  - eval_strategy và save_strategy đã đồng bộ (cả hai đều dùng 'steps')")
-        print("  - eval_steps và save_steps đã được set giống nhau (100 steps)")
+        print("  - eval_steps và save_steps đã được set giống nhau (50 steps)")
+        print("  - bf16 đã được force disabled cho T4 GPU (auto-detection)")
         print("  - Cấu hình Unsloth đã được cập nhật theo best practices mới nhất")
         print("  - Comet ML được sử dụng làm primary tracking platform")
         print("  - Histogram logging đã được tối ưu để tiết kiệm memory/bandwidth")
+        print("  - Safety checks được thêm vào trainer để tránh bf16 trên T4")
         print("\n🚀 Bạn có thể chạy training pipeline mà không gặp lỗi TrainingArguments!")
         return 0
     else:
