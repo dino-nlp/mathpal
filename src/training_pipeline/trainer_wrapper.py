@@ -244,77 +244,51 @@ class TrainingWrapper:
         """Create SFTTrainer với optimized configuration"""
         logger.info("🏋️ Creating trainer...")
         
-        # Prepare model for training
-        self.model_manager.prepare_for_training()
+        # Prepare model for training theo working notebook pattern
+        from unsloth import FastModel
+        FastModel.for_training(self.model_manager.model)
         
-        # Create training arguments
+        # Create SFTConfig theo working notebook pattern (minimal parameters)
         training_args = SFTConfig(
-            # Basic settings
+            # Dataset settings - theo working pattern
             dataset_text_field=self.config.dataset.dataset_text_field,
-            output_dir=self.config.training.output_dir,
-            run_name=self.config.training.run_name,
             
-            # Training schedule
-            num_train_epochs=self.config.training.num_train_epochs,
+            # Basic settings
+            output_dir=self.config.training.output_dir,
             max_steps=self.config.training.max_steps,
             
             # Batch settings
             per_device_train_batch_size=self.config.training.per_device_train_batch_size,
-            per_device_eval_batch_size=self.config.training.per_device_eval_batch_size,
             gradient_accumulation_steps=self.config.training.gradient_accumulation_steps,
             
             # Learning rate
             learning_rate=self.config.training.learning_rate,
             warmup_ratio=self.config.training.warmup_ratio,
+            weight_decay=self.config.training.weight_decay,
             lr_scheduler_type=self.config.training.lr_scheduler_type,
             
-            # Optimization
+            # Optimization - theo working notebook
             optim=self.config.training.optim,
-            weight_decay=self.config.training.weight_decay,
-            max_grad_norm=self.config.training.max_grad_norm,
             
-            # Precision
-            fp16=self.config.training.fp16,
-            bf16=self.config.training.bf16,
-            
-            # Evaluation
-            eval_strategy=self.config.training.eval_strategy,
-            eval_steps=getattr(self.config.training, 'eval_steps', None),
-            eval_accumulation_steps=self.config.training.eval_accumulation_steps,
-            
-            # Saving
+            # Logging and saving
+            logging_steps=self.config.training.logging_steps,
             save_strategy=self.config.training.save_strategy,
             save_steps=self.config.training.save_steps,
-            save_total_limit=self.config.training.save_total_limit,
-            
-            # Logging
-            logging_steps=self.config.training.logging_steps,
             report_to=self.config.training.report_to,
             
-            # Early stopping
-            load_best_model_at_end=self.config.training.load_best_model_at_end,
-            metric_for_best_model=self.config.training.metric_for_best_model,
-            greater_is_better=self.config.training.greater_is_better,
-            
-            # Memory optimization
-            remove_unused_columns=self.config.training.remove_unused_columns,
-            dataloader_num_workers=self.config.training.dataloader_num_workers,
-            dataloader_pin_memory=self.config.training.dataloader_pin_memory,
+            # Length settings - key difference: max_length không phải max_seq_length
+            max_length=self.config.model.max_seq_length,
             
             # Reproducibility
             seed=self.config.training.seed,
-            data_seed=self.config.training.data_seed,
-            
-            # Length settings
-            max_length=self.config.model.max_seq_length,
         )
         
-        # Create trainer
+        # Create trainer theo working notebook pattern (minimal parameters)
         trainer = SFTTrainer(
             model=self.model_manager.model,
             tokenizer=self.model_manager.tokenizer,
             train_dataset=datasets["train"],
-            eval_dataset=datasets.get("eval"),
+            # Không include eval_dataset như working notebook
             args=training_args,
         )
         

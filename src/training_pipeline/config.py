@@ -109,11 +109,11 @@ class TrainingConfig:
     output_dir: str = "outputs/gemma3n-math-tutor"
     run_name: str = "gemma3n-math-baseline"
     
-    # Training schedule - optimized cho 1000 samples
-    num_train_epochs: int = 3           # Đủ cho 1000 samples
-    max_steps: int = -1                 # Use epochs instead
+    # Training schedule - theo working notebook pattern
+    num_train_epochs: int = 1           # Working notebook sử dụng 1 epoch
+    max_steps: int = 100                # Working notebook sử dụng max_steps thay vì epochs
     eval_strategy: str = "steps"        # Evaluate theo steps để tương thích với save_strategy
-    eval_steps: int = 100               # Evaluate mỗi 100 steps
+    eval_steps: int = 50                # Evaluate mỗi 50 steps
     
     # Batch size settings - optimized cho T4 
     per_device_train_batch_size: int = 1
@@ -130,7 +130,7 @@ class TrainingConfig:
     max_grad_norm: float = 1.0
     
     # Optimization
-    optim: str = "adamw_8bit"           # Memory efficient
+    optim: str = "adamw_torch_fused"    # Working notebook sử dụng adamw_torch_fused
     fp16: bool = True                   # T4 supports FP16
     bf16: bool = False                  # T4 không support BF16
     dataloader_pin_memory: bool = True
@@ -138,7 +138,7 @@ class TrainingConfig:
     # Logging và saving - đảm bảo consistency với eval_strategy
     logging_steps: int = 10
     save_strategy: str = "steps"        # Thay đổi để match với eval_strategy
-    save_steps: int = 100               # Save mỗi 100 steps, cùng với eval_steps
+    save_steps: int = 50                # Save mỗi 50 steps, cùng với eval_steps
     save_total_limit: int = 3           # Giữ 3 checkpoints
     
     # Evaluation settings
