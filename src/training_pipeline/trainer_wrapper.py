@@ -253,6 +253,9 @@ class TrainingWrapper:
                 self.config.training.bf16 = False
                 self.config.training.fp16 = True
         
+        # Debug log precision settings
+        logger.info(f"🔍 Precision settings: fp16={self.config.training.fp16}, bf16={self.config.training.bf16}")
+        
         # Prepare model for training theo working notebook pattern
         from unsloth import FastModel
         FastModel.for_training(self.model_manager.model)
@@ -279,6 +282,10 @@ class TrainingWrapper:
             # Optimization - theo working notebook
             optim=self.config.training.optim,
             
+            # Precision settings - CRITICAL: explicit set để override defaults
+            fp16=self.config.training.fp16,
+            bf16=self.config.training.bf16,
+            
             # Logging and saving
             logging_steps=self.config.training.logging_steps,
             save_strategy=self.config.training.save_strategy,
@@ -291,6 +298,15 @@ class TrainingWrapper:
             # Reproducibility
             seed=self.config.training.seed,
         )
+        
+        # Final safety check trước khi tạo trainer
+        if training_args.bf16:
+            logger.error("❌ CRITICAL: bf16=True trong SFTConfig! Điều này sẽ gây lỗi trên T4!")
+            logger.info("🛡️  EMERGENCY FIX: Force setting bf16=False")
+            training_args.bf16 = False
+            training_args.fp16 = True
+            
+        logger.info(f"🔍 Final SFTConfig check: fp16={training_args.fp16}, bf16={training_args.bf16}")
         
         # Create trainer theo working notebook pattern (minimal parameters)
         trainer = SFTTrainer(
