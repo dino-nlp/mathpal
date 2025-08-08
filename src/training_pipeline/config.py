@@ -56,7 +56,7 @@ class CometConfig:
 class ModelConfig:
     """Cấu hình model tối ưu cho T4 GPU"""
     # Base model settings
-    model_name: str = "unsloth/gemma-3n-E4B-it"
+    model_name: str = "unsloth/gemma-3n-E2B-it"
     max_seq_length: int = 2048  # Phù hợp với T4 memory
     load_in_4bit: bool = True   # Quan trọng cho T4
     full_finetuning: bool = False
@@ -248,7 +248,7 @@ def get_optimized_config_for_t4() -> ExperimentConfig:
     config = ExperimentConfig()
     
     # Optimize cho T4 memory constraints
-    config.model.max_seq_length = 1536      # Giảm để fit memory
+    config.model.max_seq_length = 2048      # Giảm để fit memory
     config.training.per_device_train_batch_size = 1
     config.training.gradient_accumulation_steps = 8  # Effective batch = 8
     config.training.fp16 = True
@@ -287,7 +287,7 @@ def get_config_for_larger_gpu() -> ExperimentConfig:
 # Helper functions
 def validate_environment():
     """Validate required environment variables"""
-    required_vars = ["COMET_API_KEY", "COMET_WORKSPACE"]
+    required_vars = ["COMET_API_KEY", "COMET_WORKSPACE", "COMET_PROJECT"]
     missing_vars = [var for var in required_vars if not os.getenv(var)]
     
     if missing_vars:
@@ -295,6 +295,8 @@ def validate_environment():
             f"Missing required environment variables: {missing_vars}. "
             "Please set them in your environment or .env file."
         )
+    else:
+        print("Looking good")
 
 
 def print_config_summary(config: ExperimentConfig):
