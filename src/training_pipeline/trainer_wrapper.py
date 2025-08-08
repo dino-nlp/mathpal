@@ -2,22 +2,20 @@
 Training wrapper with Comet ML integration for Gemma3N fine-tuning
 Provides high-level training interface with comprehensive monitoring
 """
-
 import logging
 import os
 import time
 from typing import Dict, Any, Optional, List, Tuple
 from pathlib import Path
 import json
+# Import comet_ml as early as possible to enable auto-logging hooks
+import comet_ml  # must be imported before torch/transformers/trl
 import torch
 
 from transformers import TrainingArguments, EarlyStoppingCallback
 from transformers.utils import logging as transformers_logging
 from trl import SFTTrainer, SFTConfig
 from datasets import Dataset
-
-# Comet ML imports
-import comet_ml
 
 from config import ExperimentConfig, TrainingConfig, CometConfig
 from model_manager import GemmaModelManager
