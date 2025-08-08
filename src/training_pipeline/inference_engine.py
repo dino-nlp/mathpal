@@ -2,7 +2,7 @@
 
 import torch
 from typing import Dict, Any, List, Optional, Union
-from ..data.chat_formatter import ChatFormatter
+from training_pipeline.chat_formatter import ChatFormatter
 
 
 class InferenceEngine:

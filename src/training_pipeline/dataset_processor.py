@@ -2,7 +2,7 @@
 
 from typing import Optional, Union, Dict, Any
 from datasets import load_dataset, Dataset
-from .chat_formatter import ChatFormatter
+from chat_formatter import ChatFormatter
 
 
 class DatasetProcessor:

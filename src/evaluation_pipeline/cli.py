@@ -8,7 +8,7 @@ from .evaluator import Evaluator
 
 
 def _build_predict_fn(model: Any, tokenizer: Any, device: str = "cuda"):
-    from training_pipeline.inference.inference_engine import InferenceEngine
+    from training_pipeline.inference_engine import InferenceEngine
 
     engine = InferenceEngine(model, tokenizer, device=device, max_new_tokens=64)
 

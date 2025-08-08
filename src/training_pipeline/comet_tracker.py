@@ -2,7 +2,7 @@
 
 import os
 from typing import Dict, Any, Optional, List
-from ..config.comet_config import CometConfig
+from training_pipeline.comet_config import CometConfig
 
 
 class CometTracker:

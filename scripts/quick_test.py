@@ -8,7 +8,7 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from training_pipeline.cli.train_gemma import main as train_main
+from training_pipeline.train_gemma import main as train_main
 
 
 def quick_test():
