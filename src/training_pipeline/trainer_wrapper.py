@@ -306,7 +306,7 @@ class TrainingWrapper:
             data_seed=self.config.training.data_seed,
             
             # Length settings
-            max_seq_length=self.config.model.max_seq_length,
+            max_length=self.config.model.max_seq_length,
         )
         
         # Create trainer
