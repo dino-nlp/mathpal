@@ -82,9 +82,9 @@ def install_unsloth():
     commands = [
         ("pip install --no-deps xformers==0.0.29.post3", "Installing xformers"),
         ("pip install --no-deps bitsandbytes accelerate", "Installing bitsandbytes and accelerate"),
-        ("pip install --no-deps peft trl", "Installing PEFT and TRL"),
-        ("pip install --no-deps unsloth", "Installing Unsloth"),
-        ("pip install transformers datasets tokenizers", "Installing transformers ecosystem"),
+        ("pip install --no-deps peft trl triton cut_cross_entropy", "Installing PEFT and TRL"),
+        ("pip install --no-deps --upgrade unsloth unsloth_zoo timm", "Installing Unsloth"),
+        ("pip install --upgrade transformers datasets tokenizers", "Installing transformers ecosystem"),
         ("pip install sentencepiece protobuf", "Installing tokenization dependencies")
     ]
     
