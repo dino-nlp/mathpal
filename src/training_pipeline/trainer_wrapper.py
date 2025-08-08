@@ -260,44 +260,96 @@ class TrainingWrapper:
         from unsloth import FastModel
         FastModel.for_training(self.model_manager.model)
         
-        # Create SFTConfig theo working notebook pattern (minimal parameters)
-        training_args = SFTConfig(
-            # Dataset settings - theo working pattern
-            dataset_text_field=self.config.dataset.dataset_text_field,
+        # Create SFTConfig với possible tokenizer parameter
+        logger.info("🔧 Creating SFTConfig...")
+        
+        try:
+            # Try with tokenizer in SFTConfig (some versions expect it here)
+            training_args = SFTConfig(
+                # Dataset settings - theo working pattern
+                dataset_text_field=self.config.dataset.dataset_text_field,
+                
+                # Tokenizer settings - try in config first
+                tokenizer=self.model_manager.tokenizer,
+                
+                # Basic settings
+                output_dir=self.config.training.output_dir,
+                max_steps=self.config.training.max_steps,
+                
+                # Batch settings
+                per_device_train_batch_size=self.config.training.per_device_train_batch_size,
+                gradient_accumulation_steps=self.config.training.gradient_accumulation_steps,
+                
+                # Learning rate
+                learning_rate=self.config.training.learning_rate,
+                warmup_ratio=self.config.training.warmup_ratio,
+                weight_decay=self.config.training.weight_decay,
+                lr_scheduler_type=self.config.training.lr_scheduler_type,
+                
+                # Optimization - theo working notebook
+                optim=self.config.training.optim,
+                
+                # Precision settings - CRITICAL: explicit set để override defaults
+                fp16=self.config.training.fp16,
+                bf16=self.config.training.bf16,
+                
+                # Logging and saving
+                logging_steps=self.config.training.logging_steps,
+                save_strategy=self.config.training.save_strategy,
+                save_steps=self.config.training.save_steps,
+                report_to=self.config.training.report_to,
+                
+                # Length settings - key difference: max_length không phải max_seq_length
+                max_length=self.config.model.max_seq_length,
+                
+                # Reproducibility
+                seed=self.config.training.seed,
+            )
+            logger.info("✅ SFTConfig created with tokenizer parameter")
             
-            # Basic settings
-            output_dir=self.config.training.output_dir,
-            max_steps=self.config.training.max_steps,
+        except Exception as e:
+            logger.warning(f"❌ Failed to create SFTConfig with tokenizer: {e}")
+            logger.info("🔄 Trying SFTConfig without tokenizer...")
             
-            # Batch settings
-            per_device_train_batch_size=self.config.training.per_device_train_batch_size,
-            gradient_accumulation_steps=self.config.training.gradient_accumulation_steps,
-            
-            # Learning rate
-            learning_rate=self.config.training.learning_rate,
-            warmup_ratio=self.config.training.warmup_ratio,
-            weight_decay=self.config.training.weight_decay,
-            lr_scheduler_type=self.config.training.lr_scheduler_type,
-            
-            # Optimization - theo working notebook
-            optim=self.config.training.optim,
-            
-            # Precision settings - CRITICAL: explicit set để override defaults
-            fp16=self.config.training.fp16,
-            bf16=self.config.training.bf16,
-            
-            # Logging and saving
-            logging_steps=self.config.training.logging_steps,
-            save_strategy=self.config.training.save_strategy,
-            save_steps=self.config.training.save_steps,
-            report_to=self.config.training.report_to,
-            
-            # Length settings - key difference: max_length không phải max_seq_length
-            max_length=self.config.model.max_seq_length,
-            
-            # Reproducibility
-            seed=self.config.training.seed,
-        )
+            # Fallback: SFTConfig without tokenizer
+            training_args = SFTConfig(
+                # Dataset settings - theo working pattern
+                dataset_text_field=self.config.dataset.dataset_text_field,
+                
+                # Basic settings
+                output_dir=self.config.training.output_dir,
+                max_steps=self.config.training.max_steps,
+                
+                # Batch settings
+                per_device_train_batch_size=self.config.training.per_device_train_batch_size,
+                gradient_accumulation_steps=self.config.training.gradient_accumulation_steps,
+                
+                # Learning rate
+                learning_rate=self.config.training.learning_rate,
+                warmup_ratio=self.config.training.warmup_ratio,
+                weight_decay=self.config.training.weight_decay,
+                lr_scheduler_type=self.config.training.lr_scheduler_type,
+                
+                # Optimization - theo working notebook
+                optim=self.config.training.optim,
+                
+                # Precision settings - CRITICAL: explicit set để override defaults
+                fp16=self.config.training.fp16,
+                bf16=self.config.training.bf16,
+                
+                # Logging and saving
+                logging_steps=self.config.training.logging_steps,
+                save_strategy=self.config.training.save_strategy,
+                save_steps=self.config.training.save_steps,
+                report_to=self.config.training.report_to,
+                
+                # Length settings - key difference: max_length không phải max_seq_length
+                max_length=self.config.model.max_seq_length,
+                
+                # Reproducibility
+                seed=self.config.training.seed,
+            )
+            logger.info("✅ SFTConfig created without tokenizer parameter")
         
         # Final safety check trước khi tạo trainer
         if training_args.bf16:
@@ -308,14 +360,50 @@ class TrainingWrapper:
             
         logger.info(f"🔍 Final SFTConfig check: fp16={training_args.fp16}, bf16={training_args.bf16}")
         
-        # Create trainer theo working notebook pattern (minimal parameters)
-        trainer = SFTTrainer(
-            model=self.model_manager.model,
-            tokenizer=self.model_manager.tokenizer,
-            train_dataset=datasets["train"],
-            # Không include eval_dataset như working notebook
-            args=training_args,
-        )
+        # Try multiple approaches để fix tokenizer error
+        logger.info("🔧 Attempting to create SFTTrainer...")
+        
+        # Approach 1: Remove tokenizer parameter (API might have changed)
+        try:
+            logger.info("  Trying without tokenizer parameter...")
+            trainer = SFTTrainer(
+                model=self.model_manager.model,
+                train_dataset=datasets["train"],
+                args=training_args,
+            )
+            logger.info("  ✅ Success with no tokenizer parameter!")
+        except Exception as e1:
+            logger.warning(f"  ❌ Failed without tokenizer: {e1}")
+            
+            # Approach 2: Try with processing_class instead
+            try:
+                logger.info("  Trying with processing_class parameter...")
+                trainer = SFTTrainer(
+                    model=self.model_manager.model,
+                    processing_class=self.model_manager.tokenizer,
+                    train_dataset=datasets["train"],
+                    args=training_args,
+                )
+                logger.info("  ✅ Success with processing_class!")
+            except Exception as e2:
+                logger.warning(f"  ❌ Failed with processing_class: {e2}")
+                
+                # Approach 3: Final fallback - original approach với detailed error
+                try:
+                    logger.info("  Trying original tokenizer approach...")
+                    trainer = SFTTrainer(
+                        model=self.model_manager.model,
+                        tokenizer=self.model_manager.tokenizer,
+                        train_dataset=datasets["train"],
+                        args=training_args,
+                    )
+                    logger.info("  ✅ Success with tokenizer parameter!")
+                except Exception as e3:
+                    logger.error(f"  ❌ All approaches failed!")
+                    logger.error(f"    No tokenizer: {e1}")
+                    logger.error(f"    processing_class: {e2}")
+                    logger.error(f"    tokenizer: {e3}")
+                    raise e3
         
         # Apply train_on_responses_only để chỉ train trên assistant responses
         from unsloth.chat_templates import train_on_responses_only
