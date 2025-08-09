@@ -1,31 +1,8 @@
-# MathPal 🤖
-
- An AI-powered math buddy to help students transition from 5th to 6th grade.
-
-## GUIDE
-
-- Install libs: `make install`
-- Start infra: `make local-start`
-- Stop infra: `make local-stop`
-- Crawl test data: `make local-test-crawler`
-- Crawl full data: `make local-ingest-data`
-- Test retriever: `make local-test-retriever`
-
-## **IMPORTANT NOTE:**
-
-- For MongoDB to work with multiple replicas (as we use it in our Docker setup) on macOS or Linux systems, you have to add the following lines of code to `/etc/hosts`:
-
-  - 127.0.0.1       mongo1
-  - 127.0.0.1       mongo2 
-  - 127.0.0.1       mongo3
-
--  Qdrant UI: `localhost:6333/dashboard`
-
-## 🚀 Gemma3N Fine-tuning Pipeline
+# 🚀 Gemma3N Fine-tuning Pipeline
 
 Một pipeline modular và dễ mở rộng để fine-tune mô hình Gemma3N cho bài toán hỗ trợ học toán lớp 6 bằng tiếng Việt. Pipeline được xây dựng với Unsloth, TRL, PEFT và Comet ML.
 
-### ✨ Tính năng
+## ✨ Tính năng
 
 - **Modular Architecture**: Cấu trúc module rõ ràng, dễ bảo trì và mở rộng
 - **Unsloth Integration**: Tối ưu hóa tốc độ và memory với Unsloth
@@ -36,7 +13,7 @@ Một pipeline modular và dễ mở rộng để fine-tune mô hình Gemma3N ch
 - **Inference Engine**: Engine inference với nhiều tùy chọn generation
 - **Command Line Interface**: CLI đơn giản và mạnh mẽ
 
-### 🏗️ Cấu trúc dự án
+## 🏗️ Cấu trúc dự án
 
 ```
 src/training_pipeline/
@@ -65,15 +42,15 @@ src/training_pipeline/
     └── device_utils.py         # Device management
 ```
 
-### 🛠️ Cài đặt
+## 🛠️ Cài đặt
 
-#### Yêu cầu hệ thống
+### Yêu cầu hệ thống
 
 - Python 3.8+
 - CUDA 11.8+ (khuyến nghị)
 - GPU với ít nhất 8GB VRAM
 
-#### Cài đặt dependencies
+### Cài đặt dependencies
 
 ```bash
 # Cài đặt core dependencies
@@ -91,7 +68,7 @@ pip install transformers datasets tokenizers sentencepiece
 pip install pyyaml rich click
 ```
 
-#### Cài đặt từ source
+### Cài đặt từ source
 
 ```bash
 git clone <repository-url>
@@ -99,9 +76,9 @@ cd gemma3n-training-pipeline
 pip install -e .
 ```
 
-### 🚀 Sử dụng
+## 🚀 Sử dụng
 
-#### 1. Cấu hình environment variables
+### 1. Cấu hình environment variables
 
 ```bash
 # Comet ML (optional)
@@ -113,7 +90,7 @@ export COMET_PROJECT="your-project"
 export HF_TOKEN="your-token"
 ```
 
-#### 2. Training cơ bản
+### 2. Training cơ bản
 
 ```bash
 # Training với cấu hình mặc định
@@ -126,7 +103,7 @@ python -m training_pipeline.cli.train_gemma \
     --max-steps 500
 ```
 
-#### 3. Training với các cấu hình có sẵn
+### 3. Training với các cấu hình có sẵn
 
 ```bash
 # Development (quick test)
@@ -140,7 +117,7 @@ python -m training_pipeline.cli.train_gemma \
     --hub-username your-username
 ```
 
-#### 4. Training với các tùy chọn nâng cao
+### 4. Training với các tùy chọn nâng cao
 
 ```bash
 python -m training_pipeline.cli.train_gemma \
@@ -155,9 +132,9 @@ python -m training_pipeline.cli.train_gemma \
     --test-model
 ```
 
-### ⚙️ Cấu hình
+## ⚙️ Cấu hình
 
-#### Training Configuration
+### Training Configuration
 
 Tạo file cấu hình YAML:
 
@@ -183,8 +160,7 @@ output_dir: "outputs/my-experiment"
 experiment_name: "baseline"
 ```
 
-
-#### Comet ML Configuration
+### Comet ML Configuration
 
 ```python
 from training_pipeline.config import CometConfig
@@ -197,7 +173,7 @@ comet_config = CometConfig(
 )
 ```
 
-### 📊 Experiment Tracking
+## 📊 Experiment Tracking
 
 Pipeline hỗ trợ tracking với:
 
@@ -220,7 +196,7 @@ tracker.log_model("path/to/saved/model")
 tracker.end_experiment()
 ```
 
-### 🎯 Inference
+## 🎯 Inference
 
 Sử dụng trained model cho inference:
 
@@ -245,7 +221,7 @@ print(f"A: {answer}")
 test_results = engine.test_model()
 ```
 
-### 💾 Model Saving
+## 💾 Model Saving
 
 Pipeline hỗ trợ lưu model ở nhiều định dạng:
 
@@ -275,9 +251,9 @@ results = saver.save_all_formats(
 )
 ```
 
-### 🔧 Customization
+## 🔧 Customization
 
-#### Thêm dataset processor mới
+### Thêm dataset processor mới
 
 ```python
 from training_pipeline.data import DatasetProcessor
@@ -288,7 +264,7 @@ class CustomDatasetProcessor(DatasetProcessor):
         return processed_sample
 ```
 
-#### Thêm LoRA configuration
+### Thêm LoRA configuration
 
 ```python
 from training_pipeline.models import LoRAConfigManager
@@ -301,7 +277,7 @@ custom_config = LoRAConfigManager.create_lora_config(
 )
 ```
 
-#### Custom training logic
+### Custom training logic
 
 ```python
 from training_pipeline.training import TrainerFactory
@@ -312,9 +288,9 @@ class CustomTrainerFactory(TrainerFactory):
         return trainer
 ```
 
-### 📈 Monitoring và Debugging
+## 📈 Monitoring và Debugging
 
-#### Memory monitoring
+### Memory monitoring
 
 ```python
 from training_pipeline.utils import DeviceUtils
@@ -326,7 +302,7 @@ DeviceUtils.print_device_info()
 result, memory_stats = DeviceUtils.monitor_memory_usage(trainer.train)
 ```
 
-#### Logging
+### Logging
 
 ```python
 from training_pipeline.utils import setup_logging, TrainingLogger
@@ -341,21 +317,21 @@ logger.metric("loss", 0.5, step=100)
 logger.success("Training completed")
 ```
 
-### 🧪 Testing
+## 🧪 Testing
 
-#### Quick test
+### Quick test
 
 ```bash
 python -m training_pipeline.cli.train_gemma --quick-test
 ```
 
-#### Unit tests
+### Unit tests
 
 ```bash
 pytest tests/
 ```
 
-#### Benchmark inference
+### Benchmark inference
 
 ```python
 questions = ["Câu hỏi 1", "Câu hỏi 2", "Câu hỏi 3"]
@@ -363,7 +339,7 @@ results = engine.benchmark_inference(questions, num_runs=3)
 print(f"Average tokens/second: {results['avg_tokens_per_second']:.1f}")
 ```
 
-### 🤝 Contributing
+## 🤝 Contributing
 
 1. Fork repository
 2. Tạo feature branch (`git checkout -b feature/amazing-feature`)
@@ -371,11 +347,11 @@ print(f"Average tokens/second: {results['avg_tokens_per_second']:.1f}")
 4. Push to branch (`git push origin feature/amazing-feature`)
 5. Tạo Pull Request
 
-### 📝 License
+## 📝 License
 
 Distributed under the MIT License. See `LICENSE` for more information.
 
-### 🙏 Acknowledgments
+## 🙏 Acknowledgments
 
 - [Unsloth](https://github.com/unslothai/unsloth) - Fast LLM fine-tuning
 - [TRL](https://github.com/huggingface/trl) - Transformer Reinforcement Learning
@@ -383,8 +359,8 @@ Distributed under the MIT License. See `LICENSE` for more information.
 - [Comet ML](https://www.comet.ml/) - Experiment tracking
 - [Gemma](https://deepmind.google/technologies/gemma/) - Base model
 
-### 📧 Contact
+## 📧 Contact
 
-Dino - ngohongthai.uet@gmail.com
+Your Name - your.email@example.com
 
 Project Link: [https://github.com/username/gemma3n-training-pipeline](https://github.com/username/gemma3n-training-pipeline)

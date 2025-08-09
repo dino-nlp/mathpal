@@ -10,7 +10,7 @@ class TrainingConfig(BaseConfig):
     """Configuration for Gemma3N training pipeline."""
     
     # Model settings
-    model_name: str = "unsloth/gemma-3n-E2B-it"
+    model_name: str = "unsloth/gemma-3n-E4B-it"
     max_seq_length: int = 2048
     load_in_4bit: bool = True
     full_finetuning: bool = False

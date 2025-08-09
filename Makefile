@@ -1,13 +1,6 @@
-include .env
+# Gemma3N Training Pipeline Makefile
 
-$(eval export $(shell sed -ne 's/ *#.*$$//; /./ s/=.*$$// p' .env))
-
-PYTHONPATH := $(shell pwd)/src
-
-install: # Create a local Poetry virtual environment and install all required Python dependencies.
-	poetry env use 3.11
-	poetry install --without superlinked_rag
-# 	eval $(poetry env activate)
+.PHONY: help setup test train clean docs
 
 # Default target
 help: ## Show this help message
@@ -15,56 +8,23 @@ help: ## Show this help message
 	@echo "=" * 50
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-# # Environment setup
-setup_training_env: ## Setup the training environment
+# Environment setup
+setup: ## Setup the training environment
 	@echo "🔧 Setting up environment..."
-	cd scripts && poetry run python setup_environment.py
+	python scripts/setup_environment.py
 
-# install_training_dependenceies: ## Install dependencies manually
-# 	@echo "📦 Installing dependencies..."
-# 	pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-# 	pip install --no-deps xformers==0.0.29.post3 bitsandbytes accelerate peft trl
-# 	pip install --no-deps unsloth
-# 	pip install transformers datasets tokenizers sentencepiece protobuf
-# 	pip install comet-ml wandb pyyaml rich click
-
-# ======================================
-# ------- Docker Infrastructure --------
-# ======================================
-
-local-start: # Build and start your local Docker infrastructure.
-	docker compose -f docker-compose.yml up --build -d
-
-local-stop: # Stop your local Docker infrastructure.
-	docker compose -f docker-compose.yml down --remove-orphans
-
-local-test-crawler: # Make a call to your local AWS Lambda (hosted in Docker) to crawl a Medium article.
-	curl -X POST "http://localhost:9010/2015-03-31/functions/function/invocations" \
-	  	-d '{"grade_name": "grade_5", "link": "https://loigiaihay.com/de-thi-vao-lop-6-mon-toan-truong-cau-giay-nam-2023-a142098.html"}'
-
-local-ingest-data: # Ingest all links from data/links.txt by calling your local AWS Lambda hosted in Docker.
-	while IFS= read -r link; do \
-		echo "Processing: $$link"; \
-		curl -X POST "http://localhost:9010/2015-03-31/functions/function/invocations" \
-			-d "{\"grade_name\": \"grade_5\", \"link\": \"$$link\"}"; \
-		echo "\n"; \
-		sleep 2; \
-	done < data/links.txt
-
-# ======================================
-# -------- RAG Feature Pipeline --------
-# ======================================
-
-local-test-retriever: # Test the RAG retriever using your Poetry env
-	cd src/feature_pipeline && poetry run python -m retriever
-
-local-generate-instruct-dataset: # Generate the fine-tuning instruct dataset using your Poetry env.
-	cd src/feature_pipeline && poetry run python -m generate_dataset.generate
+install: ## Install dependencies manually
+	@echo "📦 Installing dependencies..."
+	pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+	pip install --no-deps xformers==0.0.29.post3 bitsandbytes accelerate peft trl
+	pip install --no-deps unsloth
+	pip install transformers datasets tokenizers sentencepiece protobuf
+	pip install comet-ml wandb pyyaml rich click
 
 # Testing
 test: ## Run quick test
 	@echo "🧪 Running quick test..."
-	cd scripts && poetry run python quick_test.py
+	python scripts/quick_test.py
 
 test-basic: ## Run basic usage example
 	@echo "📝 Running basic usage example..."
