@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from typing import Optional, Dict, Any
-from base_config import BaseConfig
+from .base_config import BaseConfig
 
 
 @dataclass
@@ -10,7 +10,7 @@ class TrainingConfig(BaseConfig):
     """Configuration for Gemma3N training pipeline."""
     
     # Model settings
-    model_name: str = "unsloth/gemma-3n-E4B-it"
+    model_name: str = "unsloth/gemma-3n-E2B-it"
     max_seq_length: int = 2048
     load_in_4bit: bool = True
     full_finetuning: bool = False

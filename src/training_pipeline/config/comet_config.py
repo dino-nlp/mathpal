@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any
-from base_config import BaseConfig, get_env_var
+from .base_config import BaseConfig, get_env_var
 
 
 @dataclass
@@ -36,7 +36,7 @@ class CometConfig(BaseConfig):
     log_model: bool = True
     log_graph: bool = False
     log_code: bool = True
-    log_git_metadata: bool = False
+    log_git_metadata: bool = True
     
     def validate(self) -> None:
         """Validate Comet ML configuration."""
