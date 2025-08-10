@@ -254,13 +254,22 @@ class InferenceEngine:
                     generation_config=generation_config
                 )
                 # Handle different tokenizer types
-                try:
-                    # Try standard tokenizer encode method
-                    total_tokens += len(self.tokenizer.encode(response))
-                except AttributeError:
-                    # For processors like Gemma3nProcessor, use __call__ method
-                    tokenized = self.tokenizer(response, return_tensors="pt", add_special_tokens=False)
-                    total_tokens += tokenized['input_ids'].shape[1]
+                if response and isinstance(response, str):
+                    try:
+                        # Try standard tokenizer encode method
+                        total_tokens += len(self.tokenizer.encode(response))
+                    except AttributeError:
+                        # For processors like Gemma3nProcessor, use __call__ method
+                        try:
+                            tokenized = self.tokenizer(text=response, return_tensors="pt", add_special_tokens=False)
+                            total_tokens += tokenized['input_ids'].shape[1]
+                        except Exception as e:
+                            # Fallback: estimate tokens by word count
+                            print(f"Warning: Could not tokenize response, using word count estimate: {e}")
+                            total_tokens += len(response.split())
+                else:
+                    print(f"Warning: Invalid response received: {response}")
+                    total_tokens += 0
             
             end_time = time.time()
             run_time = end_time - start_time
