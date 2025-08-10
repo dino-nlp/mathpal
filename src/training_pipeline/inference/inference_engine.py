@@ -253,7 +253,14 @@ class InferenceEngine:
                     question=question,
                     generation_config=generation_config
                 )
-                total_tokens += len(self.tokenizer.encode(response))
+                # Handle different tokenizer types
+                try:
+                    # Try standard tokenizer encode method
+                    total_tokens += len(self.tokenizer.encode(response))
+                except AttributeError:
+                    # For processors like Gemma3nProcessor, use __call__ method
+                    tokenized = self.tokenizer(response, return_tensors="pt", add_special_tokens=False)
+                    total_tokens += tokenized['input_ids'].shape[1]
             
             end_time = time.time()
             run_time = end_time - start_time
