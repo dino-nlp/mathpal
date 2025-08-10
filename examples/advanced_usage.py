@@ -12,7 +12,8 @@ from training_pipeline.models import ModelLoader, LoRAConfigManager, ModelSaver
 from training_pipeline.training import TrainerFactory, TrainingUtils
 from training_pipeline.experiments import CometTracker
 from training_pipeline.inference import InferenceEngine
-from training_pipeline.utils import setup_logging, DeviceUtils, TrainingLogger
+from training_pipeline.utils import setup_logging, DeviceUtils
+from training_pipeline.utils.logging import TrainingLogger
 
 
 def main():
@@ -164,9 +165,11 @@ def main():
     training_duration = end_time - start_time
     logger.training_complete(training_duration)
     
-    # 7. Advanced inference testing
-    logger.separator("INFERENCE TESTING")
     
+    # 7. Advanced inference testing
+    # Test with different generation configs
+    logger.separator("INFERENCE TESTING")
+        
     inference_engine = InferenceEngine(
         model=model,
         tokenizer=tokenizer,

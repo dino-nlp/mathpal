@@ -330,29 +330,25 @@ class InferenceEngine:
                 "temperature": 1.2,
                 "top_p": 0.9,
                 "top_k": 50,
-                "max_new_tokens": 128,
-                "description": "Creative and diverse responses"
+                "max_new_tokens": 128
             },
             "balanced": {
                 "temperature": 1.0,
                 "top_p": 0.95,
                 "top_k": 64,
-                "max_new_tokens": 64,
-                "description": "Balanced creativity and coherence"
+                "max_new_tokens": 64
             },
             "focused": {
                 "temperature": 0.7,
                 "top_p": 0.9,
                 "top_k": 40,
-                "max_new_tokens": 64,
-                "description": "More focused and consistent responses"
+                "max_new_tokens": 64
             },
             "deterministic": {
                 "temperature": 0.1,
                 "top_p": 1.0,
                 "top_k": 1,
                 "max_new_tokens": 64,
-                "do_sample": False,
-                "description": "Most deterministic responses"
+                "do_sample": False
             }
         }
