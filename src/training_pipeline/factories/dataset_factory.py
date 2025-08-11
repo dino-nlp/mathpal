@@ -201,13 +201,27 @@ class DatasetFactory:
                 # Vietnamese math-specific formatting
                 text = example.get("text", "")
                 
-                # Check if we need to format from instruction/output fields
+                # Check if we need to format from different field combinations
                 if not text or not text.strip():
-                    # Try to build from instruction and output fields
+                    # Try multiple field combinations
+                    question = example.get("question", "")
+                    solution = example.get("solution", "")
                     instruction = example.get("instruction", "")
                     output = example.get("output", "")
                     
-                    if instruction and output:
+                    # First priority: question/solution (ngohongthai dataset format)
+                    if question and solution:
+                        formatted_text = f"""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
+
+Bạn là một trợ lý giáo dục chuyên về toán học cho học sinh lớp 6 tại Việt Nam. Hãy giải thích chi tiết và dễ hiểu.<|eot_id|><|start_header_id|>user<|end_header_id|>
+
+{question}<|eot_id|><|start_header_id|>assistant<|end_header_id|>
+
+{solution}<|eot_id|><|end_of_text|>"""
+                        return {"text": formatted_text}
+                    
+                    # Second priority: instruction/output (standard format)
+                    elif instruction and output:
                         formatted_text = f"""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
 
 Bạn là một trợ lý giáo dục chuyên về toán học cho học sinh lớp 6 tại Việt Nam. Hãy giải thích chi tiết và dễ hiểu.<|eot_id|><|start_header_id|>user<|end_header_id|>
@@ -217,7 +231,7 @@ Bạn là một trợ lý giáo dục chuyên về toán học cho học sinh l�
 {output}<|eot_id|><|end_of_text|>"""
                         return {"text": formatted_text}
                     else:
-                        # If no instruction/output, return empty to be filtered out
+                        # If no valid field combination, return empty to be filtered out
                         return {"text": ""}
                 
                 # Return existing text if it looks valid
