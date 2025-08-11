@@ -37,6 +37,9 @@ from training_pipeline.core.exceptions import (
 )
 from training_pipeline.utils import setup_logging, get_logger, DeviceUtils
 
+# Global logger variable
+logger = None
+
 
 def parse_arguments() -> argparse.Namespace:
     """
@@ -175,18 +178,16 @@ def setup_environment(args: argparse.Namespace, config: ComprehensiveTrainingCon
         args: Command line arguments  
         config: Training configuration
     """
-    # Determine log level
-    log_level = "DEBUG" if args.debug else config.logging.level
-    
-    # Setup logging
-    setup_logging(
-        log_level=log_level,
-        log_file=config.logging.log_file
-    )
-    
-    # Create logger after setup
-    global logger
-    logger = get_logger()
+    # Re-setup logging with config file settings if specified
+    if config.logging.log_file or config.logging.level != "INFO":
+        log_level = "DEBUG" if args.debug else config.logging.level
+        setup_logging(
+            log_level=log_level,
+            log_file=config.logging.log_file
+        )
+        # Update logger reference
+        global logger
+        logger = get_logger("gemma3n_training")
     
     logger.info("🚀 MathPal Training Pipeline v2 - Starting...")
     logger.info("=" * 60)
@@ -310,10 +311,15 @@ def main() -> None:
         # Parse command line arguments
         args = parse_arguments()
         
+        # Setup basic logging first (before config loading)
+        setup_logging(level="DEBUG" if args.debug else "INFO")
+        global logger
+        logger = get_logger("gemma3n_training")
+        
         # Load and validate configuration  
         config = load_and_validate_config(args)
         
-        # Setup environment and logging
+        # Setup full environment and logging
         setup_environment(args, config)
         
         # Run appropriate mode
