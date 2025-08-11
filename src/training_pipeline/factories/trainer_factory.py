@@ -296,13 +296,22 @@ class TrainerFactory:
         logger.info(f"🔧 Final TrainingArguments values:")
         logger.info(f"   max_steps={max_steps_val}, num_train_epochs={num_epochs_val}")
         
+        # Prepare TrainingArguments kwargs
+        training_args_kwargs = {
+            "output_dir": config.get_output_dir(),
+            "max_steps": max_steps_val,
+        }
+        
+        # Only add num_train_epochs if it's a valid positive number
+        if num_epochs_val is not None and num_epochs_val > 0:
+            training_args_kwargs["num_train_epochs"] = num_epochs_val
+            logger.info(f"   ✅ Using num_train_epochs={num_epochs_val}")
+        else:
+            logger.info(f"   ✅ Skipping num_train_epochs (will use Transformers default)")
+        
         try:
             args = TrainingArguments(
-                output_dir=config.get_output_dir(),
-                
-                # Training parameters
-                max_steps=max_steps_val,
-                num_train_epochs=num_epochs_val,
+                **training_args_kwargs,
                 per_device_train_batch_size=config.training.per_device_train_batch_size,
                 per_device_eval_batch_size=config.training.per_device_eval_batch_size,
                 gradient_accumulation_steps=config.training.gradient_accumulation_steps,
