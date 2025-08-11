@@ -190,6 +190,10 @@ class TrainerFactory:
         
         logger.info(f"🔧 Mixed precision config: fp16={fp16}, bf16={bf16}")
         
+        # Debug config values
+        logger.info(f"🔧 Training config debug: max_steps={config.training.max_steps}, num_epochs={config.training.num_train_epochs}")
+        logger.info(f"🔧 Eval config debug: eval_steps={config.evaluation.eval_steps}, strategy={config.evaluation.strategy}")
+        
         # Force fp16 for Tesla T4 and pre-Ampere GPUs regardless of config
         if torch.cuda.is_available():
             device_name = torch.cuda.get_device_name()
@@ -217,8 +221,8 @@ class TrainerFactory:
             output_dir=config.get_output_dir(),
             
             # Training parameters
-            max_steps=config.training.max_steps if config.training.max_steps > 0 else -1,
-            num_train_epochs=config.training.num_train_epochs if config.training.num_train_epochs else None,
+            max_steps=config.training.max_steps if config.training.max_steps and config.training.max_steps > 0 else -1,
+            num_train_epochs=config.training.num_train_epochs if config.training.num_train_epochs and config.training.num_train_epochs > 0 else None,
             per_device_train_batch_size=config.training.per_device_train_batch_size,
             per_device_eval_batch_size=config.training.per_device_eval_batch_size,
             gradient_accumulation_steps=config.training.gradient_accumulation_steps,
