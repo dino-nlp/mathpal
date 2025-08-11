@@ -312,7 +312,7 @@ def main() -> None:
         args = parse_arguments()
         
         # Setup basic logging first (before config loading)
-        setup_logging(log_level="DEBUG" if args.debug else "INFO")
+        setup_logging(level="DEBUG" if args.debug else "INFO")
         global logger
         logger = get_logger("gemma3n_training")
         

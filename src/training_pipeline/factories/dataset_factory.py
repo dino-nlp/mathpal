@@ -226,15 +226,14 @@ Bạn là một trợ lý giáo dục chuyên về toán học cho học sinh l�
 
 Bạn là một trợ lý giáo dục chuyên về toán học cho học sinh lớp 6 tại Việt Nam. Hãy giải thích chi tiết và dễ hiểu.<|eot_id|><|start_header_id|>user<|end_header_id|>
 
-{instruction}<|eot_id|><|start_header_id|>assistant<|end_header_id|>
+{example['instruction']}<|eot_id|><|start_header_id|>assistant<|end_header_id|>
 
-{output}<|eot_id|><|end_of_text|>"""
+{example['output']}<|eot_id|><|end_of_text|>"""
                         return {"text": formatted_text}
                     else:
                         # If no valid field combination, return empty to be filtered out
                         return {"text": ""}
                 
-                # Return existing text if it looks valid
                 return {"text": text}
             
             dataset = dataset.map(
