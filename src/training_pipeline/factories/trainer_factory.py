@@ -75,19 +75,36 @@ class TrainerFactory:
             if use_unsloth:
                 logger.info("⚡ Using Unsloth optimizations")
                 
+                # Debug SFTTrainer parameters
+                logger.info(f"🔧 SFT params debug:")
+                logger.info(f"   max_seq_length={config.model.max_seq_length}")
+                logger.info(f"   dataset_num_proc={config.dataset.num_proc}")
+                logger.info(f"   packing={config.dataset.packing}")
+                logger.info(f"   dataset_text_field={config.dataset.text_field}")
+                
+                # Prepare SFTTrainer arguments 
+                sft_args = {
+                    "model": model,
+                    "tokenizer": tokenizer,
+                    "train_dataset": datasets["train"],
+                    "args": training_args,
+                    "data_collator": data_collator,
+                    "dataset_text_field": config.dataset.text_field,
+                    "max_seq_length": config.model.max_seq_length,
+                    "dataset_num_proc": config.dataset.num_proc or 2,  # Safe default
+                    "packing": config.dataset.packing if config.dataset.packing is not None else False,  # Safe default
+                }
+                
+                # Only add eval_dataset if it exists
+                eval_dataset = datasets.get("eval")
+                if eval_dataset is not None and len(eval_dataset) > 0:
+                    sft_args["eval_dataset"] = eval_dataset
+                    logger.info(f"   eval_dataset: {len(eval_dataset)} samples")
+                else:
+                    logger.info("   eval_dataset: None (skipping evaluation)")
+                
                 # Apply train_on_responses_only if configured
-                trainer = SFTTrainer(
-                    model=model,
-                    tokenizer=tokenizer,
-                    train_dataset=datasets["train"],
-                    eval_dataset=datasets.get("eval"),
-                    args=training_args,
-                    data_collator=data_collator,
-                    dataset_text_field=config.dataset.text_field,
-                    max_seq_length=config.model.max_seq_length,
-                    dataset_num_proc=config.dataset.num_proc,
-                    packing=config.dataset.packing,
-                )
+                trainer = SFTTrainer(**sft_args)
                 
                 # Apply Unsloth's train_on_responses_only optimization
                 if config.training.train_on_responses_only:
@@ -102,18 +119,25 @@ class TrainerFactory:
             else:
                 logger.info("🤗 Using standard HuggingFace trainer")
                 
-                trainer = SFTTrainer(
-                    model=model,
-                    tokenizer=tokenizer,
-                    train_dataset=datasets["train"],
-                    eval_dataset=datasets.get("eval"),
-                    args=training_args,
-                    data_collator=data_collator,
-                    dataset_text_field=config.dataset.text_field,
-                    max_seq_length=config.model.max_seq_length,
-                    dataset_num_proc=config.dataset.num_proc,
-                    packing=config.dataset.packing,
-                )
+                # Prepare SFTTrainer arguments
+                sft_args = {
+                    "model": model,
+                    "tokenizer": tokenizer,
+                    "train_dataset": datasets["train"],
+                    "args": training_args,
+                    "data_collator": data_collator,
+                    "dataset_text_field": config.dataset.text_field,
+                    "max_seq_length": config.model.max_seq_length,
+                    "dataset_num_proc": config.dataset.num_proc or 2,
+                    "packing": config.dataset.packing if config.dataset.packing is not None else False,
+                }
+                
+                # Only add eval_dataset if it exists
+                eval_dataset = datasets.get("eval")
+                if eval_dataset is not None and len(eval_dataset) > 0:
+                    sft_args["eval_dataset"] = eval_dataset
+                
+                trainer = SFTTrainer(**sft_args)
             
             # Print training info
             TrainerFactory._print_training_info(trainer, datasets, config)
@@ -242,19 +266,19 @@ class TrainerFactory:
             
             # Saving
             save_strategy=config.output.save_strategy,
-            save_steps=config.output.save_steps,
+            save_steps=config.output.save_steps if config.output.save_steps and config.output.save_steps > 0 else 50,
             save_total_limit=config.output.save_total_limit,
             load_best_model_at_end=config.output.load_best_model_at_end,
             
             # Evaluation
             eval_strategy=config.evaluation.strategy,
-            eval_steps=config.evaluation.eval_steps,
-            eval_accumulation_steps=config.evaluation.eval_accumulation_steps,
+            eval_steps=config.evaluation.eval_steps if config.evaluation.eval_steps and config.evaluation.eval_steps > 0 else 50,
+            eval_accumulation_steps=config.evaluation.eval_accumulation_steps if config.evaluation.eval_accumulation_steps and config.evaluation.eval_accumulation_steps > 0 else None,
             metric_for_best_model=config.evaluation.metric_for_best_model,
             greater_is_better=config.evaluation.greater_is_better,
             
             # Logging
-            logging_steps=config.logging.steps,
+            logging_steps=config.logging.steps if config.logging.steps and config.logging.steps > 0 else 10,
             report_to=config.logging.report_to,
             
             # System
