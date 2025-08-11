@@ -82,6 +82,21 @@ class TrainerFactory:
                 logger.info(f"   packing={config.dataset.packing}")
                 logger.info(f"   dataset_text_field={config.dataset.text_field}")
                 
+                # Debug dataset types and lengths
+                logger.info(f"🔧 Dataset debug:")
+                logger.info(f"   train_dataset type: {type(datasets['train'])}")
+                logger.info(f"   train_dataset length: {len(datasets['train'])}")
+                if "eval" in datasets and datasets["eval"] is not None:
+                    logger.info(f"   eval_dataset type: {type(datasets['eval'])}")
+                    logger.info(f"   eval_dataset length: {len(datasets['eval'])}")
+                
+                # Debug training args object
+                logger.info(f"🔧 TrainingArgs debug:")
+                logger.info(f"   training_args type: {type(training_args)}")
+                logger.info(f"   output_dir: {training_args.output_dir}")
+                logger.info(f"   max_steps: {training_args.max_steps}")
+                logger.info(f"   per_device_train_batch_size: {training_args.per_device_train_batch_size}")
+                
                 # Prepare SFTTrainer arguments 
                 sft_args = {
                     "model": model,
@@ -104,7 +119,21 @@ class TrainerFactory:
                     logger.info("   eval_dataset: None (skipping evaluation)")
                 
                 # Apply train_on_responses_only if configured
-                trainer = SFTTrainer(**sft_args)
+                try:
+                    logger.info("🔧 Creating SFTTrainer with arguments...")
+                    for key, value in sft_args.items():
+                        if key != "train_dataset" and key != "eval_dataset":  # Skip large objects
+                            logger.info(f"   {key}={value}")
+                    
+                    trainer = SFTTrainer(**sft_args)
+                    logger.info("✅ SFTTrainer created successfully")
+                    
+                except Exception as e:
+                    logger.error(f"❌ Failed to create SFTTrainer: {e}")
+                    logger.error(f"❌ Error type: {type(e).__name__}")
+                    import traceback
+                    logger.error(f"❌ SFTTrainer traceback: {traceback.format_exc()}")
+                    raise
                 
                 # Apply Unsloth's train_on_responses_only optimization
                 if config.training.train_on_responses_only:
@@ -137,7 +166,21 @@ class TrainerFactory:
                 if eval_dataset is not None and len(eval_dataset) > 0:
                     sft_args["eval_dataset"] = eval_dataset
                 
-                trainer = SFTTrainer(**sft_args)
+                try:
+                    logger.info("🔧 Creating standard SFTTrainer with arguments...")
+                    for key, value in sft_args.items():
+                        if key != "train_dataset" and key != "eval_dataset":  # Skip large objects
+                            logger.info(f"   {key}={value}")
+                    
+                    trainer = SFTTrainer(**sft_args)
+                    logger.info("✅ Standard SFTTrainer created successfully")
+                    
+                except Exception as e:
+                    logger.error(f"❌ Failed to create standard SFTTrainer: {e}")
+                    logger.error(f"❌ Error type: {type(e).__name__}")
+                    import traceback
+                    logger.error(f"❌ Standard SFTTrainer traceback: {traceback.format_exc()}")
+                    raise
             
             # Print training info
             TrainerFactory._print_training_info(trainer, datasets, config)
