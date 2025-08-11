@@ -2,13 +2,13 @@
 
 import os
 from typing import Dict, Any, Optional, List
-from ..config.comet_config import CometConfig
+from ..core.enhanced_config import CometConfig
 
 
 class CometTracker:
     """Handles Comet ML experiment tracking integration."""
     
-    def __init__(self, config: CometConfig):
+    def __init__(self, config):
         """Initialize CometTracker with configuration."""
         self.config = config
         self.experiment = None

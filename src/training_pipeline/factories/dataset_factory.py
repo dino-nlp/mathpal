@@ -93,18 +93,19 @@ class DatasetFactory:
                         is_training: bool = True) -> Dataset:
         """Process dataset with tokenization and formatting."""
         try:
-            # Apply dataset-specific preprocessing
-            if hasattr(DatasetFactory, f'_preprocess_{config.dataset.name.replace("/", "_").replace("-", "_")}'):
-                preprocess_func = getattr(DatasetFactory, f'_preprocess_{config.dataset.name.replace("/", "_").replace("-", "_")}')
+            # Apply dataset-specific preprocessing first to create text field
+            dataset_func_name = config.dataset.name.replace("/", "_").replace("-", "_")
+            if hasattr(DatasetFactory, f'_preprocess_{dataset_func_name}'):
+                preprocess_func = getattr(DatasetFactory, f'_preprocess_{dataset_func_name}')
                 dataset = preprocess_func(dataset, config)
             
-            # Check if dataset has the required text field
+            # Check if dataset has the required text field after preprocessing
             if config.dataset.text_field not in dataset.column_names:
                 if "text" in dataset.column_names:
                     # Rename text column
                     dataset = dataset.rename_column("text", config.dataset.text_field)
                 else:
-                    raise DatasetError(f"Dataset missing required field '{config.dataset.text_field}'")
+                    raise DatasetError(f"Dataset missing required field '{config.dataset.text_field}' after preprocessing")
             
             # Filter out empty or invalid samples
             original_size = len(dataset)
@@ -198,43 +199,17 @@ class DatasetFactory:
             logger.info("🇻🇳 Applying Vietnamese math dataset preprocessing...")
             
             def format_vietnamese_math(example):
-                # Vietnamese math-specific formatting
-                text = example.get("text", "")
+                # Simple formatting for Vietnamese math dataset
+                question = example.get("question", "")
+                solution = example.get("solution", "")
                 
-                # Check if we need to format from different field combinations
-                if not text or not text.strip():
-                    # Try multiple field combinations
-                    question = example.get("question", "")
-                    solution = example.get("solution", "")
-                    instruction = example.get("instruction", "")
-                    output = example.get("output", "")
-                    
-                    # First priority: question/solution (ngohongthai dataset format)
-                    if question and solution:
-                        formatted_text = f"""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
-
-Bạn là một trợ lý giáo dục chuyên về toán học cho học sinh lớp 6 tại Việt Nam. Hãy giải thích chi tiết và dễ hiểu.<|eot_id|><|start_header_id|>user<|end_header_id|>
-
-{question}<|eot_id|><|start_header_id|>assistant<|end_header_id|>
-
-{solution}<|eot_id|><|end_of_text|>"""
-                        return {"text": formatted_text}
-                    
-                    # Second priority: instruction/output (standard format)
-                    elif instruction and output:
-                        formatted_text = f"""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
-
-Bạn là một trợ lý giáo dục chuyên về toán học cho học sinh lớp 6 tại Việt Nam. Hãy giải thích chi tiết và dễ hiểu.<|eot_id|><|start_header_id|>user<|end_header_id|>
-
-{example['instruction']}<|eot_id|><|start_header_id|>assistant<|end_header_id|>
-
-{example['output']}<|eot_id|><|end_of_text|>"""
-                        return {"text": formatted_text}
-                    else:
-                        # If no valid field combination, return empty to be filtered out
-                        return {"text": ""}
-                
-                return {"text": text}
+                # Simple instruction format without complex chat template
+                if question and solution:
+                    formatted_text = f"### Câu hỏi:\n{question}\n\n### Lời giải:\n{solution}"
+                    return {"text": formatted_text}
+                else:
+                    # If no valid field combination, return empty to be filtered out
+                    return {"text": ""}
             
             dataset = dataset.map(
                 format_vietnamese_math,

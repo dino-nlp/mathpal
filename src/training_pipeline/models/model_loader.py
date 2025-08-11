@@ -3,13 +3,13 @@
 from typing import Tuple, Optional, Dict, Any
 import torch
 from unsloth import FastModel, get_chat_template
-from ..config.training_config import TrainingConfig
+from ..core.enhanced_config import ComprehensiveTrainingConfig
 
 
 class ModelLoader:
     """Handles model and processor loading with Unsloth optimizations."""
     
-    def __init__(self, config: TrainingConfig):
+    def __init__(self, config: ComprehensiveTrainingConfig):
         """Initialize ModelLoader with training configuration."""
         self.config = config
         
