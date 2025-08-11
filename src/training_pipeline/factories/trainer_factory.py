@@ -217,6 +217,9 @@ class TrainerFactory:
         # Debug config values
         logger.info(f"🔧 Training config debug: max_steps={config.training.max_steps}, num_epochs={config.training.num_train_epochs}")
         logger.info(f"🔧 Eval config debug: eval_steps={config.evaluation.eval_steps}, strategy={config.evaluation.strategy}")
+        logger.info(f"🔧 Output config debug: save_steps={config.output.save_steps}, save_strategy={config.output.save_strategy}")
+        logger.info(f"🔧 Logging config debug: logging_steps={config.logging.steps}, report_to={config.logging.report_to}")
+        logger.info(f"🔧 System config debug: seed={config.system.seed}, num_workers={config.system.dataloader_num_workers}")
         
         # Force fp16 for Tesla T4 and pre-Ampere GPUs regardless of config
         if torch.cuda.is_available():
@@ -241,61 +244,79 @@ class TrainerFactory:
                 bf16 = False
         
         # Create base arguments
-        args = TrainingArguments(
-            output_dir=config.get_output_dir(),
-            
-            # Training parameters
-            max_steps=config.training.max_steps if config.training.max_steps and config.training.max_steps > 0 else -1,
-            num_train_epochs=config.training.num_train_epochs if config.training.num_train_epochs and config.training.num_train_epochs > 0 else None,
-            per_device_train_batch_size=config.training.per_device_train_batch_size,
-            per_device_eval_batch_size=config.training.per_device_eval_batch_size,
-            gradient_accumulation_steps=config.training.gradient_accumulation_steps,
-            
-            # Optimization
-            learning_rate=config.training.learning_rate,
-            weight_decay=config.training.weight_decay,
-            warmup_ratio=config.training.warmup_ratio,
-            optim=config.training.optim,
-            lr_scheduler_type=config.training.lr_scheduler_type,
-            max_grad_norm=config.training.max_grad_norm,
-            
-            # Mixed precision
-            fp16=fp16,
-            bf16=bf16,
-            fp16_full_eval=config.evaluation.fp16_full_eval,
-            
-            # Saving
-            save_strategy=config.output.save_strategy,
-            save_steps=config.output.save_steps if config.output.save_steps and config.output.save_steps > 0 else 50,
-            save_total_limit=config.output.save_total_limit,
-            load_best_model_at_end=config.output.load_best_model_at_end,
-            
-            # Evaluation
-            eval_strategy=config.evaluation.strategy,
-            eval_steps=config.evaluation.eval_steps if config.evaluation.eval_steps and config.evaluation.eval_steps > 0 else 50,
-            eval_accumulation_steps=config.evaluation.eval_accumulation_steps if config.evaluation.eval_accumulation_steps and config.evaluation.eval_accumulation_steps > 0 else None,
-            metric_for_best_model=config.evaluation.metric_for_best_model,
-            greater_is_better=config.evaluation.greater_is_better,
-            
-            # Logging
-            logging_steps=config.logging.steps if config.logging.steps and config.logging.steps > 0 else 10,
-            report_to=config.logging.report_to,
-            
-            # System
-            dataloader_drop_last=config.system.dataloader_drop_last,
-            dataloader_pin_memory=config.system.dataloader_pin_memory,
-            dataloader_num_workers=config.system.dataloader_num_workers,
-            seed=config.system.seed,
-            
-            # Gradient checkpointing
-            gradient_checkpointing=bool(config.system.use_gradient_checkpointing),
-            
-            # Additional optimizations
-            remove_unused_columns=False,  # Keep all columns for SFT
-            ddp_find_unused_parameters=False,
-        )
+        logger.info("🔧 Creating TrainingArguments...")
         
-        return args
+        # Prepare arguments with safe defaults
+        max_steps_val = config.training.max_steps if config.training.max_steps and config.training.max_steps > 0 else -1
+        num_epochs_val = config.training.num_train_epochs if config.training.num_train_epochs and config.training.num_train_epochs > 0 else None
+        
+        logger.info(f"🔧 Final TrainingArguments values:")
+        logger.info(f"   max_steps={max_steps_val}, num_train_epochs={num_epochs_val}")
+        
+        try:
+            args = TrainingArguments(
+                output_dir=config.get_output_dir(),
+                
+                # Training parameters
+                max_steps=max_steps_val,
+                num_train_epochs=num_epochs_val,
+                per_device_train_batch_size=config.training.per_device_train_batch_size,
+                per_device_eval_batch_size=config.training.per_device_eval_batch_size,
+                gradient_accumulation_steps=config.training.gradient_accumulation_steps,
+                
+                # Optimization
+                learning_rate=config.training.learning_rate,
+                weight_decay=config.training.weight_decay,
+                warmup_ratio=config.training.warmup_ratio,
+                optim=config.training.optim,
+                lr_scheduler_type=config.training.lr_scheduler_type,
+                max_grad_norm=config.training.max_grad_norm,
+                
+                # Mixed precision
+                fp16=fp16,
+                bf16=bf16,
+                fp16_full_eval=config.evaluation.fp16_full_eval,
+                
+                # Saving
+                save_strategy=config.output.save_strategy,
+                save_steps=config.output.save_steps if config.output.save_steps and config.output.save_steps > 0 else 50,
+                save_total_limit=config.output.save_total_limit,
+                load_best_model_at_end=config.output.load_best_model_at_end,
+                
+                # Evaluation
+                eval_strategy=config.evaluation.strategy,
+                eval_steps=config.evaluation.eval_steps if config.evaluation.eval_steps and config.evaluation.eval_steps > 0 else 50,
+                eval_accumulation_steps=config.evaluation.eval_accumulation_steps if config.evaluation.eval_accumulation_steps and config.evaluation.eval_accumulation_steps > 0 else None,
+                metric_for_best_model=config.evaluation.metric_for_best_model,
+                greater_is_better=config.evaluation.greater_is_better,
+                
+                # Logging
+                logging_steps=config.logging.steps if config.logging.steps and config.logging.steps > 0 else 10,
+                report_to=config.logging.report_to,
+                
+                # System
+                dataloader_drop_last=config.system.dataloader_drop_last,
+                dataloader_pin_memory=config.system.dataloader_pin_memory,
+                dataloader_num_workers=config.system.dataloader_num_workers,
+                seed=config.system.seed,
+                
+                # Gradient checkpointing
+                gradient_checkpointing=bool(config.system.use_gradient_checkpointing),
+                
+                # Additional optimizations
+                remove_unused_columns=False,  # Keep all columns for SFT
+                ddp_find_unused_parameters=False,
+            )
+            
+            logger.info("✅ TrainingArguments created successfully")
+            return args
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to create TrainingArguments: {e}")
+            logger.error(f"❌ Error type: {type(e).__name__}")
+            import traceback
+            logger.error(f"❌ Full traceback: {traceback.format_exc()}")
+            raise
     
     @staticmethod
     def _create_data_collator(config: ComprehensiveTrainingConfig, tokenizer: Any) -> Any:
