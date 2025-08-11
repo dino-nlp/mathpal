@@ -183,27 +183,34 @@ class TrainerFactory:
     @staticmethod
     def _create_training_arguments(config: ComprehensiveTrainingConfig) -> TrainingArguments:
         """Create TrainingArguments from configuration."""
-                # Handle mixed precision - Tesla T4 compatibility
+        
+        # Handle mixed precision - Tesla T4 compatibility
         fp16 = config.training.fp16
         bf16 = config.training.bf16
         
-        # Auto-detect if not explicitly set, with Tesla T4 compatibility
-        if not fp16 and not bf16:
-            # Check for bf16 support more thoroughly 
-            bf16_supported = torch.cuda.is_bf16_supported()
+        logger.info(f"🔧 Mixed precision config: fp16={fp16}, bf16={bf16}")
+        
+        # Force fp16 for Tesla T4 and pre-Ampere GPUs regardless of config
+        if torch.cuda.is_available():
+            device_name = torch.cuda.get_device_name()
+            device_capability = torch.cuda.get_device_capability()
             
-            # Additional check for Tesla T4 and other pre-Ampere GPUs
-            if torch.cuda.is_available():
-                device_name = torch.cuda.get_device_name()
-                device_capability = torch.cuda.get_device_capability()
-                
-                # Tesla T4 and pre-Ampere GPUs (compute capability < 8.0) don't support bf16
-                if "T4" in device_name or device_capability[0] < 8:
-                    bf16_supported = False
-                    logger.info(f"🔧 Detected {device_name} (compute {device_capability}) - using fp16 instead of bf16")
-            
-            bf16 = bf16_supported
-            fp16 = not bf16_supported
+            # Tesla T4 and pre-Ampere GPUs (compute capability < 8.0) don't support bf16
+            if "T4" in device_name or device_capability[0] < 8:
+                logger.info(f"🔧 Detected {device_name} (compute {device_capability}) - forcing fp16 for compatibility")
+                fp16 = True
+                bf16 = False
+            elif not fp16 and not bf16:
+                # Auto-detect for Ampere+ GPUs only if not explicitly set
+                bf16_supported = torch.cuda.is_bf16_supported()
+                bf16 = bf16_supported
+                fp16 = not bf16_supported
+                logger.info(f"🔧 Auto-detected mixed precision: fp16={fp16}, bf16={bf16}")
+        else:
+            # CPU fallback
+            if not fp16 and not bf16:
+                fp16 = True
+                bf16 = False
         
         # Create base arguments
         args = TrainingArguments(
