@@ -4,14 +4,50 @@
 
 PYTHONPATH := $(shell pwd)/src
 
+help:
+	@grep -E '^[a-zA-Z0-9 -]+:.*#'  Makefile | sort | while read -r l; do printf "\033[1;32m$$(echo $$l | cut -f 1 -d':')\033[00m:$$(echo $$l | cut -f 2- -d'#')\n"; done
+
 install: # Create a local Poetry virtual environment and install all required Python dependencies.
 	poetry env use 3.11
 	poetry install --without superlinked_rag
 # 	eval $(poetry env activate)
 
-help:
-	@grep -E '^[a-zA-Z0-9 -]+:.*#'  Makefile | sort | while read -r l; do printf "\033[1;32m$$(echo $$l | cut -f 1 -d':')\033[00m:$$(echo $$l | cut -f 2- -d'#')\n"; done
+setup_thuegpu: ## Setup complete environment for finetuning with GPU support
+	@echo "🚀 Setting up complete finetuning environment..."
+	# Upgrade pip first
+	pip install --upgrade pip
+	# Install core ML dependencies
+	pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+	# Install transformers ecosystem
+	pip install transformers>=4.36.0
+	pip install datasets>=2.14.0
+	pip install accelerate>=0.20.0
+	pip install peft>=0.6.0
+	pip install trl>=0.7.0
+	# Install Unsloth for efficient training
+	pip install "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git"
+	# Install additional utilities
+	pip install wandb comet-ml
+	pip install bitsandbytes
+	pip install scipy
+	@echo "✅ Environment setup completed!"
+	@echo "🔍 Running environment check..."
+	python3 scripts/setup_finetuning_env.py
 
+env-check: ## Check environment for new architecture dependencies
+	@echo "🔍 Checking environment architecture..."
+	python -c "import sys; print(f'Python: {sys.version}')"
+	python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.cuda.is_available()}')"
+	python -c "import transformers; print(f'Transformers: {transformers.__version__}')"
+	python -c "import peft; print(f'PEFT: {peft.__version__}')"
+	python -c "import trl; print(f'TRL: {trl.__version__}')"
+	python -c "import datasets; print(f'Datasets: {datasets.__version__}')"
+	python -c "import yaml; print(f'PyYAML: {yaml.__version__}')"
+	@echo "🧪 Testing new architecture imports..."
+	python -c "from training_pipeline.core.enhanced_config import ConfigLoader; print('✅ Enhanced config loader')"
+	python -c "from training_pipeline.core.training_manager import TrainingManager; print('✅ Training manager')"
+	python -c "from training_pipeline.factories import ModelFactory, DatasetFactory, TrainerFactory; print('✅ Factories')"
+	@echo "✅ Environment check completed"
 # ======================================
 # ------- Docker Infrastructure --------
 # ======================================
@@ -44,21 +80,6 @@ local-test-retriever: # Test the RAG retriever using your Poetry env
 # ======================================
 # ----------- Finetuning ---------------
 # ======================================
-# Environment setup
-setup_finetuning_env: ## Setup the training environment
-	@echo "🔧 Setting up environment..."
-	python scripts/setup_finetuning_environment.py
-
-# Environment
-env-check: ## Check environment and dependencies
-	@echo "🔍 Checking environment..."
-	python -c "import sys; print(f'Python: {sys.version}')"
-	python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.cuda.is_available()}')"
-	python -c "import transformers; print(f'Transformers: {transformers.__version__}')"
-	python -c "import peft; print(f'PEFT: {peft.__version__}')"
-	python -c "import trl; print(f'TRL: {trl.__version__}')"
-
-
 # Training commands (Legacy v1)
 train: ## Run training with default config (legacy)
 	@echo "🚀 Starting training (legacy)..."
@@ -141,22 +162,6 @@ compare-configs: ## Compare old vs new configuration approaches
 	@echo ""
 	@echo "📁 Available configurations:"
 	@ls -la configs/*.yaml 2>/dev/null || echo "No config files found in configs/"
-
-# Environment check for new architecture
-env-check-v2: ## Check environment for new architecture dependencies
-	@echo "🔍 Checking environment for v2 architecture..."
-	python -c "import sys; print(f'Python: {sys.version}')"
-	python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.cuda.is_available()}')"
-	python -c "import transformers; print(f'Transformers: {transformers.__version__}')"
-	python -c "import peft; print(f'PEFT: {peft.__version__}')"
-	python -c "import trl; print(f'TRL: {trl.__version__}')"
-	python -c "import datasets; print(f'Datasets: {datasets.__version__}')"
-	python -c "import yaml; print(f'PyYAML: {yaml.__version__}')"
-	@echo "🧪 Testing new architecture imports..."
-	python -c "from training_pipeline.core.enhanced_config import ConfigLoader; print('✅ Enhanced config loader')"
-	python -c "from training_pipeline.core.training_manager import TrainingManager; print('✅ Training manager')"
-	python -c "from training_pipeline.factories import ModelFactory, DatasetFactory, TrainerFactory; print('✅ Factories')"
-	@echo "✅ Environment check completed"
 
 # Show architecture comparison
 show-architecture: ## Show architecture comparison
