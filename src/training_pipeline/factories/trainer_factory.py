@@ -224,7 +224,7 @@ class TrainerFactory:
             load_best_model_at_end=config.output.load_best_model_at_end,
             
             # Evaluation
-            evaluation_strategy=config.evaluation.strategy,
+            eval_strategy=config.evaluation.strategy,
             eval_steps=config.evaluation.eval_steps,
             eval_accumulation_steps=config.evaluation.eval_accumulation_steps,
             metric_for_best_model=config.evaluation.metric_for_best_model,

@@ -282,6 +282,10 @@ class ConfigLoader:
     def _dict_to_config(config_dict: Dict[str, Any]) -> ComprehensiveTrainingConfig:
         """Convert dictionary to config object."""
         
+        # Handle both nested and flat config formats
+        if ConfigLoader._is_flat_format(config_dict):
+            config_dict = ConfigLoader._convert_flat_to_nested(config_dict)
+        
         # Extract nested configs
         model_config = ModelConfig(**config_dict.get('model', {}))
         dataset_config = DatasetConfig(**config_dict.get('dataset', {}))
@@ -336,3 +340,121 @@ class ConfigLoader:
         if max_steps:
             config.training.max_steps = max_steps
         return config
+    
+    @staticmethod
+    def _is_flat_format(config_dict: Dict[str, Any]) -> bool:
+        """Check if config uses flat format (legacy) vs nested format."""
+        flat_indicators = [
+            'model_name', 'dataset_name', 'output_dir', 'experiment_name',
+            'max_steps', 'per_device_train_batch_size', 'learning_rate',
+            'lora_r', 'lora_alpha', 'lora_dropout'
+        ]
+        return any(key in config_dict for key in flat_indicators)
+    
+    @staticmethod
+    def _convert_flat_to_nested(config_dict: Dict[str, Any]) -> Dict[str, Any]:
+        """Convert flat config format to nested format."""
+        nested = {
+            'model': {},
+            'dataset': {},
+            'training': {},
+            'lora': {},
+            'system': {},
+            'output': {},
+            'evaluation': {},
+            'logging': {},
+            'comet': {},
+            'inference': {},
+            'hub': {}
+        }
+        
+        # Model mappings
+        model_mapping = {
+            'model_name': 'name',
+            'max_seq_length': 'max_seq_length',
+            'load_in_4bit': 'load_in_4bit',
+            'load_in_8bit': 'load_in_8bit',
+            'full_finetuning': 'full_finetuning'
+        }
+        
+        # Dataset mappings
+        dataset_mapping = {
+            'dataset_name': 'name',
+            'train_split': 'train_split',
+            'test_split': 'test_split',
+            'dataset_text_field': 'text_field',
+            'max_length': 'max_length'
+        }
+        
+        # Training mappings
+        training_mapping = {
+            'max_steps': 'max_steps',
+            'num_train_epochs': 'num_train_epochs',
+            'per_device_train_batch_size': 'per_device_train_batch_size',
+            'per_device_eval_batch_size': 'per_device_eval_batch_size',
+            'gradient_accumulation_steps': 'gradient_accumulation_steps',
+            'learning_rate': 'learning_rate',
+            'weight_decay': 'weight_decay',
+            'warmup_ratio': 'warmup_ratio',
+            'optim': 'optim',
+            'lr_scheduler_type': 'lr_scheduler_type',
+            'train_on_responses_only': 'train_on_responses_only'
+        }
+        
+        # LoRA mappings
+        lora_mapping = {
+            'lora_r': 'r',
+            'lora_alpha': 'alpha',
+            'lora_dropout': 'dropout',
+            'lora_bias': 'bias',
+            'lora_target_modules': 'target_modules'
+        }
+        
+        # Output mappings
+        output_mapping = {
+            'output_dir': 'base_dir',
+            'experiment_name': 'experiment_name',
+            'save_steps': 'save_steps'
+        }
+        
+        # System mappings
+        system_mapping = {
+            'seed': 'seed',
+            'use_gradient_checkpointing': 'use_gradient_checkpointing'
+        }
+        
+        # Logging mappings
+        logging_mapping = {
+            'logging_steps': 'steps',
+            'report_to': 'report_to',
+            'log_level': 'level'
+        }
+        
+        # Apply mappings
+        for flat_key, value in config_dict.items():
+            # Model
+            if flat_key in model_mapping:
+                nested['model'][model_mapping[flat_key]] = value
+            # Dataset
+            elif flat_key in dataset_mapping:
+                nested['dataset'][dataset_mapping[flat_key]] = value
+            # Training
+            elif flat_key in training_mapping:
+                nested['training'][training_mapping[flat_key]] = value
+            # LoRA
+            elif flat_key in lora_mapping:
+                nested['lora'][lora_mapping[flat_key]] = value
+            # Output
+            elif flat_key in output_mapping:
+                nested['output'][output_mapping[flat_key]] = value
+            # System
+            elif flat_key in system_mapping:
+                nested['system'][system_mapping[flat_key]] = value
+            # Logging
+            elif flat_key in logging_mapping:
+                nested['logging'][logging_mapping[flat_key]] = value
+            # Keep unknown keys in root level for backward compatibility
+            else:
+                nested[flat_key] = value
+        
+        return nested

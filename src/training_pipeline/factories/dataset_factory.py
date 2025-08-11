@@ -201,19 +201,26 @@ class DatasetFactory:
                 # Vietnamese math-specific formatting
                 text = example.get("text", "")
                 
-                # Ensure proper Vietnamese math format
-                if not text.startswith("<|begin_of_text|>"):
-                    # Add standard instruction format if missing
-                    if "instruction" in example and "output" in example:
+                # Check if we need to format from instruction/output fields
+                if not text or not text.strip():
+                    # Try to build from instruction and output fields
+                    instruction = example.get("instruction", "")
+                    output = example.get("output", "")
+                    
+                    if instruction and output:
                         formatted_text = f"""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
 
 Bạn là một trợ lý giáo dục chuyên về toán học cho học sinh lớp 6 tại Việt Nam. Hãy giải thích chi tiết và dễ hiểu.<|eot_id|><|start_header_id|>user<|end_header_id|>
 
-{example['instruction']}<|eot_id|><|start_header_id|>assistant<|end_header_id|>
+{instruction}<|eot_id|><|start_header_id|>assistant<|end_header_id|>
 
-{example['output']}<|eot_id|><|end_of_text|>"""
+{output}<|eot_id|><|end_of_text|>"""
                         return {"text": formatted_text}
+                    else:
+                        # If no instruction/output, return empty to be filtered out
+                        return {"text": ""}
                 
+                # Return existing text if it looks valid
                 return {"text": text}
             
             dataset = dataset.map(
