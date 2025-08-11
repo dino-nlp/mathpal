@@ -1,4 +1,4 @@
-t # 🚀 MathPal Training Pipeline v2 - New Architecture Summary
+t git # 🚀 MathPal Training Pipeline v2 - New Architecture Summary
 
 ## ✅ Implementation Completed Successfully!
 

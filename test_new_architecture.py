@@ -167,8 +167,20 @@ def test_dry_run_functionality():
             
             # Test cost estimation
             cost_estimate = manager.estimate_training_cost()
-            print(f"   💰 Memory estimate: {cost_estimate.get('estimated_memory_gb', 'Unknown'):.1f} GB")
-            print(f"   ⏱️ Time estimate: {cost_estimate.get('estimated_time_hours', 'Unknown'):.1f} hours")
+            
+            # Safe formatting for numeric values
+            memory_est = cost_estimate.get('estimated_memory_gb', 'Unknown')
+            if isinstance(memory_est, (int, float)):
+                print(f"   💰 Memory estimate: {memory_est:.1f} GB")
+            else:
+                print(f"   💰 Memory estimate: {memory_est}")
+            
+            time_est = cost_estimate.get('estimated_time_hours', 'Unknown')  
+            if isinstance(time_est, (int, float)):
+                print(f"   ⏱️ Time estimate: {time_est:.1f} hours")
+            else:
+                print(f"   ⏱️ Time estimate: {time_est}")
+                
             print(f"   ✅ Feasible: {'Yes' if cost_estimate.get('feasible', True) else 'No'}")
             
         print("✅ Dry run functionality successful!\n")

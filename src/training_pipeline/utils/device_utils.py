@@ -113,6 +113,29 @@ class DeviceUtils:
                 print(f"   Free memory: {info['free_memory_gb']:.2f} GB")
     
     @staticmethod
+    def get_gpu_memory_gb(device: Optional[int] = None) -> float:
+        """
+        Get total GPU memory in GB.
+        
+        Args:
+            device: Optional device index
+            
+        Returns:
+            Total GPU memory in GB, or 0 if CUDA not available
+        """
+        if not torch.cuda.is_available():
+            return 0.0
+        
+        if device is None:
+            device = torch.cuda.current_device()
+        
+        try:
+            props = torch.cuda.get_device_properties(device)
+            return props.total_memory / 1024**3
+        except Exception:
+            return 0.0
+    
+    @staticmethod
     def clear_cuda_cache() -> None:
         """Clear CUDA cache."""
         if torch.cuda.is_available():
