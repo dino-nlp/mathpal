@@ -184,3 +184,8 @@ show-architecture: ## Show architecture comparison
 	@echo "   Dry run: make train-dry-run"
 	@echo ""
 
+# Testing new architecture
+test-architecture: ## Test and validate the new training pipeline architecture
+	@echo "🧪 Testing new architecture..."
+	python test_new_architecture.py
+

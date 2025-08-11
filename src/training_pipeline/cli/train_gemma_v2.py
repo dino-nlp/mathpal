@@ -31,7 +31,7 @@ from typing import Optional
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from training_pipeline.core.enhanced_config import ConfigLoader, ComprehensiveTrainingConfig
-from training_pipeline.core.training_manager import TrainingManager
+from training_pipeline.core.training_manager import TrainingManager, TrainingResults
 from training_pipeline.core.exceptions import (
     ConfigurationError, ValidationError, TrainingError, ModelError, DatasetError
 )

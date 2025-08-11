@@ -10,7 +10,6 @@ from .enhanced_config import (
     OutputConfig, EvaluationConfig, LoggingConfig, CometConfig, InferenceConfig,
     HubConfig, ComprehensiveTrainingConfig, ConfigLoader
 )
-from .training_manager import TrainingManager, TrainingResults
 
 __all__ = [
     # Exceptions
@@ -22,7 +21,4 @@ __all__ = [
     "ModelConfig", "DatasetConfig", "TrainingConfig", "LoRAConfig", "SystemConfig",
     "OutputConfig", "EvaluationConfig", "LoggingConfig", "CometConfig", "InferenceConfig", 
     "HubConfig", "ComprehensiveTrainingConfig", "ConfigLoader",
-    
-    # Main components
-    "TrainingManager", "TrainingResults"
 ]
