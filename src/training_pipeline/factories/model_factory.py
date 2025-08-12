@@ -108,7 +108,6 @@ class ModelFactory:
                     use_gradient_checkpointing=use_gradient_checkpointing,
                     random_state=config.system.seed,
                     use_rslora=config.lora.use_rslora,
-                    loftq_config=config.lora.loftq_config,
                     max_seq_length=config.model.max_seq_length,
                 )
             
@@ -193,7 +192,6 @@ class ModelFactory:
                 task_type=TaskType.CAUSAL_LM,
                 inference_mode=False,
                 use_rslora=config.lora.use_rslora,
-                loftq_config=config.lora.loftq_config,
             )
             
             model = get_peft_model(model, peft_config)
