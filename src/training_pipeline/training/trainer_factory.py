@@ -4,13 +4,13 @@ from typing import Any, Optional, Dict
 from datasets import Dataset
 from trl import SFTTrainer, SFTConfig
 from unsloth.chat_templates import train_on_responses_only
-from ..config.config_manager import ComprehensiveTrainingConfig
+from ..config.config_manager import ConfigManager
 
 
 class TrainerFactory:
     """Factory for creating and configuring SFTTrainer instances."""
     
-    def __init__(self, config: ComprehensiveTrainingConfig):
+    def __init__(self, config: ConfigManager):
         """Initialize TrainerFactory with configuration."""
         self.config = config
     
