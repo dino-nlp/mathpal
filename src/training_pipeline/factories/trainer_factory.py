@@ -3,7 +3,8 @@
 from typing import Any, Dict, Optional
 import torch
 from transformers import TrainingArguments, DataCollatorForSeq2Seq
-
+from unsloth import FastModel
+from trl import SFTConfig, SFTTrainer
 from training_pipeline.utils.exceptions import TrainingError, UnsupportedModelError
 from training_pipeline.config.config_manager import ConfigManager
 from training_pipeline.utils import get_logger
@@ -59,182 +60,94 @@ class TrainerFactory:
                            datasets: Dict[str, Any]) -> Any:
         """Create SFT (Supervised Fine-Tuning) trainer."""
         try:
-            from trl import SFTTrainer
+            
             
             logger.info("🏋️ Creating SFT Trainer...")
+            FastModel.for_training(model)
             
-            # Create training arguments
-            training_args = TrainerFactory._create_training_arguments(config)
+            sft_config = SFTConfig(
+                # Basic training settings
+                dataset_text_field=config.dataset.text_field,
+                output_dir=config.get_output_dir(),
+                max_steps=config.training.max_steps,
+                per_device_train_batch_size=config.training.per_device_train_batch_size,
+                gradient_accumulation_steps=config.training.gradient_accumulation_steps,
+                
+                # Optimization settings
+                learning_rate=config.training.learning_rate,
+                warmup_ratio=config.training.warmup_ratio,
+                weight_decay=config.training.weight_decay,
+                optim=config.training.optim
+                lr_scheduler_type=config.training.lr_scheduler_type,
+                
+                # Logging and saving
+                logging_steps=config.logging.steps,
+                save_strategy=config.output.save_strategy,
+                save_steps=config.output.save_steps,
+                report_to=config.logging.report_to,
+                
+                max_length=config.model.max_seq_length,
+                
+                # Reproducibility
+                seed=training_args.seed,
+            )
             
-            # Create data collator
-            data_collator = TrainerFactory._create_data_collator(config, tokenizer)
+            logger.info(f"📋 SFTConfig Configuration:")
+            logger.info(f"   dataset_text_field: {sft_config.dataset_text_field}")
+            logger.info(f"   max_length: {sft_config.max_length}")
+            logger.info(f"   max_steps: {sft_config.max_steps}")
+            logger.info(f"   per_device_train_batch_size: {sft_config.per_device_train_batch_size}")
             
-            # Determine if we should use Unsloth optimizations
-            use_unsloth = TrainerFactory._should_use_unsloth(config, model)
+            # Prepare SFTTrainer arguments like working notebook
+            sft_args = {
+                "model": model,
+                "tokenizer": tokenizer,
+                "train_dataset": datasets["train"],
+                "args": sft_config,  # Use SFTConfig instead of TrainingArguments
+                # NO data_collator like notebook
+                # NO formatting_func - data is already formatted
+            }
             
-            if use_unsloth:
-                logger.info("⚡ Using Unsloth optimizations with SFTConfig")
-                
-                # Enable training like working notebook
-                try:
-                    from unsloth import FastModel
-                    FastModel.for_training(model)
-                    logger.info("✅ FastModel.for_training applied")
-                except Exception as e:
-                    logger.warning(f"⚠️ Failed to apply FastModel.for_training: {e}")
-                
-                # Ensure tokenizer has a pad_token
-                if tokenizer.pad_token is None:
-                    tokenizer.pad_token = tokenizer.eos_token
-                # Set padding side for causal LMs
-                tokenizer.padding_side = "right"
-                
-                # Create SFTConfig like working notebook instead of TrainingArguments
-                from trl import SFTConfig
-                sft_config = SFTConfig(
-                    # Basic training settings
-                    dataset_text_field=config.dataset.text_field,
-                    output_dir=training_args.output_dir,
-                    max_steps=training_args.max_steps,
-                    per_device_train_batch_size=training_args.per_device_train_batch_size,
-                    gradient_accumulation_steps=training_args.gradient_accumulation_steps,
-                    
-                    # Optimization settings
-                    learning_rate=training_args.learning_rate,
-                    warmup_ratio=training_args.warmup_ratio,
-                    weight_decay=training_args.weight_decay,
-                    optim="adamw_torch_fused",  # Like notebook
-                    lr_scheduler_type="cosine",
-                    
-                    # Logging and saving
-                    logging_steps=training_args.logging_steps,
-                    save_strategy="steps",
-                    save_steps=training_args.save_steps,
-                    report_to=training_args.report_to,
-                    
-                    max_length=config.model.max_seq_length,
-                    
-                    # Reproducibility
-                    seed=training_args.seed,
-                )
-                
-                logger.info(f"📋 SFTConfig Configuration:")
-                logger.info(f"   dataset_text_field: {sft_config.dataset_text_field}")
-                logger.info(f"   max_length: {sft_config.max_length}")
-                logger.info(f"   max_steps: {sft_config.max_steps}")
-                logger.info(f"   per_device_train_batch_size: {sft_config.per_device_train_batch_size}")
-                
-                # Prepare SFTTrainer arguments like working notebook
-                sft_args = {
-                    "model": model,
-                    "tokenizer": tokenizer,
-                    "train_dataset": datasets["train"],
-                    "args": sft_config,  # Use SFTConfig instead of TrainingArguments
-                    # NO data_collator like notebook
-                    # NO formatting_func - data is already formatted
-                }
-                
-                # Only add eval_dataset if it exists
-                eval_dataset = datasets.get("eval")
-                if eval_dataset is not None and len(eval_dataset) > 0:
-                    sft_args["eval_dataset"] = eval_dataset
-                    logger.info(f"   eval_dataset: {len(eval_dataset)} samples")
-                else:
-                    logger.info("   eval_dataset: None (skipping evaluation)")
-                
-                # Apply train_on_responses_only if configured
-                try:
-                    logger.info("🔧 Creating SFTTrainer with arguments...")
-                    for key, value in sft_args.items():
-                        if key != "train_dataset" and key != "eval_dataset":  # Skip large objects
-                            logger.info(f"   {key}={value}")
-                    
-                    trainer = SFTTrainer(**sft_args)
-                    logger.info("✅ SFTTrainer created successfully")
-                    
-                except Exception as e:
-                    logger.error(f"❌ Failed to create SFTTrainer: {e}")
-                    logger.error(f"❌ Error type: {type(e).__name__}")
-                    import traceback
-                    logger.error(f"❌ SFTTrainer traceback: {traceback.format_exc()}")
-                    raise
-                
-                # Apply train_on_responses_only like working notebook
-                try:
-                    from unsloth.chat_templates import train_on_responses_only
-                    trainer = train_on_responses_only(
-                        trainer,
-                        instruction_part="<start_of_turn>user\n",
-                        response_part="<start_of_turn>model\n",
-                    )
-                    logger.info("✅ Applied train_on_responses_only successfully")
-                except ImportError:
-                    logger.warning("⚠️ Could not import train_on_responses_only from Unsloth")
-                except Exception as e:
-                    logger.warning(f"⚠️ Failed to apply train_on_responses_only: {e}")
-                    logger.info("Proceeding without train_on_responses_only...")
+            # Only add eval_dataset if it exists
+            eval_dataset = datasets.get("eval")
+            if eval_dataset is not None and len(eval_dataset) > 0:
+                sft_args["eval_dataset"] = eval_dataset
+                logger.info(f"   eval_dataset: {len(eval_dataset)} samples")
             else:
-                logger.info("🤗 Using standard HuggingFace trainer with SFTConfig")
+                logger.info("   eval_dataset: None (skipping evaluation)")
+            
+            # Apply train_on_responses_only if configured
+            try:
+                logger.info("🔧 Creating SFTTrainer with arguments...")
+                for key, value in sft_args.items():
+                    if key != "train_dataset" and key != "eval_dataset":  # Skip large objects
+                        logger.info(f"   {key}={value}")
                 
-                # Use SFTConfig approach for all trainers (proven to work)
-                from trl import SFTConfig
-                sft_config = SFTConfig(
-                    # Basic training settings
-                    dataset_text_field=config.dataset.text_field,
-                    output_dir=training_args.output_dir,
-                    max_steps=training_args.max_steps,
-                    per_device_train_batch_size=training_args.per_device_train_batch_size,
-                    gradient_accumulation_steps=training_args.gradient_accumulation_steps,
-                    
-                    # Optimization settings
-                    learning_rate=training_args.learning_rate,
-                    warmup_ratio=training_args.warmup_ratio,
-                    weight_decay=training_args.weight_decay,
-                    optim="adamw_torch_fused",  # Proven to work
-                    lr_scheduler_type="cosine",
-                    
-                    # Logging and saving
-                    logging_steps=training_args.logging_steps,
-                    save_strategy="steps",
-                    save_steps=training_args.save_steps,
-                    report_to=training_args.report_to,
-                    
-                    max_length=config.model.max_seq_length,
-                    
-                    # Reproducibility
-                    seed=training_args.seed,
+                trainer = SFTTrainer(**sft_args)
+                logger.info("✅ SFTTrainer created successfully")
+                
+            except Exception as e:
+                logger.error(f"❌ Failed to create SFTTrainer: {e}")
+                logger.error(f"❌ Error type: {type(e).__name__}")
+                import traceback
+                logger.error(f"❌ SFTTrainer traceback: {traceback.format_exc()}")
+                raise
+            
+            # Apply train_on_responses_only like working notebook
+            try:
+                from unsloth.chat_templates import train_on_responses_only
+                trainer = train_on_responses_only(
+                    trainer,
+                    instruction_part="<start_of_turn>user\n",
+                    response_part="<start_of_turn>model\n",
                 )
+                logger.info("✅ Applied train_on_responses_only successfully")
+            except ImportError:
+                logger.warning("⚠️ Could not import train_on_responses_only from Unsloth")
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to apply train_on_responses_only: {e}")
+                logger.info("Proceeding without train_on_responses_only...")
                 
-                # Prepare SFTTrainer arguments (no data_collator, proven approach)
-                sft_args = {
-                    "model": model,
-                    "tokenizer": tokenizer,
-                    "train_dataset": datasets["train"],
-                    "args": sft_config,  # Use SFTConfig
-                    # NO data_collator - let SFTTrainer handle internally
-                    # NO formatting_func - data is pre-formatted
-                }
-                
-                # Only add eval_dataset if it exists
-                eval_dataset = datasets.get("eval")
-                if eval_dataset is not None and len(eval_dataset) > 0:
-                    sft_args["eval_dataset"] = eval_dataset
-                
-                try:
-                    logger.info("🔧 Creating standard SFTTrainer with arguments...")
-                    for key, value in sft_args.items():
-                        if key != "train_dataset" and key != "eval_dataset":  # Skip large objects
-                            logger.info(f"   {key}={value}")
-                    
-                    trainer = SFTTrainer(**sft_args)
-                    logger.info("✅ Standard SFTTrainer created successfully")
-                    
-                except Exception as e:
-                    logger.error(f"❌ Failed to create standard SFTTrainer: {e}")
-                    logger.error(f"❌ Error type: {type(e).__name__}")
-                    import traceback
-                    logger.error(f"❌ Standard SFTTrainer traceback: {traceback.format_exc()}")
-                    raise
             
             # Print training info
             TrainerFactory._print_training_info(trainer, datasets, config)
@@ -313,7 +226,6 @@ class TrainerFactory:
         
         # Debug config values
         logger.info(f"🔧 Training config debug: max_steps={config.training.max_steps}, num_epochs={config.training.num_train_epochs}")
-        logger.info(f"🔧 Eval config debug: eval_steps={config.evaluation.eval_steps}, strategy={config.evaluation.strategy}")
         logger.info(f"🔧 Output config debug: save_steps={config.output.save_steps}, save_strategy={config.output.save_strategy}")
         logger.info(f"🔧 Logging config debug: logging_steps={config.logging.steps}, report_to={config.logging.report_to}")
         logger.info(f"🔧 System config debug: seed={config.system.seed}, num_workers={config.system.dataloader_num_workers}")
@@ -424,27 +336,7 @@ class TrainerFactory:
             logger.error(f"❌ Full traceback: {traceback.format_exc()}")
             raise
     
-    @staticmethod
-    def _create_data_collator(config: ConfigManager, tokenizer: Any) -> Any:
-        """Create data collator optimized for Unsloth SFTTrainer."""
-        # Import DataCollatorWithPadding for Unsloth compatibility
-        from transformers import DataCollatorWithPadding
-        
-        return DataCollatorWithPadding(
-            tokenizer=tokenizer,
-            padding=True,
-            max_length=config.model.max_seq_length,
-            pad_to_multiple_of=8,  # Optimize for GPU memory alignment  
-            return_tensors="pt"
-        )
-    
-    @staticmethod
-    def _should_use_unsloth(config: ConfigManager, model: Any) -> bool:
-        """Determine if we should use Unsloth optimizations."""
-        # Check if model was created with Unsloth
-        model_name = config.model.name
-        return model_name.startswith("unsloth/") or hasattr(model, 'get_peft_model')
-    
+
     @staticmethod
     def _print_training_info(trainer: Any, datasets: Dict[str, Any], config: ConfigManager):
         """Print training information."""

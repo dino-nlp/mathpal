@@ -211,9 +211,6 @@ def load_and_validate_config(args: argparse.Namespace) -> ConfigManager:
                 'eval_steps': 10,
             })
         
-        # Disable Comet if requested
-        if args.no_comet:
-            cli_overrides['report_to'] = 'none'
         
         # Create ConfigManager with all overrides
         config_manager = create_config_manager(
