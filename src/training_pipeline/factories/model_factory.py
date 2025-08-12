@@ -7,18 +7,13 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from training_pipeline.utils.exceptions import UnsupportedModelError, ModelError
 from training_pipeline.config.config_manager import ConfigManager
 from training_pipeline.utils import get_logger
+from unsloth import FastModel, get_chat_template
 
 logger = get_logger()
 
 
 class ModelFactory:
     """Factory for creating models and tokenizers based on configuration."""
-    
-    SUPPORTED_MODEL_TYPES = {
-        "unsloth": ["unsloth/"],
-        "huggingface": ["google/", "meta-llama/", "microsoft/"],
-        "gemma": ["google/gemma", "gemma"]
-    }
     
     @staticmethod
     def create_model(config: ConfigManager) -> Tuple[Any, Any]:
@@ -35,159 +30,43 @@ class ModelFactory:
             UnsupportedModelError: If model type is not supported
             ModelError: If model creation fails
         """
-        try:
-            ModelFactory._create_unsloth_model(config)    
-        except Exception as e:
-            raise ModelError(f"Failed to create model {config.model.name}: {e}")
-    
-    # @staticmethod
-    # def _is_unsloth_model(model_name: str) -> bool:
-    #     """Check if model is an Unsloth model."""
-    #     return any(model_name.startswith(prefix) for prefix in ModelFactory.SUPPORTED_MODEL_TYPES["unsloth"])
-    
-    # @staticmethod
-    # def _is_huggingface_model(model_name: str) -> bool:
-    #     """Check if model is a standard HuggingFace model."""
-    #     return any(model_name.startswith(prefix) for prefix in ModelFactory.SUPPORTED_MODEL_TYPES["huggingface"])
-    
-    @staticmethod
-    def _create_unsloth_model(config: ConfigManager) -> Tuple[Any, Any]:
-        """Create Unsloth optimized model."""
-        try:
-            from unsloth import FastModel, get_chat_template
+        logger.info(f"🚀 Creating Unsloth model: {config.model.name}")
             
-            logger.info(f"🚀 Creating Unsloth model: {config.model.name}")
+        # Create model with Unsloth optimizations
+        model, tokenizer = FastModel.from_pretrained(
+            model_name=config.model.name,
+            dtype=None,  # Auto-detect
+            max_seq_length=config.model.max_seq_length,
+            load_in_4bit=config.model.load_in_4bit,
+            load_in_8bit=config.model.load_in_8bit,
+            full_finetuning = config.model.full_finetuning,
+            use_gradient_checkpointing=config.system.use_gradient_checkpointing
+            # token = "hf_...", # use one if using gated models
+        )
+        
+        # Apply LoRA if not doing full fine-tuning
+        if not config.model.full_finetuning:
+            logger.info("🔧 Applying LoRA configuration...")
             
-            # Create model with Unsloth optimizations
-            model, tokenizer = FastModel.from_pretrained(
-                model_name=config.model.name,
-                dtype=None,  # Auto-detect
-                max_seq_length=config.model.max_seq_length,
-                load_in_4bit=config.model.load_in_4bit,
-                load_in_8bit=config.model.load_in_8bit,
-                full_finetuning = config.model.full_finetuning,
-                use_gradient_checkpointing=config.system.use_gradient_checkpointing
-                # token = "hf_...", # use one if using gated models
+            model = FastModel.get_peft_model(
+                model,
+                finetune_vision_layers     = False, # Turn off for just text!
+                finetune_language_layers   = True,  # Should leave on!
+                finetune_attention_modules = True,  # Attention good for GRPO
+                finetune_mlp_modules       = True,  # SHould leave on always!
+                r=config.lora.r,
+                target_modules=config.lora.target_modules,
+                lora_alpha=config.lora.alpha,
+                lora_dropout=config.lora.dropout,
+                bias=config.lora.bias,
+                random_state=config.system.seed
             )
-            
-            # Apply LoRA if not doing full fine-tuning
-            if not config.model.full_finetuning:
-                logger.info("🔧 Applying LoRA configuration...")
-                
-                model = FastModel.get_peft_model(
-                    model,
-                    finetune_vision_layers     = False, # Turn off for just text!
-                    finetune_language_layers   = True,  # Should leave on!
-                    finetune_attention_modules = True,  # Attention good for GRPO
-                    finetune_mlp_modules       = True,  # SHould leave on always!
-                    r=config.lora.r,
-                    target_modules=config.lora.target_modules,
-                    lora_alpha=config.lora.alpha,
-                    lora_dropout=config.lora.dropout,
-                    bias=config.lora.bias,
-                    random_state=config.system.seed
-                )
-            
-            # Setup chat template for Gemma3N
-            tokenizer = get_chat_template(tokenizer, "gemma-3n")
-            logger.info("📊 Model loaded successfully")
-            return model, tokenizer
-            
-        except ImportError:
-            raise ModelError(
-                "Unsloth not installed. Please install with: pip install unsloth"
-            )
-        except Exception as e:
-            raise ModelError(f"Failed to create Unsloth model: {e}")
-    
-    # @staticmethod
-    # def _create_huggingface_model(config: ConfigManager) -> Tuple[Any, Any]:
-        """Create standard HuggingFace model with optional quantization."""
-        # try:
-        #     logger.info(f"🤗 Creating HuggingFace model: {config.model.name}")
-            
-        #     # Setup quantization if requested
-        #     quantization_config = None
-        #     if config.model.load_in_4bit or config.model.load_in_8bit:
-        #         quantization_config = BitsAndBytesConfig(
-        #             load_in_4bit=config.model.load_in_4bit,
-        #             load_in_8bit=config.model.load_in_8bit,
-        #             bnb_4bit_quant_type="nf4" if config.model.load_in_4bit else None,
-        #             bnb_4bit_compute_dtype=torch.bfloat16 if config.model.load_in_4bit else None,
-        #             bnb_4bit_use_double_quant=True if config.model.load_in_4bit else None,
-        #         )
-            
-        #     # Load tokenizer
-        #     tokenizer = AutoTokenizer.from_pretrained(
-        #         config.model.name,
-        #         trust_remote_code=True,
-        #         use_fast=True,
-        #     )
-            
-        #     # Set pad token if not exists
-        #     if tokenizer.pad_token is None:
-        #         tokenizer.pad_token = tokenizer.eos_token
-                
-        #     # Load model
-        #     model = AutoModelForCausalLM.from_pretrained(
-        #         config.model.name,
-        #         quantization_config=quantization_config,
-        #         device_map="auto",
-        #         trust_remote_code=True,
-        #         torch_dtype=torch.bfloat16 if config.training.bf16 else torch.float16,
-        #         attn_implementation="flash_attention_2" if torch.cuda.is_available() else None,
-        #     )
-            
-        #     # Apply LoRA if not doing full fine-tuning
-        #     if not config.model.full_finetuning:
-        #         model = ModelFactory._apply_lora_to_hf_model(model, config)
-            
-        #     logger.info("📊 HuggingFace model loaded successfully")
-        #     return model, tokenizer
-            
-        # except Exception as e:
-        #     raise ModelError(f"Failed to create HuggingFace model: {e}")
-    
-    # @staticmethod
-    # def _apply_lora_to_hf_model(model: Any, config: ConfigManager) -> Any:
-    #     """Apply LoRA to HuggingFace model using PEFT."""
-    #     try:
-    #         from peft import LoraConfig, get_peft_model, TaskType
-            
-    #         logger.info("🔧 Applying LoRA to HuggingFace model...")
-            
-    #         peft_config = LoraConfig(
-    #             r=config.lora.r,
-    #             lora_alpha=config.lora.alpha,
-    #             target_modules=config.lora.target_modules,
-    #             lora_dropout=config.lora.dropout,
-    #             bias=config.lora.bias,
-    #             task_type=TaskType.CAUSAL_LM,
-    #             inference_mode=False,
-    #             use_rslora=config.lora.use_rslora,
-    #         )
-            
-    #         model = get_peft_model(model, peft_config)
-    #         return model
-            
-    #     except ImportError:
-    #         raise ModelError(
-    #             "PEFT not installed. Please install with: pip install peft"
-    #         )
-    #     except Exception as e:
-    #         raise ModelError(f"Failed to apply LoRA: {e}")
-    
-    # @staticmethod
-    # def is_supported(model_name: str) -> bool:
-    #     """Check if model is supported by factory."""
-    #     return (ModelFactory._is_unsloth_model(model_name) or 
-    #             ModelFactory._is_huggingface_model(model_name))
-    
-    # @staticmethod
-    # def get_supported_models() -> dict:
-    #     """Get list of supported model types."""
-    #     return ModelFactory.SUPPORTED_MODEL_TYPES
-    
+        
+        # Setup chat template for Gemma3N
+        tokenizer = get_chat_template(tokenizer, "gemma-3n")
+        logger.info("📊 Model loaded successfully")
+        return model, tokenizer
+       
     @staticmethod
     def estimate_memory_usage(config: ConfigManager) -> float:
         """

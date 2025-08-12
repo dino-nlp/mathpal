@@ -176,7 +176,6 @@ class TrainingManager:
         """Load model and tokenizer."""
         try:
             logger.info("📂 Loading model and tokenizer...")
-            logger.info(f"TTTT: {self.config_manager}")
             self.model, self.tokenizer = self.model_factory.create_model(self.config_manager)
             
             # Log model info to experiment tracker
