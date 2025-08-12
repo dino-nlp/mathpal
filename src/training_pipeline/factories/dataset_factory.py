@@ -3,9 +3,9 @@
 from typing import Dict, Any, Optional
 from datasets import load_dataset, Dataset, DatasetDict
 
-from ..core.exceptions import DatasetError
-from ..config.config_manager import ConfigManager
-from ..utils import get_logger
+from training_pipeline.utils.exceptions import DatasetError
+from training_pipeline.config.config_manager import ConfigManager
+from training_pipeline.utils import get_logger
 
 logger = get_logger()
 

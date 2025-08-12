@@ -4,9 +4,9 @@ from typing import Any, Dict, Optional
 import torch
 from transformers import TrainingArguments, DataCollatorForSeq2Seq
 
-from ..core.exceptions import TrainingError, UnsupportedModelError
-from ..config.config_manager import ConfigManager
-from ..utils import get_logger
+from training_pipeline.utils.exceptions import TrainingError, UnsupportedModelError
+from training_pipeline.config.config_manager import ConfigManager
+from training_pipeline.utils import get_logger
 
 logger = get_logger()
 

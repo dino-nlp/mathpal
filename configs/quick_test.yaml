@@ -13,7 +13,7 @@
 # =============================================================================
 model:
   # Lightweight Gemma-3n model for quick testing
-  name: "unsloth/gemma-3n-E4B-it"
+  name: "unsloth/gemma-3n-E2B-it"
   
   # Reduced sequence length for faster processing
   max_seq_length: 1024

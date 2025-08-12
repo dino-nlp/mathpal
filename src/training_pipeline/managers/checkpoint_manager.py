@@ -5,9 +5,9 @@ import json
 from typing import Dict, Any, List, Optional
 from pathlib import Path
 
-from ..core.exceptions import CheckpointError
-from ..config.config_manager import OutputConfigSection
-from ..utils import get_logger
+from training_pipeline.utils.exceptions import CheckpointError
+from training_pipeline.config.config_manager import OutputConfigSection
+from training_pipeline.utils import get_logger
 
 logger = get_logger()
 

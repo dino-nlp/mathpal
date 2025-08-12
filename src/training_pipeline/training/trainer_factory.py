@@ -4,7 +4,7 @@ from typing import Any, Optional, Dict
 from datasets import Dataset
 from trl import SFTTrainer, SFTConfig
 from unsloth.chat_templates import train_on_responses_only
-from ..config.config_manager import ConfigManager
+from training_pipeline.config.config_manager import ConfigManager
 
 
 class TrainerFactory:

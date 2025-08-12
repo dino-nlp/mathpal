@@ -4,9 +4,9 @@ import random
 from typing import Dict, Any, List, Optional, Tuple
 import torch
 
-from ..core.exceptions import InferenceError
-from ..config.config_manager import ConfigManager
-from ..utils import get_logger
+from training_pipeline.utils.exceptions import InferenceError
+from training_pipeline.config.config_manager import ConfigManager
+from training_pipeline.utils import get_logger
 
 logger = get_logger()
 

@@ -21,7 +21,7 @@ from pathlib import Path
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 
-from ..core.exceptions import ConfigurationError, ValidationError
+from training_pipeline.utils.exceptions import ConfigurationError, ValidationError
 
 # Type variable for config sections
 T = TypeVar('T', bound='ConfigSection')

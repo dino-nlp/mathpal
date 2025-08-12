@@ -4,9 +4,9 @@ from typing import Tuple, Any
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 
-from ..core.exceptions import UnsupportedModelError, ModelError
-from ..config.config_manager import ConfigManager
-from ..utils import get_logger
+from training_pipeline.utils.exceptions import UnsupportedModelError, ModelError
+from training_pipeline.config.config_manager import ConfigManager
+from training_pipeline.utils import get_logger
 
 logger = get_logger()
 

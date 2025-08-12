@@ -5,9 +5,9 @@ import time
 from typing import Dict, Any, Optional
 from pathlib import Path
 
-from ..core.exceptions import ExperimentError
-from ..config.config_manager import OutputConfigSection, CometConfigSection
-from ..utils import get_logger
+from training_pipeline.utils.exceptions import ExperimentError
+from training_pipeline.config.config_manager import OutputConfigSection, CometConfigSection
+from training_pipeline.utils import get_logger
 
 logger = get_logger()
 

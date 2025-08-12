@@ -62,8 +62,8 @@ for logger_name in loggers_to_suppress:
 logging.getLogger().setLevel(logging.WARNING)
 
 from training_pipeline.config.config_manager import create_config_manager, ConfigManager
-from training_pipeline.core.training_manager import TrainingManager, TrainingResults
-from training_pipeline.core.exceptions import (
+from training_pipeline.managers.training_manager import TrainingManager, TrainingResults
+from training_pipeline.utils.exceptions import (
     ConfigurationError, ValidationError, TrainingError, ModelError, DatasetError
 )
 from training_pipeline.utils import setup_logging, get_logger, DeviceUtils
@@ -336,7 +336,7 @@ def run_training(config_manager: ConfigManager) -> None:
     """
     try:
         # Use ConfigManager directly with new TrainingManager
-        from training_pipeline.core.training_manager import TrainingManager
+        from training_pipeline.managers.training_manager import TrainingManager
         manager = TrainingManager(config_manager)
         
         # Run training pipeline

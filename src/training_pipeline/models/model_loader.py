@@ -3,7 +3,7 @@
 from typing import Tuple, Optional, Dict, Any
 import torch
 from unsloth import FastModel, get_chat_template
-from ..config.config_manager import ConfigManager
+from training_pipeline.config.config_manager import ConfigManager
 
 
 class ModelLoader:

@@ -1,6 +1,6 @@
-# include .env
+include .env
 
-# $(eval export $(shell sed -ne 's/ *#.*$$//; /./ s/=.*$$// p' .env))
+$(eval export $(shell sed -ne 's/ *#.*$$//; /./ s/=.*$$// p' .env))
 
 PYTHONPATH := $(shell pwd)/src
 
@@ -32,7 +32,7 @@ env-check: ## Check environment for training pipeline dependencies
 	@python3 -c "import yaml; print(f'PyYAML: {yaml.__version__}')"
 	@echo "🧪 Testing training pipeline imports..."
 	@PYTHONPATH=$(PYTHONPATH) python3 -c "from training_pipeline.config.config_manager import ConfigManager; print('✅ ConfigManager')"
-	@PYTHONPATH=$(PYTHONPATH) python3 -c "from training_pipeline.core.training_manager import TrainingManager; print('✅ Training manager')"
+	@PYTHONPATH=$(PYTHONPATH) python3 -c "from training_pipeline.utils.training_manager import TrainingManager; print('✅ Training manager')"
 	@PYTHONPATH=$(PYTHONPATH) python3 -c "from training_pipeline.factories import ModelFactory, DatasetFactory, TrainerFactory; print('✅ Factories')"
 	@echo "✅ Environment check completed"
 
@@ -55,7 +55,7 @@ env-info: ## Show comprehensive environment information
 	@echo ""
 	@echo "🧪 Training Pipeline:"
 	@PYTHONPATH=$(PYTHONPATH) python3 -c "from training_pipeline.config.config_manager import ConfigManager; print('✅ ConfigManager')"
-	@PYTHONPATH=$(PYTHONPATH) python3 -c "from training_pipeline.core.training_manager import TrainingManager; print('✅ Training Manager')"
+	@PYTHONPATH=$(PYTHONPATH) python3 -c "from training_pipeline.managers.training_manager import TrainingManager; print('✅ Training Manager')"
 	@PYTHONPATH=$(PYTHONPATH) python3 -c "from training_pipeline.factories import ModelFactory, DatasetFactory, TrainerFactory; print('✅ All Factories')"
 	@echo "========================================"
 # ======================================
@@ -228,7 +228,7 @@ test-architecture: ## Test and validate the new training pipeline architecture
 test-imports: ## Test all training pipeline imports
 	@echo "🧪 Testing training pipeline imports..."
 	@PYTHONPATH=$(PYTHONPATH) python3 -c "from training_pipeline.config.config_manager import ConfigManager; print('✅ ConfigManager')"
-	@PYTHONPATH=$(PYTHONPATH) python3 -c "from training_pipeline.core.training_manager import TrainingManager; print('✅ TrainingManager')"
+	@PYTHONPATH=$(PYTHONPATH) python3 -c "from training_pipeline.managers.training_manager import TrainingManager; print('✅ TrainingManager')"
 	@PYTHONPATH=$(PYTHONPATH) python3 -c "from training_pipeline.factories import ModelFactory, DatasetFactory, TrainerFactory; print('✅ Factories')"
 	@PYTHONPATH=$(PYTHONPATH) python3 -c "from training_pipeline.utils import setup_logging, get_logger, DeviceUtils; print('✅ Utils')"
 	@echo "✅ All imports successful"

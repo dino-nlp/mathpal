@@ -6,11 +6,11 @@ from dataclasses import dataclass
 
 import torch
 
-from .exceptions import TrainingError, ModelError, DatasetError
-from ..config.config_manager import ConfigManager
-from ..factories import ModelFactory, DatasetFactory, TrainerFactory
-from ..managers import ExperimentManager, CheckpointManager, EvaluationManager
-from ..utils import get_logger, DeviceUtils
+from training_pipeline.utils.exceptions import TrainingError, ModelError, DatasetError
+from training_pipeline.config.config_manager import ConfigManager
+from training_pipeline.factories import ModelFactory, DatasetFactory, TrainerFactory
+from training_pipeline.managers import ExperimentManager, CheckpointManager, EvaluationManager
+from training_pipeline.utils import get_logger, DeviceUtils
 
 logger = get_logger()
 
