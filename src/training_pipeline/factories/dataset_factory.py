@@ -28,22 +28,20 @@ class DatasetFactory:
         Raises:
             DatasetError: If dataset creation fails
         """
-        try:
-            logger.info(f"📊 Loading dataset: {config.dataset.name}")
-            
-            # Load dataset from HuggingFace Hub or local path
-            datasets = DatasetFactory._load_raw_dataset(config)
-            train_dataset = datasets[config.dataset.train_split]
-            # Process datasets
-            processed_datasets = DatasetFactory._process_dataset(
-                    train_dataset, config, tokenizer
-                )
-            processed_datasets = DatasetFactory.create_eval_dataset(processed_datasets)
-            logger.info(f"✅ Training dataset: {len(processed_datasets['train'])} samples")
-            logger.info(f"✅ Evaluation dataset: {len(processed_datasets['eval'])} samples")
-             # Preview dataset
-            DatasetFactory._preview_dataset(processed_datasets["train"], num_samples=2)
-            return processed_datasets
+        logger.info(f"📊 Loading dataset: {config.dataset.name}")
+        # Load dataset from HuggingFace Hub or local path
+        datasets = DatasetFactory._load_raw_dataset(config)
+        train_dataset = datasets[config.dataset.train_split]
+        # Process datasets
+        processed_datasets = DatasetFactory._process_dataset(
+                train_dataset, config, tokenizer
+            )
+        processed_datasets = DatasetFactory.create_eval_dataset(processed_datasets)
+        logger.info(f"✅ Training dataset: {len(processed_datasets['train'])} samples")
+        logger.info(f"✅ Evaluation dataset: {len(processed_datasets['eval'])} samples")
+            # Preview dataset
+        DatasetFactory._preview_dataset(processed_datasets["train"], num_samples=2)
+        return processed_datasets
             
     
     @staticmethod
