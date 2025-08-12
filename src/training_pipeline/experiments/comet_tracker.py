@@ -2,7 +2,7 @@
 
 import os
 from typing import Dict, Any, Optional, List
-from ..config.config_manager import CometConfig
+from ..config.config_manager import CometConfigSection
 
 
 class CometTracker:
@@ -287,7 +287,7 @@ class CometTracker:
         Returns:
             CometTracker instance
         """
-        config = CometConfig()
+        config = CometConfigSection()
         return CometTracker(config)
     
     def get_experiment_url(self) -> Optional[str]:
