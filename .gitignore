@@ -209,4 +209,4 @@ cache
 rabbitmq
 src/training_pipeline/finetuning_dataset
 outputs
-unsloth_compiled_cache
+unsloth_compiled_cache*.ipynb
