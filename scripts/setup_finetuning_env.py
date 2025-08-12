@@ -219,6 +219,56 @@ def install_optional_packages():
     for command, description in commands:
         run_command(command, description)
 
+
+def install_pinned_environment() -> bool:
+    """Install a known-good, repeatable environment with pinned versions.
+
+    This function is idempotent and safe to run multiple times. It enforces
+    compatible versions verified for Gemma3N + Unsloth on CUDA 12.1.
+    """
+    print("🧰 Installing pinned dependencies for Gemma3N + Unsloth (CUDA 12.1)...")
+
+    pinned_cmds = [
+        # Always make sure pip and wheel are recent enough
+        ("pip install --upgrade pip wheel", "Upgrading pip and wheel"),
+
+        # Install PyTorch stack for CUDA 12.1 (matches our runtime)
+        (
+            "pip install --upgrade torch==2.5.1+cu121 torchvision==0.20.1+cu121 torchaudio==2.5.1+cu121 --index-url https://download.pytorch.org/whl/cu121",
+            "Installing PyTorch 2.5.1 + CUDA 12.1 stack",
+        ),
+
+        # Hugging Face ecosystem versions proven compatible with Unsloth + TRL
+        ("pip install --upgrade transformers==4.55.0", "Installing Transformers 4.55.0"),
+        ("pip install --upgrade datasets==3.6.0", "Installing Datasets 3.6.0 (<4.0.0)"),
+        ("pip install --upgrade accelerate>=0.34.1", "Installing Accelerate (>=0.34.1)"),
+        ("pip install --upgrade peft!=0.11.0,>=0.7.1", "Installing PEFT (!=0.11.0, >=0.7.1)"),
+        ("pip install --upgrade trl>=0.21.0", "Installing TRL (>=0.21.0)"),
+
+        # Aux libraries required by unsloth-zoo
+        ("pip install --upgrade protobuf sentencepiece>=0.2.0 tyro msgspec hf_transfer cut_cross_entropy", "Installing Unsloth Zoo dependencies"),
+
+        # bitsandbytes for 8-bit/4-bit optimizations
+        ("pip install --upgrade bitsandbytes", "Installing bitsandbytes"),
+
+        # Install Unsloth + Unsloth Zoo from GitHub without pulling conflicting deps
+        (
+            "pip install --upgrade --force-reinstall --no-cache-dir --no-deps git+https://github.com/unslothai/unsloth.git",
+            "Installing Unsloth from GitHub (no-deps)",
+        ),
+        (
+            "pip install --upgrade --force-reinstall --no-cache-dir --no-deps git+https://github.com/unslothai/unsloth-zoo.git",
+            "Installing Unsloth Zoo from GitHub (no-deps)",
+        ),
+    ]
+
+    ok = True
+    for cmd, desc in pinned_cmds:
+        if not run_command(cmd, desc):
+            ok = False
+
+    return ok
+
 def main():
     """Main setup function."""
     print("🚀 Setting up Gemma3N Training Pipeline Environment")
@@ -229,22 +279,11 @@ def main():
         print("❌ Python version check failed")
         return False
     
-    # Check current installation
-    print(f"\n📋 Checking current installation...")
-    if not check_current_installation():
-        print("🔧 Current installation has issues, attempting to fix...")
-        if not fix_unsloth_installation():
-            print("❌ Failed to fix Unsloth installation")
-            
-            # Try fresh installation
-            print("🔄 Attempting fresh installation...")
-            try:
-                install_unsloth()
-            except Exception as e:
-                print(f"❌ Fresh installation failed: {e}")
-                return False
-    else:
-        print("✅ Current installation looks good")
+    # Always enforce a known-good environment (idempotent)
+    print(f"\n📋 Installing pinned environment...")
+    if not install_pinned_environment():
+        print("❌ Failed to install pinned environment")
+        return False
     
     # Install optional packages
     print(f"\n📋 Installing optional packages...")

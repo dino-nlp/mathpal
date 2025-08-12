@@ -349,21 +349,23 @@ class LoRAConfigSection(ConfigSection):
             lora_data = data['lora']
         else:
             # Flat format with lora_ prefix
+            default_target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
             lora_data = {
                 'r': data.get('lora_r', cls.r),
                 'alpha': data.get('lora_alpha', cls.alpha),
                 'dropout': data.get('lora_dropout', cls.dropout),
                 'bias': data.get('lora_bias', cls.bias),
-                'target_modules': data.get('lora_target_modules', data.get('target_modules', cls.target_modules)),
+                'target_modules': data.get('lora_target_modules', data.get('target_modules', default_target_modules)),
                 'use_rslora': data.get('use_rslora', cls.use_rslora),
             }
         
+        default_target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
         return cls(
             r=lora_data.get('r', cls.r),
             alpha=lora_data.get('alpha', cls.alpha),
             dropout=lora_data.get('dropout', cls.dropout),
             bias=lora_data.get('bias', cls.bias),
-            target_modules=lora_data.get('target_modules', cls.target_modules),
+            target_modules=lora_data.get('target_modules', default_target_modules),
             use_rslora=lora_data.get('use_rslora', cls.use_rslora),
         )
     
@@ -391,6 +393,7 @@ class OutputConfigSection(ConfigSection):
             output_data = data['output']
         else:
             # Flat format
+            default_save_formats = ["lora", "merged_16bit"]
             output_data = {
                 'base_dir': data.get('output_dir', cls.base_dir),
                 'experiment_name': data.get('experiment_name', cls.experiment_name),
@@ -398,9 +401,10 @@ class OutputConfigSection(ConfigSection):
                 'save_steps': data.get('save_steps', cls.save_steps),
                 'save_total_limit': data.get('save_total_limit', cls.save_total_limit),
                 'load_best_model_at_end': data.get('load_best_model_at_end', cls.load_best_model_at_end),
-                'save_formats': data.get('save_formats', cls.save_formats),
+                'save_formats': data.get('save_formats', default_save_formats),
             }
         
+        default_save_formats = ["lora", "merged_16bit"]
         return cls(
             base_dir=output_data.get('base_dir', cls.base_dir),
             experiment_name=output_data.get('experiment_name', cls.experiment_name),
@@ -408,7 +412,7 @@ class OutputConfigSection(ConfigSection):
             save_steps=output_data.get('save_steps', cls.save_steps),
             save_total_limit=output_data.get('save_total_limit', cls.save_total_limit),
             load_best_model_at_end=output_data.get('load_best_model_at_end', cls.load_best_model_at_end),
-            save_formats=output_data.get('save_formats', cls.save_formats),
+            save_formats=output_data.get('save_formats', default_save_formats),
         )
     
     def validate(self) -> None:
@@ -437,18 +441,20 @@ class CometConfigSection(ConfigSection):
             comet_data = data['comet']
         else:
             # Handle flat format
+            default_tags = ["gemma3n", "vietnamese", "math"]
             comet_data = {
                 'enabled': data.get('report_to') == 'comet_ml',
                 'experiment_name': data.get('experiment_name', cls.experiment_name),
-                'tags': data.get('tags', cls.tags),
+                'tags': data.get('tags', default_tags),
                 'auto_metric_logging': data.get('auto_metric_logging', cls.auto_metric_logging),
                 'auto_param_logging': data.get('auto_param_logging', cls.auto_param_logging),
             }
         
+        default_tags = ["gemma3n", "vietnamese", "math"]
         return cls(
             enabled=comet_data.get('enabled', cls.enabled),
             experiment_name=comet_data.get('experiment_name', cls.experiment_name),
-            tags=comet_data.get('tags', cls.tags),
+            tags=comet_data.get('tags', default_tags),
             auto_metric_logging=comet_data.get('auto_metric_logging', cls.auto_metric_logging),
             auto_param_logging=comet_data.get('auto_param_logging', cls.auto_param_logging),
         )
@@ -653,11 +659,7 @@ class ConfigManager:
     
     def to_comprehensive_config(self):
         """Convert to ComprehensiveTrainingConfig for backward compatibility."""
-        from ..core.enhanced_config import (
-            ComprehensiveTrainingConfig, ModelConfig, DatasetConfig, 
-            TrainingConfig, LoRAConfig, OutputConfig, SystemConfig,
-            CometConfig
-        )
+        # Use local classes instead of importing from enhanced_config
         
         return ComprehensiveTrainingConfig(
             model=ModelConfig(
@@ -728,6 +730,10 @@ class ConfigManager:
     def get_effective_batch_size(self) -> int:
         """Calculate effective batch size."""
         return self.training.per_device_train_batch_size * self.training.gradient_accumulation_steps
+    
+    def get_output_dir(self) -> str:
+        """Get full output directory path."""
+        return self.output.get_output_dir()
     
     def summary(self) -> str:
         """Get configuration summary."""

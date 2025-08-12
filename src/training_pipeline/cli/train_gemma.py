@@ -335,13 +335,9 @@ def run_training(config_manager: ConfigManager) -> None:
         config_manager: Configuration manager
     """
     try:
-        # Convert to ComprehensiveTrainingConfig for backward compatibility
-        # TODO: Update TrainingManager to work directly with ConfigManager
-        comprehensive_config = config_manager.to_comprehensive_config()
-        
-        # Create training manager with legacy config
-        from training_pipeline.core.training_manager import TrainingManager as LegacyTrainingManager
-        manager = LegacyTrainingManager(comprehensive_config)
+        # Use ConfigManager directly with new TrainingManager
+        from training_pipeline.core.training_manager import TrainingManager
+        manager = TrainingManager(config_manager)
         
         # Run training pipeline
         results = manager.run_training()
