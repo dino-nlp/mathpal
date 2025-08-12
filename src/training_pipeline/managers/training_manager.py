@@ -162,11 +162,11 @@ class TrainingManager:
                 logger.warning("Consider reducing batch size or enabling quantization")
             
             # Set random seed
-            from ..training.training_utils import TrainingUtils
+            from training_pipeline.training.training_utils import TrainingUtils
             TrainingUtils.set_seed(self.config_manager.system.seed)
             
             # Setup output directory
-            from ..training.training_utils import TrainingUtils
+            from training_pipeline.training.training_utils import TrainingUtils
             TrainingUtils.setup_output_directory(self.config_manager.get_output_dir())
             
         except Exception as e:

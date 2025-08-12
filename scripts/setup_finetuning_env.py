@@ -186,7 +186,7 @@ def install_unsloth():
         ("pip install unsloth", "Installing Unsloth (simple)"),
         
         # If that fails, try the GitHub approach
-        ("pip install \"unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git\"", "Installing Unsloth from GitHub"),
+        # ("pip install \"unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git\"", "Installing Unsloth from GitHub"),
         
         # Install additional dependencies
         ("pip install bitsandbytes", "Installing BitsAndBytes"),
