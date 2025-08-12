@@ -1,6 +1,6 @@
 """Factory for creating and processing datasets."""
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from datasets import load_dataset, Dataset, DatasetDict
 
 from training_pipeline.utils.exceptions import DatasetError
@@ -91,7 +91,7 @@ class DatasetFactory:
             texts = [tokenizer.apply_chat_template(convo, tokenize = False, add_generation_prompt = False).removeprefix('<bos>') for convo in convos]
             return { "text" : texts, }
         
-        processed_dataset = raw_dataset.map(dataset)
+        processed_dataset = dataset.map(process_sample)
         formated_dataset = processed_dataset.map(formatting_prompts_func, batched=True)
         return formated_dataset
         
