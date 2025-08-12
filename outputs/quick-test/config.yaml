@@ -21,7 +21,7 @@ dataset: !!python/object:training_pipeline.core.enhanced_config.DatasetConfig
   max_length: null
   name: ngohongthai/exam-sixth_grade-instruct-dataset
   num_proc: 2
-  packing: true
+  packing: false
   test_split: test
   text_field: text
   train_split: train

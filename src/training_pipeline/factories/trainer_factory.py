@@ -73,41 +73,65 @@ class TrainerFactory:
             use_unsloth = TrainerFactory._should_use_unsloth(config, model)
             
             if use_unsloth:
-                logger.info("⚡ Using Unsloth optimizations")
+                logger.info("⚡ Using Unsloth optimizations with SFTConfig")
                 
-                # Debug SFTTrainer parameters
-                logger.info(f"🔧 SFT params debug:")
-                logger.info(f"   max_seq_length={config.model.max_seq_length}")
-                logger.info(f"   dataset_num_proc={config.dataset.num_proc}")
-                logger.info(f"   packing={config.dataset.packing}")
-                logger.info(f"   dataset_text_field={config.dataset.text_field}")
+                # Enable training like working notebook
+                try:
+                    from unsloth import FastModel
+                    FastModel.for_training(model)
+                    logger.info("✅ FastModel.for_training applied")
+                except Exception as e:
+                    logger.warning(f"⚠️ Failed to apply FastModel.for_training: {e}")
                 
-                # Debug dataset types and lengths
-                logger.info(f"🔧 Dataset debug:")
-                logger.info(f"   train_dataset type: {type(datasets['train'])}")
-                logger.info(f"   train_dataset length: {len(datasets['train'])}")
-                if "eval" in datasets and datasets["eval"] is not None:
-                    logger.info(f"   eval_dataset type: {type(datasets['eval'])}")
-                    logger.info(f"   eval_dataset length: {len(datasets['eval'])}")
+                # Ensure tokenizer has a pad_token
+                if tokenizer.pad_token is None:
+                    tokenizer.pad_token = tokenizer.eos_token
+                # Set padding side for causal LMs
+                tokenizer.padding_side = "right"
                 
-                # Debug training args object
-                logger.info(f"🔧 TrainingArgs debug:")
-                logger.info(f"   training_args type: {type(training_args)}")
-                logger.info(f"   output_dir: {training_args.output_dir}")
-                logger.info(f"   max_steps: {training_args.max_steps}")
-                logger.info(f"   per_device_train_batch_size: {training_args.per_device_train_batch_size}")
+                # Create SFTConfig like working notebook instead of TrainingArguments
+                from trl import SFTConfig
+                sft_config = SFTConfig(
+                    # Basic training settings
+                    dataset_text_field=config.dataset.text_field,
+                    output_dir=training_args.output_dir,
+                    max_steps=training_args.max_steps,
+                    per_device_train_batch_size=training_args.per_device_train_batch_size,
+                    gradient_accumulation_steps=training_args.gradient_accumulation_steps,
+                    
+                    # Optimization settings
+                    learning_rate=training_args.learning_rate,
+                    warmup_ratio=training_args.warmup_ratio,
+                    weight_decay=training_args.weight_decay,
+                    optim="adamw_torch_fused",  # Like notebook
+                    lr_scheduler_type="cosine",
+                    
+                    # Logging and saving
+                    logging_steps=training_args.logging_steps,
+                    save_strategy="steps",
+                    save_steps=training_args.save_steps,
+                    report_to=training_args.report_to,
+                    
+                    max_length=config.model.max_seq_length,
+                    
+                    # Reproducibility
+                    seed=training_args.seed,
+                )
                 
-                # Prepare SFTTrainer arguments 
+                logger.info(f"📋 SFTConfig Configuration:")
+                logger.info(f"   dataset_text_field: {sft_config.dataset_text_field}")
+                logger.info(f"   max_length: {sft_config.max_length}")
+                logger.info(f"   max_steps: {sft_config.max_steps}")
+                logger.info(f"   per_device_train_batch_size: {sft_config.per_device_train_batch_size}")
+                
+                # Prepare SFTTrainer arguments like working notebook
                 sft_args = {
                     "model": model,
                     "tokenizer": tokenizer,
                     "train_dataset": datasets["train"],
-                    "args": training_args,
-                    "data_collator": data_collator,
-                    "dataset_text_field": config.dataset.text_field,
-                    "max_seq_length": config.model.max_seq_length,
-                    "dataset_num_proc": config.dataset.num_proc or 2,  # Safe default
-                    "packing": config.dataset.packing if config.dataset.packing is not None else False,  # Safe default
+                    "args": sft_config,  # Use SFTConfig instead of TrainingArguments
+                    # NO data_collator like notebook
+                    # NO formatting_func - data is already formatted
                 }
                 
                 # Only add eval_dataset if it exists
@@ -135,30 +159,60 @@ class TrainerFactory:
                     logger.error(f"❌ SFTTrainer traceback: {traceback.format_exc()}")
                     raise
                 
-                # Apply Unsloth's train_on_responses_only optimization
-                if config.training.train_on_responses_only:
-                    try:
-                        from unsloth.chat_templates import train_on_responses_only
-                        trainer = train_on_responses_only(trainer)
-                        logger.info("✅ Applied train_on_responses_only optimization")
-                    except ImportError:
-                        logger.warning("⚠️ Could not import train_on_responses_only from Unsloth")
-                    except Exception as e:
-                        logger.warning(f"⚠️ Failed to apply train_on_responses_only: {e}")
+                # Apply train_on_responses_only like working notebook
+                try:
+                    from unsloth.chat_templates import train_on_responses_only
+                    trainer = train_on_responses_only(
+                        trainer,
+                        instruction_part="<start_of_turn>user\n",
+                        response_part="<start_of_turn>model\n",
+                    )
+                    logger.info("✅ Applied train_on_responses_only successfully")
+                except ImportError:
+                    logger.warning("⚠️ Could not import train_on_responses_only from Unsloth")
+                except Exception as e:
+                    logger.warning(f"⚠️ Failed to apply train_on_responses_only: {e}")
+                    logger.info("Proceeding without train_on_responses_only...")
             else:
-                logger.info("🤗 Using standard HuggingFace trainer")
+                logger.info("🤗 Using standard HuggingFace trainer with SFTConfig")
                 
-                # Prepare SFTTrainer arguments
+                # Use SFTConfig approach for all trainers (proven to work)
+                from trl import SFTConfig
+                sft_config = SFTConfig(
+                    # Basic training settings
+                    dataset_text_field=config.dataset.text_field,
+                    output_dir=training_args.output_dir,
+                    max_steps=training_args.max_steps,
+                    per_device_train_batch_size=training_args.per_device_train_batch_size,
+                    gradient_accumulation_steps=training_args.gradient_accumulation_steps,
+                    
+                    # Optimization settings
+                    learning_rate=training_args.learning_rate,
+                    warmup_ratio=training_args.warmup_ratio,
+                    weight_decay=training_args.weight_decay,
+                    optim="adamw_torch_fused",  # Proven to work
+                    lr_scheduler_type="cosine",
+                    
+                    # Logging and saving
+                    logging_steps=training_args.logging_steps,
+                    save_strategy="steps",
+                    save_steps=training_args.save_steps,
+                    report_to=training_args.report_to,
+                    
+                    max_length=config.model.max_seq_length,
+                    
+                    # Reproducibility
+                    seed=training_args.seed,
+                )
+                
+                # Prepare SFTTrainer arguments (no data_collator, proven approach)
                 sft_args = {
                     "model": model,
                     "tokenizer": tokenizer,
                     "train_dataset": datasets["train"],
-                    "args": training_args,
-                    "data_collator": data_collator,
-                    "dataset_text_field": config.dataset.text_field,
-                    "max_seq_length": config.model.max_seq_length,
-                    "dataset_num_proc": config.dataset.num_proc or 2,
-                    "packing": config.dataset.packing if config.dataset.packing is not None else False,
+                    "args": sft_config,  # Use SFTConfig
+                    # NO data_collator - let SFTTrainer handle internally
+                    # NO formatting_func - data is pre-formatted
                 }
                 
                 # Only add eval_dataset if it exists
@@ -372,13 +426,16 @@ class TrainerFactory:
     
     @staticmethod
     def _create_data_collator(config: ComprehensiveTrainingConfig, tokenizer: Any) -> Any:
-        """Create appropriate data collator."""
-        return DataCollatorForSeq2Seq(
+        """Create data collator optimized for Unsloth SFTTrainer."""
+        # Import DataCollatorWithPadding for Unsloth compatibility
+        from transformers import DataCollatorWithPadding
+        
+        return DataCollatorWithPadding(
             tokenizer=tokenizer,
-            model=None,  # Will be set by trainer
-            label_pad_token_id=-100,
-            pad_to_multiple_of=None,
             padding=True,
+            max_length=config.model.max_seq_length,
+            pad_to_multiple_of=8,  # Optimize for GPU memory alignment  
+            return_tensors="pt"
         )
     
     @staticmethod

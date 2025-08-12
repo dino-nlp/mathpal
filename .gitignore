@@ -208,3 +208,5 @@ __marimo__/
 cache
 rabbitmq
 src/training_pipeline/finetuning_dataset
+outputs
+unsloth_compiled_cache

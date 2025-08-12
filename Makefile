@@ -1,6 +1,6 @@
-# include .env
+include .env
 
-# $(eval export $(shell sed -ne 's/ *#.*$$//; /./ s/=.*$$// p' .env))
+$(eval export $(shell sed -ne 's/ *#.*$$//; /./ s/=.*$$// p' .env))
 
 PYTHONPATH := $(shell pwd)/src
 

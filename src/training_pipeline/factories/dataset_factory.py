@@ -91,40 +91,101 @@ class DatasetFactory:
                         config: ComprehensiveTrainingConfig, 
                         tokenizer: Any,
                         is_training: bool = True) -> Dataset:
-        """Process dataset with tokenization and formatting."""
+        """Process dataset with tokenization and formatting for SFTTrainer compatibility."""
         try:
-            # Apply dataset-specific preprocessing first to create text field
+            logger.info(f"📊 Processing dataset with {len(dataset)} samples")
+            
+            # Apply dataset-specific preprocessing first to create conversation format
             dataset_func_name = config.dataset.name.replace("/", "_").replace("-", "_")
             if hasattr(DatasetFactory, f'_preprocess_{dataset_func_name}'):
                 preprocess_func = getattr(DatasetFactory, f'_preprocess_{dataset_func_name}')
                 dataset = preprocess_func(dataset, config)
+                logger.info(f"✅ Applied preprocessing function: _preprocess_{dataset_func_name}")
+                logger.info(f"📊 After preprocessing: {len(dataset)} samples")
+            
+            # Apply chat template to conversations like working notebook
+            if "conversations" in dataset.column_names:
+                logger.info("📝 Applying Gemma-3n chat template to conversations...")
+                
+                def formatting_prompts_func(examples):
+                    """Format conversations using chat template like working notebook."""
+                    convos = examples["conversations"]
+                    texts = []
+                    for convo in convos:
+                        try:
+                            # Apply chat template and remove <bos> prefix like notebook
+                            text = tokenizer.apply_chat_template(
+                                convo, 
+                                tokenize=False, 
+                                add_generation_prompt=False
+                            ).removeprefix('<bos>')
+                            texts.append(text)
+                        except Exception as e:
+                            logger.warning(f"Failed to apply chat template: {e}")
+                            texts.append("")  # Empty text to be filtered out
+                    return {"text": texts}
+                
+                # Apply formatting to create text field
+                # CRITICAL: num_proc=1 required for tokenizer.apply_chat_template
+                dataset = dataset.map(
+                    formatting_prompts_func, 
+                    batched=True,
+                    num_proc=1,  # MUST be 1 - tokenizer not thread-safe 
+                    desc="Applying chat template"
+                )
+                
+                logger.info("✅ Chat template applied successfully")
+                logger.info(f"📊 After chat template: {len(dataset)} samples")
             
             # Check if dataset has the required text field after preprocessing
             if config.dataset.text_field not in dataset.column_names:
                 if "text" in dataset.column_names:
                     # Rename text column
                     dataset = dataset.rename_column("text", config.dataset.text_field)
+                    logger.info(f"📋 Renamed 'text' column to '{config.dataset.text_field}'")
                 else:
                     raise DatasetError(f"Dataset missing required field '{config.dataset.text_field}' after preprocessing")
             
-            # Filter out empty or invalid samples
+            logger.info(f"📋 Dataset format verified. Columns: {dataset.column_names}")
+            
+            # Keep only text field for SFTTrainer compatibility
+            columns_to_keep = [config.dataset.text_field]
+            columns_to_remove = [col for col in dataset.column_names if col not in columns_to_keep]
+
+            if columns_to_remove:
+                logger.info(f"🧹 Removing extra columns (keeping only {config.dataset.text_field}): {columns_to_remove}")
+                dataset = dataset.remove_columns(columns_to_remove)
+                logger.info(f"📊 After column removal: {len(dataset)} samples")
+            
+            # Filter out empty or invalid text samples
             original_size = len(dataset)
+            logger.info(f"🔍 Starting filter with {original_size} samples")
+            
             dataset = dataset.filter(
                 lambda x: x[config.dataset.text_field] is not None and 
-                         len(str(x[config.dataset.text_field]).strip()) > 0
+                         len(str(x[config.dataset.text_field]).strip()) > 0,
+                desc="Filtering empty text samples",
+                num_proc=1  # MUST be 1 - prevents silent failures in multiprocessing
             )
-            filtered_size = len(dataset)
             
+            filtered_size = len(dataset)
+
             if filtered_size < original_size:
                 logger.info(f"🧹 Filtered out {original_size - filtered_size} empty samples")
+            else:
+                logger.info(f"✅ All {filtered_size} samples passed filter")
             
             # Tokenize dataset if needed for length validation
-            if config.dataset.max_length:
+            if config.dataset.max_length and config.dataset.max_length > 0:
+                logger.info(f"🔍 Applying length filter with max_length={config.dataset.max_length}")
                 dataset = DatasetFactory._filter_by_length(dataset, config, tokenizer)
+                logger.info(f"📊 After length filter: {len(dataset)} samples")
             
+            logger.info(f"✅ Dataset processed: {len(dataset)} samples, columns: {dataset.column_names}")
             return dataset
             
         except Exception as e:
+            logger.error(f"❌ Dataset processing failed: {e}")
             raise DatasetError(f"Failed to process dataset: {e}")
     
     @staticmethod
@@ -194,30 +255,49 @@ class DatasetFactory:
     @staticmethod
     def _preprocess_ngohongthai_exam_sixth_grade_instruct_dataset(dataset: Dataset, 
                                                                 config: ComprehensiveTrainingConfig) -> Dataset:
-        """Preprocess Vietnamese 6th grade exam dataset."""
+        """Preprocess Vietnamese 6th grade exam dataset with Gemma-3n chat template."""
         try:
-            logger.info("🇻🇳 Applying Vietnamese math dataset preprocessing...")
+            logger.info("🇻🇳 Applying Vietnamese math dataset preprocessing with Gemma-3n chat template...")
             
-            def format_vietnamese_math(example):
-                # Simple formatting for Vietnamese math dataset
+            def format_vietnamese_math_conversations(example):
+                """Format example as conversations for Gemma-3n chat template."""
                 question = example.get("question", "")
                 solution = example.get("solution", "")
                 
-                # Simple instruction format without complex chat template
                 if question and solution:
-                    formatted_text = f"### Câu hỏi:\n{question}\n\n### Lời giải:\n{solution}"
-                    return {"text": formatted_text}
+                    # Create conversation format like working notebook
+                    conversations = [
+                        {
+                            "role": "user",
+                            "content": [{"type": "text", "text": question.strip()}]
+                        },
+                        {
+                            "role": "assistant", 
+                            "content": [{"type": "text", "text": solution.strip()}]
+                        }
+                    ]
+                    return {"conversations": conversations}
                 else:
-                    # If no valid field combination, return empty to be filtered out
-                    return {"text": ""}
+                    # Return empty to be filtered out
+                    return {"conversations": []}
             
-            dataset = dataset.map(
-                format_vietnamese_math,
+            # Convert to conversation format like working notebook
+            logger.info("Converting to conversation format...")
+            conv_dataset = dataset.map(
+                format_vietnamese_math_conversations,
                 num_proc=config.dataset.num_proc,
-                desc="Formatting Vietnamese math"
+                desc="Converting to conversations"
             )
             
-            return dataset
+            # Filter out empty conversations
+            conv_dataset = conv_dataset.filter(
+                lambda x: len(x["conversations"]) > 0,
+                num_proc=config.dataset.num_proc,
+                desc="Filtering empty conversations"
+            )
+            
+            logger.info(f"Conversation dataset size: {len(conv_dataset)}")
+            return conv_dataset
             
         except Exception as e:
             logger.warning(f"Failed to apply Vietnamese math preprocessing: {e}")

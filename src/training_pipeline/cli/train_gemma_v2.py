@@ -30,6 +30,46 @@ from typing import Optional
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+# Fix tokenizer verbose logging before importing transformers - Comprehensive approach
+import logging
+import warnings
+
+# Environment variables to suppress verbose output
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["TRANSFORMERS_VERBOSITY"] = "error"  
+os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+
+# Suppress warnings
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
+
+# Import and configure transformers logging
+from transformers import logging as transformers_logging
+transformers_logging.set_verbosity_error()
+transformers_logging.disable_progress_bar()
+
+# Configure all related loggers to ERROR level
+loggers_to_suppress = [
+    "transformers",
+    "transformers.tokenization_utils_base", 
+    "transformers.tokenization_utils",
+    "transformers.models",
+    "transformers.generation",
+    "tokenizers",
+    "unsloth",
+    "datasets",
+    "accelerate",
+    "bitsandbytes",
+    "peft"
+]
+
+for logger_name in loggers_to_suppress:
+    logging.getLogger(logger_name).setLevel(logging.ERROR)
+
+# Set root logging to WARNING to reduce spam
+logging.getLogger().setLevel(logging.WARNING)
+
 from training_pipeline.core.enhanced_config import ConfigLoader, ComprehensiveTrainingConfig
 from training_pipeline.core.training_manager import TrainingManager, TrainingResults
 from training_pipeline.core.exceptions import (

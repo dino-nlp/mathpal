@@ -15,12 +15,25 @@ def run_command(command: str, description: str = "") -> bool:
     print(f"🔧 Running: {command}")
     
     try:
-        result = subprocess.run(
-            command.split(),
-            capture_output=True,
-            text=True,
-            check=True
-        )
+        # Check if command contains shell operators like pipes
+        if "|" in command or ">" in command or "<" in command:
+            # Use shell=True for complex shell commands
+            result = subprocess.run(
+                command,
+                shell=True,
+                capture_output=True,
+                text=True,
+                check=True
+            )
+        else:
+            # Use split for simple commands (safer)
+            result = subprocess.run(
+                command.split(),
+                capture_output=True,
+                text=True,
+                check=True
+            )
+        
         print(f"✅ Success: {description or command}")
         if result.stdout:
             print(f"📄 Output: {result.stdout[:200]}...")  # Show first 200 chars
@@ -112,17 +125,27 @@ def fix_unsloth_installation():
     
     # First, try to uninstall problematic packages
     cleanup_commands = [
-        ("pip uninstall -y unsloth unsloth_zoo", "Cleaning up Unsloth packages"),
+        ("pip uninstall -y unsloth unsloth_zoo xformers", "Cleaning up problematic packages"),
         ("pip install --upgrade pip", "Upgrading pip"),
     ]
     
     for command, description in cleanup_commands:
         run_command(command, description)
     
+    # Install compatible transformers version first
+    compatibility_commands = [
+        ("pip install transformers==4.52.4", "Installing compatible Transformers"),
+        ("pip install triton>=3.3.1", "Installing compatible Triton"),
+    ]
+    
+    for command, description in compatibility_commands:
+        run_command(command, description)
+    
     # Then reinstall with compatible versions
     install_commands = [
-        ("pip install unsloth_zoo", "Installing Unsloth Zoo"),
-        ("pip install 'unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git'", "Installing Unsloth from GitHub"),
+        ("pip install --upgrade --force-reinstall --no-cache-dir --no-deps git+https://github.com/unslothai/unsloth.git", "Installing Unsloth from GitHub"),
+        ("pip install --upgrade --force-reinstall --no-cache-dir --no-deps git+https://github.com/unslothai/unsloth-zoo.git", "Installing Unsloth Zoo from GitHub"),
+        ("pip install bitsandbytes", "Installing BitsAndBytes"),
     ]
     
     success = True
@@ -137,18 +160,37 @@ def install_unsloth():
     """Install Unsloth and related packages."""
     print("⚡ Installing Unsloth and related packages...")
     
+    # First try the automatic installation approach
+    print("🤖 Trying automatic Unsloth installation...")
+    auto_install_cmd = "curl -s https://raw.githubusercontent.com/unslothai/unsloth/main/unsloth/_auto_install.py | python -"
+    if run_command(auto_install_cmd, "Auto-installing Unsloth with optimal settings"):
+        print("✅ Automatic installation successful!")
+        return True
+    
+    print("⚠️ Auto-install failed, trying manual installation...")
+    
     commands = [
-        # First install compatible PyTorch versions
-        ("pip install --upgrade torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124", "Installing compatible PyTorch"),
+        # Upgrade pip first
+        ("pip install --upgrade pip", "Upgrading pip"),
+        
+        # Install specific transformers version (4.52.4 recommended)
+        ("pip install transformers==4.52.4", "Installing compatible Transformers"),
         
         # Install core dependencies
-        ("pip install transformers datasets accelerate peft trl", "Installing core ML libraries"),
+        ("pip install datasets accelerate peft trl", "Installing core ML libraries"),
         
-        # Install Unsloth ecosystem
-        ("pip install unsloth[colab-new]@git+https://github.com/unslothai/unsloth.git", "Installing Unsloth"),
+        # Install compatible PyTorch if needed
+        ("pip install --upgrade torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124", "Installing compatible PyTorch"),
+        
+        # Install Unsloth ecosystem - try simple approach first
+        ("pip install unsloth", "Installing Unsloth (simple)"),
+        
+        # If that fails, try the GitHub approach
+        ("pip install \"unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git\"", "Installing Unsloth from GitHub"),
         
         # Install additional dependencies
         ("pip install bitsandbytes", "Installing BitsAndBytes"),
+        ("pip install unsloth_zoo", "Installing Unsloth Zoo"),
         ("pip install timm", "Installing timm for Gemma 3N"),
         ("pip install comet-ml", "Installing Comet ML"),
     ]
@@ -156,8 +198,12 @@ def install_unsloth():
     success = True
     for command, description in commands:
         if not run_command(command, description):
-            print(f"⚠️ Warning: {description} failed, continuing...")
-            # Don't fail completely, some dependencies might be optional
+            if "Installing Unsloth" in description:
+                print(f"⚠️ Warning: {description} failed")
+                if "simple" not in description:
+                    success = False
+            else:
+                print(f"⚠️ Warning: {description} failed, continuing...")
     
     return success
 

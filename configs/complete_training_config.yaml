@@ -59,8 +59,9 @@ dataset:
   num_proc: 2
   
   # Pack multiple short sequences together to improve efficiency
-  # Recommended: true for datasets with variable length sequences  
-  packing: true
+  # DISABLED: false - Proven to cause tensor conflicts with SFTTrainer
+  # Recommendation: Keep disabled for stability
+  packing: false
 
 # =============================================================================
 # TRAINING HYPERPARAMETERS

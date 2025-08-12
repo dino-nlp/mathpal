@@ -1,40 +1,72 @@
-# Development Configuration
-# Quick configuration for development and testing
+# Development Configuration - Gemma 3N with Unsloth
+# Optimized config based on Unsloth best practices
 
-# Model settings
-model_name: "unsloth/gemma-3n-E4B-it"
-max_seq_length: 1024  # Smaller for faster development
-load_in_4bit: true
-full_finetuning: false
+# Model settings - Using Unsloth optimized Gemma 3N
+model_name: "unsloth/gemma-3n-E4B-it"  # Unsloth optimized version
+max_seq_length: 2048  # Good balance for Gemma 3N
+load_in_4bit: true     # Enable 4bit quantization for memory efficiency
+load_in_8bit: false    # Don't use both quantizations
+full_finetuning: false # Use LoRA for efficiency
 
 # Dataset settings
-dataset_name: "ngohongthai/exam-sixth_grade-instruct-dataset"
-train_split: "train"
+dataset:
+  name: "ngohongthai/exam-sixth_grade-instruct-dataset"
+  train_split: "train"
+  test_split: "test"
+  text_field: "text"  # Will be created from question+solution
+  num_proc: 1  # Set to 1 for Windows compatibility (Unsloth recommendation)
+  packing: false       # Disable packing to fix tensor shape issues
+  max_length: null     # Use model's max_seq_length
 
 # Output settings
 output_dir: "outputs/dev-experiments"
-experiment_name: "dev_test"
+experiment_name: "gemma3n_dev_test"
 
-# Training hyperparameters (minimal for quick testing)
+# Training hyperparameters (optimized for Gemma 3N)
 max_steps: 20
-per_device_train_batch_size: 1
-gradient_accumulation_steps: 4
-learning_rate: 0.0002
-warmup_ratio: 0.1
+num_train_epochs: null  # Use max_steps instead
+per_device_train_batch_size: 1  # Start small for dev
+per_device_eval_batch_size: 1
+gradient_accumulation_steps: 4   # Effective batch size = 4
+learning_rate: 2e-4     # Good for LoRA finetuning (Unsloth recommendation)
+warmup_ratio: 0.03      # Small warmup
 weight_decay: 0.01
 logging_steps: 2
 save_steps: 10
+eval_steps: 10
 
-# LoRA settings (lightweight)
-lora_r: 4
-lora_alpha: 8
-lora_dropout: 0.0
+# LoRA settings (Unsloth optimized for Gemma)
+lora_r: 16              # Good balance for adaptation
+lora_alpha: 16          # Set equal to rank
+lora_dropout: 0.0       # 0 is optimized by Unsloth
+lora_bias: "none"       # "none" is optimized
+target_modules:         # Gemma-specific modules
+  - "q_proj"
+  - "k_proj" 
+  - "v_proj"
+  - "o_proj"
+  - "gate_proj"
+  - "up_proj"
+  - "down_proj"
+use_rslora: false       # Keep simple for dev
+use_gradient_checkpointing: "unsloth"  # Unsloth's optimized checkpointing
 
 # System settings
-report_to: "none"  # Disable tracking for development
-seed: 42
-optim: "adamw_torch_fused"
-lr_scheduler_type: "linear"
+seed: 3407              # Unsloth's preferred seed
+report_to: "none"       # Disable tracking for development
+optim: "adamw_8bit"     # Unsloth's recommended optimizer
+lr_scheduler_type: "cosine"  # Good for stability
+max_grad_norm: 1.0
+fp16: false             # Let system auto-detect
+bf16: true              # Use bf16 if available
+dataloader_drop_last: true
+dataloader_pin_memory: true
+dataloader_num_workers: 0
 
 # Training settings
-train_on_responses_only: true
+train_on_responses_only: false  # Disable to avoid format complexity
+evaluation_strategy: "steps"
+eval_strategy: "steps"
+save_strategy: "steps"
+load_best_model_at_end: false   # Disable for dev to avoid eval requirements
+remove_unused_columns: false    # Keep for SFT

@@ -78,6 +78,13 @@ class ModelFactory:
                 # token=None,  # Add HF token if needed
             )
             
+            # Ensure tokenizer has proper pad_token for tensor creation
+            if tokenizer.pad_token is None:
+                tokenizer.pad_token = tokenizer.eos_token
+                logger.info(f"✅ Set pad_token to eos_token: {tokenizer.eos_token}")
+            else:
+                logger.info(f"✅ Pad_token already set: {tokenizer.pad_token}")
+            
             # Apply LoRA if not doing full fine-tuning
             if not config.model.full_finetuning:
                 logger.info("🔧 Applying LoRA configuration...")
