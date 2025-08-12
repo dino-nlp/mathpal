@@ -4,7 +4,7 @@ from typing import Dict, Any, Optional
 from datasets import load_dataset, Dataset, DatasetDict
 
 from ..core.exceptions import DatasetError
-from ..config.config_manager import ComprehensiveTrainingConfig
+from ..config.config_manager import ConfigManager
 from ..utils import get_logger
 
 logger = get_logger()
@@ -14,7 +14,7 @@ class DatasetFactory:
     """Factory for creating and processing datasets."""
     
     @staticmethod
-    def create_dataset(config: ComprehensiveTrainingConfig, tokenizer: Any) -> Dict[str, Any]:
+    def create_dataset(config: ConfigManager, tokenizer: Any) -> Dict[str, Any]:
         """
         Create and process dataset based on configuration.
         
@@ -66,7 +66,7 @@ class DatasetFactory:
             raise DatasetError(f"Failed to create dataset: {e}")
     
     @staticmethod
-    def _load_raw_dataset(config: ComprehensiveTrainingConfig) -> DatasetDict:
+    def _load_raw_dataset(config: ConfigManager) -> DatasetDict:
         """Load raw dataset from source."""
         try:
             # Check if it's a local path or HuggingFace dataset
@@ -88,7 +88,7 @@ class DatasetFactory:
     
     @staticmethod
     def _process_dataset(dataset: Dataset, 
-                        config: ComprehensiveTrainingConfig, 
+                        config: ConfigManager, 
                         tokenizer: Any,
                         is_training: bool = True) -> Dataset:
         """Process dataset with tokenization and formatting for SFTTrainer compatibility."""
@@ -190,7 +190,7 @@ class DatasetFactory:
     
     @staticmethod
     def _filter_by_length(dataset: Dataset, 
-                         config: ComprehensiveTrainingConfig, 
+                         config: ConfigManager, 
                          tokenizer: Any) -> Dataset:
         """Filter dataset by maximum length."""
         try:
@@ -254,7 +254,7 @@ class DatasetFactory:
     # Dataset-specific preprocessing functions
     @staticmethod
     def _preprocess_ngohongthai_exam_sixth_grade_instruct_dataset(dataset: Dataset, 
-                                                                config: ComprehensiveTrainingConfig) -> Dataset:
+                                                                config: ConfigManager) -> Dataset:
         """Preprocess Vietnamese 6th grade exam dataset with Gemma-3n chat template."""
         try:
             logger.info("🇻🇳 Applying Vietnamese math dataset preprocessing with Gemma-3n chat template...")
@@ -326,7 +326,7 @@ class DatasetFactory:
             raise DatasetError(f"Failed to create eval split: {e}")
     
     @staticmethod
-    def get_dataset_info(config: ComprehensiveTrainingConfig) -> Dict[str, Any]:
+    def get_dataset_info(config: ConfigManager) -> Dict[str, Any]:
         """Get information about dataset without loading it."""
         try:
             # Try to get dataset info

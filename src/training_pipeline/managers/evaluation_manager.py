@@ -5,7 +5,7 @@ from typing import Dict, Any, List, Optional, Tuple
 import torch
 
 from ..core.exceptions import InferenceError
-from ..config.config_manager import ComprehensiveTrainingConfig
+from ..config.config_manager import ConfigManager
 from ..utils import get_logger
 
 logger = get_logger()
@@ -14,7 +14,7 @@ logger = get_logger()
 class EvaluationManager:
     """Manages model evaluation and testing."""
     
-    def __init__(self, config: ComprehensiveTrainingConfig):
+    def __init__(self, config: ConfigManager):
         self.config = config
         
     def run_evaluation(self, model: Any, tokenizer: Any) -> Dict[str, Any]:

@@ -5,7 +5,7 @@ import torch
 from transformers import TrainingArguments, DataCollatorForSeq2Seq
 
 from ..core.exceptions import TrainingError, UnsupportedModelError
-from ..config.config_manager import ComprehensiveTrainingConfig
+from ..config.config_manager import ConfigManager
 from ..utils import get_logger
 
 logger = get_logger()
@@ -17,7 +17,7 @@ class TrainerFactory:
     SUPPORTED_TRAINER_TYPES = ["sft", "dpo", "rlhf"]
     
     @staticmethod
-    def create_trainer(config: ComprehensiveTrainingConfig,
+    def create_trainer(config: ConfigManager,
                       model: Any,
                       tokenizer: Any,
                       datasets: Dict[str, Any]) -> Any:
@@ -53,7 +53,7 @@ class TrainerFactory:
             raise TrainingError(f"Failed to create trainer: {e}")
     
     @staticmethod
-    def _create_sft_trainer(config: ComprehensiveTrainingConfig,
+    def _create_sft_trainer(config: ConfigManager,
                            model: Any,
                            tokenizer: Any,
                            datasets: Dict[str, Any]) -> Any:
@@ -249,7 +249,7 @@ class TrainerFactory:
             raise TrainingError(f"Failed to create SFT trainer: {e}")
     
     @staticmethod
-    def _create_dpo_trainer(config: ComprehensiveTrainingConfig,
+    def _create_dpo_trainer(config: ConfigManager,
                            model: Any,
                            tokenizer: Any,
                            datasets: Dict[str, Any]) -> Any:
@@ -302,7 +302,7 @@ class TrainerFactory:
             raise TrainingError(f"Failed to create DPO trainer: {e}")
     
     @staticmethod
-    def _create_training_arguments(config: ComprehensiveTrainingConfig) -> TrainingArguments:
+    def _create_training_arguments(config: ConfigManager) -> TrainingArguments:
         """Create TrainingArguments from configuration."""
         
         # Handle mixed precision - Tesla T4 compatibility
@@ -425,7 +425,7 @@ class TrainerFactory:
             raise
     
     @staticmethod
-    def _create_data_collator(config: ComprehensiveTrainingConfig, tokenizer: Any) -> Any:
+    def _create_data_collator(config: ConfigManager, tokenizer: Any) -> Any:
         """Create data collator optimized for Unsloth SFTTrainer."""
         # Import DataCollatorWithPadding for Unsloth compatibility
         from transformers import DataCollatorWithPadding
@@ -439,14 +439,14 @@ class TrainerFactory:
         )
     
     @staticmethod
-    def _should_use_unsloth(config: ComprehensiveTrainingConfig, model: Any) -> bool:
+    def _should_use_unsloth(config: ConfigManager, model: Any) -> bool:
         """Determine if we should use Unsloth optimizations."""
         # Check if model was created with Unsloth
         model_name = config.model.name
         return model_name.startswith("unsloth/") or hasattr(model, 'get_peft_model')
     
     @staticmethod
-    def _print_training_info(trainer: Any, datasets: Dict[str, Any], config: ComprehensiveTrainingConfig):
+    def _print_training_info(trainer: Any, datasets: Dict[str, Any], config: ConfigManager):
         """Print training information."""
         try:
             train_dataset = datasets["train"]
@@ -473,7 +473,7 @@ class TrainerFactory:
             logger.warning(f"Could not print training info: {e}")
     
     @staticmethod
-    def _estimate_training_time(config: ComprehensiveTrainingConfig, num_samples: int) -> str:
+    def _estimate_training_time(config: ConfigManager, num_samples: int) -> str:
         """Estimate training time based on configuration."""
         try:
             # Basic estimation (very rough)

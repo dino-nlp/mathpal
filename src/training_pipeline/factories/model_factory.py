@@ -5,7 +5,7 @@ import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 
 from ..core.exceptions import UnsupportedModelError, ModelError
-from ..config.config_manager import ComprehensiveTrainingConfig
+from ..config.config_manager import ConfigManager
 from ..utils import get_logger
 
 logger = get_logger()
@@ -21,7 +21,7 @@ class ModelFactory:
     }
     
     @staticmethod
-    def create_model(config: ComprehensiveTrainingConfig) -> Tuple[Any, Any]:
+    def create_model(config: ConfigManager) -> Tuple[Any, Any]:
         """
         Create model and tokenizer based on configuration.
         
@@ -61,7 +61,7 @@ class ModelFactory:
         return any(model_name.startswith(prefix) for prefix in ModelFactory.SUPPORTED_MODEL_TYPES["huggingface"])
     
     @staticmethod
-    def _create_unsloth_model(config: ComprehensiveTrainingConfig) -> Tuple[Any, Any]:
+    def _create_unsloth_model(config: ConfigManager) -> Tuple[Any, Any]:
         """Create Unsloth optimized model."""
         try:
             from unsloth import FastLanguageModel
@@ -129,7 +129,7 @@ class ModelFactory:
             raise ModelError(f"Failed to create Unsloth model: {e}")
     
     @staticmethod
-    def _create_huggingface_model(config: ComprehensiveTrainingConfig) -> Tuple[Any, Any]:
+    def _create_huggingface_model(config: ConfigManager) -> Tuple[Any, Any]:
         """Create standard HuggingFace model with optional quantization."""
         try:
             logger.info(f"🤗 Creating HuggingFace model: {config.model.name}")
@@ -177,7 +177,7 @@ class ModelFactory:
             raise ModelError(f"Failed to create HuggingFace model: {e}")
     
     @staticmethod
-    def _apply_lora_to_hf_model(model: Any, config: ComprehensiveTrainingConfig) -> Any:
+    def _apply_lora_to_hf_model(model: Any, config: ConfigManager) -> Any:
         """Apply LoRA to HuggingFace model using PEFT."""
         try:
             from peft import LoraConfig, get_peft_model, TaskType
@@ -218,7 +218,7 @@ class ModelFactory:
         return ModelFactory.SUPPORTED_MODEL_TYPES
     
     @staticmethod
-    def estimate_memory_usage(config: ComprehensiveTrainingConfig) -> float:
+    def estimate_memory_usage(config: ConfigManager) -> float:
         """
         Estimate memory usage for model configuration.
         

@@ -50,9 +50,6 @@ class TrainingManager:
         """
         self.config_manager = config_manager
         
-        # For backward compatibility - map config to config_manager
-        self.config = config_manager
-        
         # Initialize components with specific config sections
         self.model_factory = ModelFactory()
         self.dataset_factory = DatasetFactory()
@@ -179,6 +176,7 @@ class TrainingManager:
         """Load model and tokenizer."""
         try:
             logger.info("📂 Loading model and tokenizer...")
+            logger.info(f"TTTT: {self.config}")
             self.model, self.tokenizer = self.model_factory.create_model(self.config)
             
             # Log model info to experiment tracker
