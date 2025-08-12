@@ -151,7 +151,7 @@ class TrainingManager:
             DeviceUtils.print_device_info()
             
             # Validate memory requirements
-            estimated_memory = self.model_factory.estimate_memory_usage(self.config)
+            estimated_memory = self.model_factory.estimate_memory_usage(self.config_manager)
             available_memory = DeviceUtils.get_gpu_memory_gb()
             
             if available_memory > 0 and estimated_memory > available_memory * 0.9:
@@ -163,11 +163,11 @@ class TrainingManager:
             
             # Set random seed
             from ..training.training_utils import TrainingUtils
-            TrainingUtils.set_seed(self.config.system.seed)
+            TrainingUtils.set_seed(self.config_manager.system.seed)
             
             # Setup output directory
             from ..training.training_utils import TrainingUtils
-            TrainingUtils.setup_output_directory(self.config.get_output_dir())
+            TrainingUtils.setup_output_directory(self.config_manager.get_output_dir())
             
         except Exception as e:
             raise TrainingError(f"Failed to setup environment: {e}")
@@ -176,8 +176,8 @@ class TrainingManager:
         """Load model and tokenizer."""
         try:
             logger.info("📂 Loading model and tokenizer...")
-            logger.info(f"TTTT: {self.config}")
-            self.model, self.tokenizer = self.model_factory.create_model(self.config)
+            logger.info(f"TTTT: {self.config_manager}")
+            self.model, self.tokenizer = self.model_factory.create_model(self.config_manager)
             
             # Log model info to experiment tracker
             if self.experiment_manager.is_active():
@@ -193,7 +193,7 @@ class TrainingManager:
         """Load and prepare datasets."""
         try:
             logger.info("📊 Preparing datasets...")
-            self.datasets = self.dataset_factory.create_dataset(self.config, self.tokenizer)
+            self.datasets = self.dataset_factory.create_dataset(self.config_manager, self.tokenizer)
             
             # Log dataset info
             train_size = len(self.datasets["train"])
@@ -213,7 +213,7 @@ class TrainingManager:
         try:
             logger.info("🏋️ Creating trainer...")
             self.trainer = self.trainer_factory.create_trainer(
-                self.config, self.model, self.tokenizer, self.datasets
+                self.config_manager, self.model, self.tokenizer, self.datasets
             )
         except Exception as e:
             raise TrainingError(f"Failed to create trainer: {e}")
@@ -253,7 +253,7 @@ class TrainingManager:
     def _run_evaluation(self) -> Optional[Dict[str, Any]]:
         """Run model evaluation if enabled."""
         try:
-            if not self.config.inference.test_after_training:
+            if not self.config_manager.inference.test_after_training:
                 return None
             
             logger.info("🧪 Running model evaluation...")
@@ -266,7 +266,7 @@ class TrainingManager:
     def _push_to_hub(self) -> Optional[str]:
         """Push model to HuggingFace Hub if enabled."""
         try:
-            if not self.config.hub.push_to_hub:
+            if not self.config_manager.hub.push_to_hub:
                 return None
             
             return self.checkpoint_manager.push_to_hub(self.model, self.tokenizer)
@@ -339,9 +339,9 @@ class TrainingManager:
             for key in ["global_step", "step", "steps"]:
                 if key in trainer_stats:
                     return int(trainer_stats[key])
-            return self.config.training.max_steps
+            return self.config_manager.training.max_steps
         except:
-            return self.config.training.max_steps
+            return self.config_manager.training.max_steps
     
     def _count_parameters(self, model: Any) -> int:
         """Count total model parameters."""
@@ -362,7 +362,7 @@ class TrainingManager:
     def validate_config(self) -> None:
         """Validate configuration before training."""
         try:
-            self.config.validate()
+            self.config_manager.validate()
             logger.info("✅ Configuration validation passed")
         except Exception as e:
             raise TrainingError(f"Configuration validation failed: {e}")
@@ -370,11 +370,11 @@ class TrainingManager:
     def estimate_training_cost(self) -> Dict[str, Any]:
         """Estimate training costs and requirements."""
         try:
-            estimated_memory = self.model_factory.estimate_memory_usage(self.config)
+            estimated_memory = self.model_factory.estimate_memory_usage(self.config_manager)
             available_memory = DeviceUtils.get_gpu_memory_gb()
             
             # Estimate training time
-            estimated_time_hours = (self.config.training.max_steps * 1.0) / 3600  # Rough estimate
+            estimated_time_hours = (self.config_manager.training.max_steps * 1.0) / 3600  # Rough estimate
             
             return {
                 "estimated_memory_gb": estimated_memory,
@@ -390,7 +390,7 @@ class TrainingManager:
     def get_status(self) -> Dict[str, Any]:
         """Get current training status."""
         return {
-            "config_loaded": self.config is not None,
+            "config_loaded": self.config_manager is not None,
             "model_loaded": self.model is not None,
             "dataset_prepared": self.datasets is not None,
             "trainer_created": self.trainer is not None,
