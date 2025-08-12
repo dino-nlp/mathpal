@@ -6,7 +6,7 @@ from typing import Dict, Any, Optional
 from pathlib import Path
 
 from ..core.exceptions import ExperimentError
-from ..core.enhanced_config import ComprehensiveTrainingConfig
+from ..config.config_manager import OutputConfigSection, CometConfigSection
 from ..utils import get_logger
 
 logger = get_logger()
@@ -15,8 +15,16 @@ logger = get_logger()
 class ExperimentManager:
     """Manages experiment tracking and monitoring."""
     
-    def __init__(self, config: ComprehensiveTrainingConfig):
-        self.config = config
+    def __init__(self, output_config: OutputConfigSection, comet_config: CometConfigSection):
+        """
+        Initialize ExperimentManager with specific config sections.
+        
+        Args:
+            output_config: Output configuration section
+            comet_config: Comet ML configuration section
+        """
+        self.output_config = output_config
+        self.comet_config = comet_config
         self.comet_experiment = None
         self.start_time = None
         self.experiment_id = None
@@ -25,7 +33,7 @@ class ExperimentManager:
         """Setup experiment tracking."""
         try:
             self.start_time = time.time()
-            self.experiment_id = f"{self.config.output.experiment_name}_{int(self.start_time)}"
+            self.experiment_id = f"{self.output_config.experiment_name}_{int(self.start_time)}"
             
             logger.info(f"🧪 Setting up experiment: {self.experiment_id}")
             
@@ -33,7 +41,7 @@ class ExperimentManager:
             self._setup_output_directory()
             
             # Setup Comet ML if enabled
-            if self.config.comet.enabled:
+            if self.comet_config.enabled:
                 self._setup_comet()
             
             # Log experiment info
@@ -44,15 +52,11 @@ class ExperimentManager:
     
     def _setup_output_directory(self) -> None:
         """Create and setup output directory."""
-        output_dir = self.config.get_output_dir()
+        output_dir = self.output_config.get_output_dir()
         Path(output_dir).mkdir(parents=True, exist_ok=True)
         
-        # Save config to output directory
-        config_path = os.path.join(output_dir, "config.yaml")
-        self.config.save_yaml(config_path)
-        
         logger.info(f"📁 Output directory: {output_dir}")
-        logger.info(f"💾 Config saved to: {config_path}")
+        # Note: Config saving is now handled by ConfigManager, not here
     
     def _setup_comet(self) -> None:
         """Setup Comet ML experiment tracking."""
@@ -73,18 +77,20 @@ class ExperimentManager:
                 api_key=api_key,
                 workspace=workspace,
                 project_name=project,
-                auto_metric_logging=self.config.comet.auto_metric_logging,
-                auto_param_logging=self.config.comet.auto_param_logging,
-                auto_histogram_weight_logging=self.config.comet.auto_histogram_weight_logging,
-                auto_histogram_gradient_logging=self.config.comet.auto_histogram_gradient_logging,
+                auto_metric_logging=self.comet_config.auto_metric_logging,
+                auto_param_logging=self.comet_config.auto_param_logging,
             )
             
             # Set experiment name and tags
-            self.comet_experiment.set_name(self.config.comet.experiment_name)
-            self.comet_experiment.add_tags(self.config.comet.tags)
+            self.comet_experiment.set_name(self.comet_config.experiment_name)
+            self.comet_experiment.add_tags(self.comet_config.tags)
             
-            # Log hyperparameters
-            self.comet_experiment.log_parameters(self.config.to_dict())
+            # Log configuration sections
+            config_dict = {
+                "output": self.output_config.to_dict(),
+                "comet": self.comet_config.to_dict()
+            }
+            self.comet_experiment.log_parameters(config_dict)
             
             logger.info("✅ Comet ML experiment created")
             
@@ -97,12 +103,9 @@ class ExperimentManager:
         """Log basic experiment information."""
         logger.info("📊 Experiment Information:")
         logger.info(f"   🆔 ID: {self.experiment_id}")
-        logger.info(f"   📛 Name: {self.config.output.experiment_name}")
-        logger.info(f"   🤖 Model: {self.config.model.name}")
-        logger.info(f"   📚 Dataset: {self.config.dataset.name}")
-        logger.info(f"   🎯 Max steps: {self.config.training.max_steps}")
-        logger.info(f"   📈 Learning rate: {self.config.training.learning_rate:.2e}")
-        logger.info(f"   🎲 LoRA rank: {self.config.lora.r}")
+        logger.info(f"   📛 Name: {self.output_config.experiment_name}")
+        logger.info(f"   📁 Output: {self.output_config.get_output_dir()}")
+        logger.info(f"   📊 Comet enabled: {self.comet_config.enabled}")
     
     def log_metric(self, name: str, value: float, step: Optional[int] = None) -> None:
         """Log a metric to tracking systems."""

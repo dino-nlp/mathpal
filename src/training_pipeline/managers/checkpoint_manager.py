@@ -6,7 +6,7 @@ from typing import Dict, Any, List, Optional
 from pathlib import Path
 
 from ..core.exceptions import CheckpointError
-from ..core.enhanced_config import ComprehensiveTrainingConfig
+from ..config.config_manager import OutputConfigSection
 from ..utils import get_logger
 
 logger = get_logger()
@@ -15,8 +15,16 @@ logger = get_logger()
 class CheckpointManager:
     """Manages model checkpoints and saving."""
     
-    def __init__(self, config: ComprehensiveTrainingConfig):
-        self.config = config
+    def __init__(self, output_config: OutputConfigSection, hub_config: Optional[Dict[str, Any]] = None):
+        """
+        Initialize CheckpointManager with specific config sections.
+        
+        Args:
+            output_config: Output configuration section
+            hub_config: Optional HuggingFace Hub configuration
+        """
+        self.output_config = output_config
+        self.hub_config = hub_config or {}
         self.saved_models = {}
         
     def save_model(self, model: Any, tokenizer: Any, training_results: Optional[Dict[str, Any]] = None) -> Dict[str, str]:
@@ -35,10 +43,10 @@ class CheckpointManager:
             logger.info("💾 Saving model in requested formats...")
             
             save_results = {}
-            base_path = self.config.get_output_dir()
-            model_name = f"gemma3n-{self.config.output.experiment_name}"
+            base_path = self.output_config.get_output_dir()
+            model_name = f"gemma3n-{self.output_config.experiment_name}"
             
-            for format_name in self.config.output.save_formats:
+            for format_name in self.output_config.save_formats:
                 try:
                     save_path = self._save_format(model, tokenizer, format_name, base_path, model_name)
                     save_results[format_name] = save_path
@@ -122,9 +130,10 @@ class CheckpointManager:
         """Save training metadata."""
         try:
             metadata = {
-                "config": self.config.to_dict(),
+                "output_config": self.output_config.to_dict(),
+                "hub_config": self.hub_config,
                 "training_results": training_results,
-                "saved_formats": self.config.output.save_formats,
+                "saved_formats": self.output_config.save_formats,
             }
             
             metadata_path = os.path.join(base_path, "training_metadata.json")
@@ -139,21 +148,21 @@ class CheckpointManager:
     def push_to_hub(self, model: Any, tokenizer: Any) -> Optional[str]:
         """Push model to HuggingFace Hub."""
         try:
-            if not self.config.hub.push_to_hub:
+            if not self.hub_config.get('push_to_hub', False):
                 return None
             
-            username = self.config.hub.username or os.getenv("HF_USERNAME")
+            username = self.hub_config.get('username') or os.getenv("HF_USERNAME")
             if not username:
                 logger.warning("⚠️ HuggingFace username not provided, skipping Hub push")
                 return None
             
-            repo_name = self.config.hub.repo_name or self.config.output.experiment_name
+            repo_name = self.hub_config.get('repo_name') or self.output_config.experiment_name
             hub_repo = f"{username}/{repo_name}"
             
             logger.info(f"📤 Pushing model to HuggingFace Hub: {hub_repo}")
             
             # Get token
-            token = self.config.hub.token or os.getenv("HF_TOKEN")
+            token = self.hub_config.get('token') or os.getenv("HF_TOKEN")
             
             if hasattr(model, 'push_to_hub_merged'):
                 # Use Unsloth's optimized push method
@@ -162,12 +171,12 @@ class CheckpointManager:
                     tokenizer,
                     save_method="lora",
                     token=token,
-                    private=self.config.hub.private
+                    private=self.hub_config.get('private', True)
                 )
             else:
                 # Standard HuggingFace push
-                model.push_to_hub(hub_repo, token=token, private=self.config.hub.private)
-                tokenizer.push_to_hub(hub_repo, token=token, private=self.config.hub.private)
+                model.push_to_hub(hub_repo, token=token, private=self.hub_config.get('private', True))
+                tokenizer.push_to_hub(hub_repo, token=token, private=self.hub_config.get('private', True))
             
             logger.info(f"✅ Model pushed to Hub: {hub_repo}")
             return hub_repo
@@ -198,7 +207,7 @@ class CheckpointManager:
     def list_checkpoints(self) -> List[str]:
         """List available checkpoints."""
         try:
-            base_dir = self.config.output.base_dir
+            base_dir = self.output_config.base_dir
             if not os.path.exists(base_dir):
                 return []
             
@@ -220,11 +229,11 @@ class CheckpointManager:
     def cleanup_old_checkpoints(self) -> None:
         """Cleanup old checkpoints based on save_total_limit."""
         try:
-            if self.config.output.save_total_limit <= 0:
+            if self.output_config.save_total_limit <= 0:
                 return
             
             checkpoints = self.list_checkpoints()
-            if len(checkpoints) <= self.config.output.save_total_limit:
+            if len(checkpoints) <= self.output_config.save_total_limit:
                 return
             
             # Sort by modification time and keep only the newest ones
@@ -234,7 +243,7 @@ class CheckpointManager:
             checkpoints_with_time.sort(key=lambda x: x[1], reverse=True)
             
             # Remove old checkpoints
-            to_remove = checkpoints_with_time[self.config.output.save_total_limit:]
+            to_remove = checkpoints_with_time[self.output_config.save_total_limit:]
             
             for checkpoint_path, _ in to_remove:
                 try:

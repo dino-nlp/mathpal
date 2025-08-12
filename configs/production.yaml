@@ -1,44 +1,206 @@
-# Production Configuration
-# Full configuration for production training
+# =============================================================================
+# MathPal Production Configuration
+# =============================================================================
+# Production-ready configuration with full features enabled:
+# - Comet ML experiment tracking
+# - HuggingFace Hub integration  
+# - Multiple model save formats
+# - Comprehensive training setup
+#
+# Usage:
+#   python -m training_pipeline.cli.train_gemma --config configs/production.yaml
+#
+# Required Environment Variables:
+#   COMET_API_KEY: Your Comet ML API key
+#   COMET_WORKSPACE: Your Comet ML workspace
+#   HF_TOKEN: Your HuggingFace token (for Hub push)
+#   HF_USERNAME: Your HuggingFace username
+# =============================================================================
 
-# Model settings
-model_name: "unsloth/gemma-3n-E4B-it"
-max_seq_length: 2048
-load_in_4bit: true
-full_finetuning: false
+# =============================================================================
+# MODEL CONFIGURATION
+# =============================================================================
+model:
+  # Production Gemma-3n model
+  name: "unsloth/gemma-3n-E4B-it"
+  
+  # Full sequence length for production
+  max_seq_length: 2048
+  
+  # Enable 4-bit quantization for efficiency
+  load_in_4bit: true
+  load_in_8bit: false
+  
+  # Use LoRA for efficient fine-tuning
+  full_finetuning: false
 
-# Dataset settings
-dataset_name: "ngohongthai/exam-sixth_grade-instruct-dataset"
-train_split: "train"
-test_split: "test"
+# =============================================================================
+# DATASET CONFIGURATION  
+# =============================================================================
+dataset:
+  # Vietnamese 6th grade math problems
+  name: "ngohongthai/exam-sixth_grade-instruct-dataset"
+  
+  # Standard splits
+  train_split: "train"
+  test_split: "test"
+  
+  # Text field configuration
+  text_field: "text"
+  max_length: null
+  
+  # Multi-process for faster data loading
+  num_proc: 2
+  packing: false
 
-# Output settings
-output_dir: "outputs/production-models"
-experiment_name: "production_v1"
+# =============================================================================
+# TRAINING HYPERPARAMETERS (Production)
+# =============================================================================
+training:
+  # Production training steps
+  max_steps: 2000
+  num_train_epochs: null
+  
+  # Optimized batch sizes for production
+  per_device_train_batch_size: 4
+  per_device_eval_batch_size: 4
+  gradient_accumulation_steps: 8
+  
+  # Fine-tuned learning rate for production
+  learning_rate: 1.0e-4
+  warmup_ratio: 0.05
+  weight_decay: 0.01
+  
+  # Efficient optimizer
+  optim: "adamw_8bit"
+  lr_scheduler_type: "cosine"
+  max_grad_norm: 1.0
+  
+  # Mixed precision for modern GPUs
+  fp16: false
+  bf16: true
+  
+  # Response-only training for instruction tuning
+  train_on_responses_only: true
 
-# Training hyperparameters
-max_steps: 1000
-per_device_train_batch_size: 2
-gradient_accumulation_steps: 8
-learning_rate: 0.0001
-warmup_ratio: 0.05
-weight_decay: 0.01
-logging_steps: 10
-save_steps: 100
+# =============================================================================
+# LORA CONFIGURATION (Production)
+# =============================================================================
+lora:
+  # Higher rank for better adaptation
+  r: 32
+  alpha: 64
+  dropout: 0.1
+  bias: "none"
+  
+  # Full Gemma-specific target modules
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+  
+  use_rslora: false
 
-# LoRA settings (balanced)
-lora_r: 16
-lora_alpha: 16
-lora_dropout: 0.1
-lora_bias: "none"
+# =============================================================================
+# SYSTEM CONFIGURATION
+# =============================================================================
+system:
+  seed: 42
+  use_gradient_checkpointing: "unsloth"
+  dataloader_drop_last: true
+  dataloader_pin_memory: true
+  dataloader_num_workers: 2
 
-# System settings
-use_gradient_checkpointing: true
-report_to: "comet_ml"
-seed: 42
-optim: "adamw_torch_fused"
-lr_scheduler_type: "cosine"
+# =============================================================================
+# OUTPUT CONFIGURATION (Production)
+# =============================================================================
+output:
+  # Production output directory
+  base_dir: "outputs"
+  experiment_name: "mathpal-production-v1"
+  
+  # Save strategy for production
+  save_strategy: "steps"
+  save_steps: 200
+  save_total_limit: 5
+  load_best_model_at_end: true
+  
+  # Multiple save formats for deployment
+  save_formats:
+    - "lora"           # LoRA adapters for quick updates
+    - "merged_16bit"   # Full model for VLLM/production inference
+    - "merged_4bit"    # Quantized model for resource-constrained deployment
 
-# Training settings
-train_on_responses_only: true
-dataset_text_field: "text"
+# =============================================================================
+# COMET ML CONFIGURATION (Production Tracking)
+# =============================================================================
+comet:
+  # Enable full experiment tracking
+  enabled: true
+  experiment_name: "mathpal-production-gemma3n"
+  
+  # Production tags for organization
+  tags:
+    - "production"
+    - "gemma3n"
+    - "vietnamese"
+    - "math-education"
+    - "instruction-tuning"
+    - "6th-grade"
+  
+  # Full logging enabled
+  auto_metric_logging: true
+  auto_param_logging: true
+
+# =============================================================================
+# HUGGINGFACE HUB INTEGRATION (Production)
+# =============================================================================
+hub:
+  # Enable automatic model push to Hub
+  push_to_hub: true
+  
+  # HuggingFace configuration (use env vars)
+  username: null  # Set via HF_USERNAME env var
+  repo_name: "mathpal-gemma3n-vietnamese-math"
+  private: false  # Make public for community use
+  token: null     # Set via HF_TOKEN env var
+
+# =============================================================================
+# PRODUCTION MONITORING & VALIDATION
+# =============================================================================
+# Additional production configurations can be added here:
+# - Model validation steps
+# - Performance benchmarks
+# - Quality assurance checks
+# - Deployment readiness validation
+# =============================================================================
+
+# =============================================================================
+# PRODUCTION DEPLOYMENT NOTES
+# =============================================================================
+# After training completion, this configuration produces:
+#
+# 1. LoRA Adapters (fastest inference updates):
+#    - Location: outputs/mathpal-production-v1/mathpal-production-v1-lora/
+#    - Use: Quick model updates, A/B testing
+#
+# 2. Merged 16-bit Model (production inference):
+#    - Location: outputs/mathpal-production-v1/mathpal-production-v1-merged-16bit/
+#    - Use: VLLM, TGI, production serving
+#
+# 3. Merged 4-bit Model (edge deployment):
+#    - Location: outputs/mathpal-production-v1/mathpal-production-v1-merged-4bit/
+#    - Use: Resource-constrained environments
+#
+# 4. HuggingFace Hub Model:
+#    - Location: https://huggingface.co/{username}/mathpal-gemma3n-vietnamese-math
+#    - Use: Community sharing, easy deployment
+#
+# 5. Experiment Tracking:
+#    - Comet ML dashboard with full metrics, logs, and model artifacts
+#    - Performance monitoring and comparison
+# =============================================================================

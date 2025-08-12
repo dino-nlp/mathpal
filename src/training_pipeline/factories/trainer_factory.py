@@ -5,7 +5,7 @@ import torch
 from transformers import TrainingArguments, DataCollatorForSeq2Seq
 
 from ..core.exceptions import TrainingError, UnsupportedModelError
-from ..core.enhanced_config import ComprehensiveTrainingConfig
+from ..config.config_manager import ComprehensiveTrainingConfig
 from ..utils import get_logger
 
 logger = get_logger()

@@ -5,7 +5,7 @@ import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 
 from ..core.exceptions import UnsupportedModelError, ModelError
-from ..core.enhanced_config import ComprehensiveTrainingConfig
+from ..config.config_manager import ComprehensiveTrainingConfig
 from ..utils import get_logger
 
 logger = get_logger()

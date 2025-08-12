@@ -7,7 +7,7 @@ from dataclasses import dataclass
 import torch
 
 from .exceptions import TrainingError, ModelError, DatasetError
-from .enhanced_config import ComprehensiveTrainingConfig
+from ..config.config_manager import ConfigManager
 from ..factories import ModelFactory, DatasetFactory, TrainerFactory
 from ..managers import ExperimentManager, CheckpointManager, EvaluationManager
 from ..utils import get_logger, DeviceUtils
@@ -41,22 +41,28 @@ class TrainingManager:
     8. Cleanup
     """
     
-    def __init__(self, config: ComprehensiveTrainingConfig):
+    def __init__(self, config_manager: ConfigManager):
         """
         Initialize training manager.
         
         Args:
-            config: Comprehensive training configuration
+            config_manager: Centralized configuration manager
         """
-        self.config = config
+        self.config_manager = config_manager
         
-        # Initialize components
+        # Initialize components with specific config sections
         self.model_factory = ModelFactory()
         self.dataset_factory = DatasetFactory()
         self.trainer_factory = TrainerFactory()
-        self.experiment_manager = ExperimentManager(config)
-        self.checkpoint_manager = CheckpointManager(config)
-        self.evaluation_manager = EvaluationManager(config)
+        self.experiment_manager = ExperimentManager(
+            output_config=config_manager.output,
+            comet_config=config_manager.comet
+        )
+        self.checkpoint_manager = CheckpointManager(
+            output_config=config_manager.output,
+            hub_config=config_manager.raw_config.get('hub', {})  # Using raw config for hub
+        )
+        # self.evaluation_manager = EvaluationManager(config_manager)  # TODO: Refactor later
         
         # State tracking
         self.model = None

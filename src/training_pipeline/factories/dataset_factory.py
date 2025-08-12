@@ -4,7 +4,7 @@ from typing import Dict, Any, Optional
 from datasets import load_dataset, Dataset, DatasetDict
 
 from ..core.exceptions import DatasetError
-from ..core.enhanced_config import ComprehensiveTrainingConfig
+from ..config.config_manager import ComprehensiveTrainingConfig
 from ..utils import get_logger
 
 logger = get_logger()

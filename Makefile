@@ -21,7 +21,7 @@ setup-env: ## Setup complete environment for finetuning with GPU support
 setup-thuegpu: ## Alias for setup-env (backward compatibility)
 	@$(MAKE) setup-env
 
-env-check: ## Check environment for new architecture dependencies
+env-check: ## Check environment for training pipeline dependencies
 	@echo "🔍 Checking environment architecture..."
 	@python3 -c "import sys; print(f'Python: {sys.version}')"
 	@python3 -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.cuda.is_available()}')"
@@ -30,8 +30,8 @@ env-check: ## Check environment for new architecture dependencies
 	@python3 -c "import trl; print(f'TRL: {trl.__version__}')"
 	@python3 -c "import datasets; print(f'Datasets: {datasets.__version__}')"
 	@python3 -c "import yaml; print(f'PyYAML: {yaml.__version__}')"
-	@echo "🧪 Testing new architecture imports..."
-	@PYTHONPATH=$(PYTHONPATH) python3 -c "from training_pipeline.core.enhanced_config import ConfigLoader; print('✅ Enhanced config loader')"
+	@echo "🧪 Testing training pipeline imports..."
+	@PYTHONPATH=$(PYTHONPATH) python3 -c "from training_pipeline.config.config_manager import ConfigManager; print('✅ ConfigManager')"
 	@PYTHONPATH=$(PYTHONPATH) python3 -c "from training_pipeline.core.training_manager import TrainingManager; print('✅ Training manager')"
 	@PYTHONPATH=$(PYTHONPATH) python3 -c "from training_pipeline.factories import ModelFactory, DatasetFactory, TrainerFactory; print('✅ Factories')"
 	@echo "✅ Environment check completed"
@@ -54,7 +54,7 @@ env-info: ## Show comprehensive environment information
 	@python3 -c "import torch; print(f'CUDA Available: {torch.cuda.is_available()}'); print(f'Device Count: {torch.cuda.device_count() if torch.cuda.is_available() else 0}'); print(f'Current Device: {torch.cuda.get_device_name(0) if torch.cuda.is_available() and torch.cuda.device_count() > 0 else \"N/A\"}')"
 	@echo ""
 	@echo "🧪 Training Pipeline:"
-	@PYTHONPATH=$(PYTHONPATH) python3 -c "from training_pipeline.core.enhanced_config import ConfigLoader; print('✅ Config Loader')"
+	@PYTHONPATH=$(PYTHONPATH) python3 -c "from training_pipeline.config.config_manager import ConfigManager; print('✅ ConfigManager')"
 	@PYTHONPATH=$(PYTHONPATH) python3 -c "from training_pipeline.core.training_manager import TrainingManager; print('✅ Training Manager')"
 	@PYTHONPATH=$(PYTHONPATH) python3 -c "from training_pipeline.factories import ModelFactory, DatasetFactory, TrainerFactory; print('✅ All Factories')"
 	@echo "========================================"
@@ -92,61 +92,62 @@ local-test-retriever: # Test the RAG retriever using your Poetry env
 # ======================================
 
 # Main training commands
-train: ## Run training with comprehensive config
-	@echo "🚀 Starting training with complete config..."
-	@./train.sh
-
-train-dev: ## Run development training (quick config)
-	@echo "🛠️ Starting development training..."
-	@./train.sh configs/development.yaml
-
-train-prod: ## Run production training
-	@echo "🏭 Starting production training..."
-	@./train.sh configs/production.yaml
+train: ## Run training with unified config
+	@echo "🚀 Starting training with unified config..."
+	@PYTHONPATH=$(PYTHONPATH) python3 -m training_pipeline.cli.train_gemma --config configs/unified_training_config.yaml
 
 train-quick: ## Run quick test training (20 steps)
 	@echo "⚡ Starting quick test training..."
-	@./train.sh --quick-test
+	@PYTHONPATH=$(PYTHONPATH) python3 -m training_pipeline.cli.train_gemma --config configs/quick_test.yaml
+
+train-prod: ## Run production training with full features
+	@echo "🏭 Starting production training..."
+	@PYTHONPATH=$(PYTHONPATH) python3 -m training_pipeline.cli.train_gemma --config configs/production.yaml
 
 # Validation and testing
 train-dry-run: ## Validate config and estimate resources without training
 	@echo "🔍 Running training dry run..."
-	@./train.sh --dry-run
+	@PYTHONPATH=$(PYTHONPATH) python3 -m training_pipeline.cli.train_gemma --config configs/unified_training_config.yaml --dry-run
 
-train-dry-run-dev: ## Dry run with development config
-	@echo "🔍 Running development dry run..."
-	@./train.sh configs/development.yaml --dry-run
+train-dry-run-quick: ## Dry run with quick test config
+	@echo "🔍 Running quick test dry run..."
+	@PYTHONPATH=$(PYTHONPATH) python3 -m training_pipeline.cli.train_gemma --config configs/quick_test.yaml --dry-run
 
 train-dry-run-prod: ## Dry run with production config
 	@echo "🔍 Running production dry run..."
-	@./train.sh configs/production.yaml --dry-run
+	@PYTHONPATH=$(PYTHONPATH) python3 -m training_pipeline.cli.train_gemma --config configs/production.yaml --dry-run
 
-# Custom training
-train-custom: ## Run training with custom experiment name (usage: make train-custom EXPERIMENT=my-experiment)
-	@echo "🎯 Starting custom training: $(EXPERIMENT)..."
-	@./train.sh --experiment-name $(EXPERIMENT)
-
+# Custom training with any config
 train-custom-config: ## Run training with custom config (usage: make train-custom-config CONFIG=my-config.yaml)
 	@echo "📋 Starting training with custom config: $(CONFIG)..."
-	@./train.sh $(CONFIG)
+	@PYTHONPATH=$(PYTHONPATH) python3 -m training_pipeline.cli.train_gemma --config $(CONFIG)
+
+# Quick test mode with any config
+train-quick-test: ## Apply quick test overrides to any config (usage: make train-quick-test CONFIG=configs/production.yaml)
+	@echo "⚡ Starting quick test with config: $(or $(CONFIG),configs/unified_training_config.yaml)..."
+	@PYTHONPATH=$(PYTHONPATH) python3 -m training_pipeline.cli.train_gemma --config $(or $(CONFIG),configs/unified_training_config.yaml) --quick-test
+
+# Training with overrides
+train-custom: ## Run training with custom experiment name (usage: make train-custom EXPERIMENT=my-experiment)
+	@echo "🎯 Starting custom training: $(EXPERIMENT)..."
+	@PYTHONPATH=$(PYTHONPATH) python3 -m training_pipeline.cli.train_gemma --config configs/unified_training_config.yaml --experiment-name $(EXPERIMENT)
+
+train-steps: ## Run training with custom max steps (usage: make train-steps STEPS=500)
+	@echo "🎯 Starting training with $(STEPS) steps..."
+	@PYTHONPATH=$(PYTHONPATH) python3 -m training_pipeline.cli.train_gemma --config configs/unified_training_config.yaml --max-steps $(STEPS)
+
+train-output: ## Run training with custom output directory (usage: make train-output OUTPUT=my-output)
+	@echo "📁 Starting training with output: $(OUTPUT)..."
+	@PYTHONPATH=$(PYTHONPATH) python3 -m training_pipeline.cli.train_gemma --config configs/unified_training_config.yaml --output-dir $(OUTPUT)
 
 # Advanced training options
 train-debug: ## Run training with debug logging
 	@echo "🐛 Starting training with debug logging..."
-	@./train.sh --debug
+	@PYTHONPATH=$(PYTHONPATH) python3 -m training_pipeline.cli.train_gemma --config configs/unified_training_config.yaml --debug
 
 train-no-comet: ## Run training without Comet ML tracking
 	@echo "🚫 Starting training without Comet ML..."
-	@./train.sh --no-comet
-
-# Training with overrides
-train-steps: ## Run training with custom max steps (usage: make train-steps STEPS=500)
-	@echo "🎯 Starting training with $(STEPS) steps..."
-	@./train.sh --max-steps $(STEPS)
-
-train-output: ## Run training with custom output directory (usage: make train-output OUTPUT=my-output)
-	@echo "📁 Starting training with output: $(OUTPUT)..."
-	@./train.sh --output-dir $(OUTPUT)
+	@PYTHONPATH=$(PYTHONPATH) python3 -m training_pipeline.cli.train_gemma --config configs/unified_training_config.yaml --no-comet
 
 
 # ======================================
@@ -180,9 +181,9 @@ memory-info: ## Show memory information
 	@PYTHONPATH=$(PYTHONPATH) python3 -c "from training_pipeline.utils import DeviceUtils; print(DeviceUtils.get_cuda_memory_info())"
 
 # Configuration validation
-validate-config: ## Validate training configuration file (usage: make validate-config CONFIG=configs/development.yaml)
+validate-config: ## Validate training configuration file (usage: make validate-config CONFIG=configs/quick_test.yaml)
 	@echo "🔍 Validating configuration: $(CONFIG)..."
-	@PYTHONPATH=$(PYTHONPATH) python3 -m training_pipeline.cli.train_gemma_v2 --config $(CONFIG) --dry-run
+	@PYTHONPATH=$(PYTHONPATH) python3 -m training_pipeline.cli.train_gemma --config $(CONFIG) --dry-run
 
 # Compare architectures
 compare-configs: ## Compare old vs new configuration approaches
@@ -193,30 +194,30 @@ compare-configs: ## Compare old vs new configuration approaches
 	@echo "📁 Available configurations:"
 	@ls -la configs/*.yaml 2>/dev/null || echo "No config files found in configs/"
 
-# Show architecture comparison
-show-architecture: ## Show architecture comparison
-	@echo "🏗️ MathPal Training Pipeline Architecture Comparison"
-	@echo "======================================================"
+# Show architecture overview
+show-architecture: ## Show current training pipeline architecture
+	@echo "🏗️ MathPal Training Pipeline - Enhanced Architecture"
+	@echo "===================================================="
 	@echo ""
-	@echo "📊 OLD ARCHITECTURE (train_gemma.py):"
-	@echo "   ❌ Monolithic: 454 lines in single file"
-	@echo "   ❌ Complex CLI: 50+ command line arguments"  
-	@echo "   ❌ Hardcoded: Default values scattered throughout code"
-	@echo "   ❌ Hard to test: Tight coupling between components"
-	@echo "   ❌ Poor error handling: Basic try-catch only"
-	@echo ""
-	@echo "✅ NEW ARCHITECTURE (train_gemma_v2.py):"
-	@echo "   ✅ Modular: ~100 lines CLI + separate factories/managers"
-	@echo "   ✅ Config-driven: 5-7 CLI args + comprehensive YAML config"
-	@echo "   ✅ Centralized: All settings in documented YAML files"
-	@echo "   ✅ Testable: Dependency injection + factory pattern"
+	@echo "✅ CURRENT ARCHITECTURE (train_gemma.py):"
+	@echo "   ✅ Modular: ConfigManager + Factory + Manager pattern"
+	@echo "   ✅ Type-safe: Config sections with validation"
+	@echo "   ✅ Clean CLI: 5-7 arguments + comprehensive YAML config"
+	@echo "   ✅ Unified config: Handles all legacy formats seamlessly"
+	@echo "   ✅ Dependency injection: Managers get only needed configs"
 	@echo "   ✅ Robust: Comprehensive validation + error handling"
 	@echo ""
+	@echo "📁 Available Configurations:"
+	@echo "   🚀 unified_training_config.yaml - Full configuration template"
+	@echo "   ⚡ quick_test.yaml - Quick development testing (20 steps)"
+	@echo "   🏭 production.yaml - Production with Comet ML + Hub push"
+	@echo ""
 	@echo "📁 Usage Examples:"
-	@echo "   Legacy:  make train-dev"
-	@echo "   New v2:  make train-dev-v2"
-	@echo "   Quick:   make train-quick"
-	@echo "   Dry run: make train-dry-run"
+	@echo "   Quick test:  make train-quick"
+	@echo "   Production:  make train-prod"
+	@echo "   Custom:      make train-custom EXPERIMENT=my-exp"
+	@echo "   Dry run:     make train-dry-run"
+	@echo "   With config: make train-custom-config CONFIG=my-config.yaml"
 	@echo ""
 
 # Testing and validation
@@ -226,7 +227,7 @@ test-architecture: ## Test and validate the new training pipeline architecture
 
 test-imports: ## Test all training pipeline imports
 	@echo "🧪 Testing training pipeline imports..."
-	@PYTHONPATH=$(PYTHONPATH) python3 -c "from training_pipeline.core.enhanced_config import ConfigLoader; print('✅ ConfigLoader')"
+	@PYTHONPATH=$(PYTHONPATH) python3 -c "from training_pipeline.config.config_manager import ConfigManager; print('✅ ConfigManager')"
 	@PYTHONPATH=$(PYTHONPATH) python3 -c "from training_pipeline.core.training_manager import TrainingManager; print('✅ TrainingManager')"
 	@PYTHONPATH=$(PYTHONPATH) python3 -c "from training_pipeline.factories import ModelFactory, DatasetFactory, TrainerFactory; print('✅ Factories')"
 	@PYTHONPATH=$(PYTHONPATH) python3 -c "from training_pipeline.utils import setup_logging, get_logger, DeviceUtils; print('✅ Utils')"
@@ -236,9 +237,13 @@ test-configs: ## Test all configuration files
 	@echo "🧪 Testing all configuration files..."
 	@for config in configs/*.yaml; do \
 		echo "Testing $$config..."; \
-		./train.sh $$config --dry-run || echo "❌ Failed: $$config"; \
+		PYTHONPATH=$(PYTHONPATH) python3 -m training_pipeline.cli.train_gemma --config $$config --dry-run || echo "❌ Failed: $$config"; \
 	done
 	@echo "✅ Configuration testing completed"
+
+test-config-manager: ## Test ConfigManager with demo script
+	@echo "🧪 Testing ConfigManager system..."
+	@PYTHONPATH=$(PYTHONPATH) python3 examples/config_manager_demo.py
 
 # Performance and monitoring
 show-gpu-usage: ## Show current GPU usage
