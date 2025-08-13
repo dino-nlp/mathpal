@@ -287,8 +287,8 @@ class LoggingConfigSection(ConfigSection):
             logging_data = data['logging']
         else:
             logging_data = {
-                'logging_steps' = 5,
-                'report_to' = None
+                'logging_steps': 5,
+                'report_to': None
             }
         
         return cls(
