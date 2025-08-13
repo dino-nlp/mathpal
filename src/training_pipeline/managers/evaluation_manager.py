@@ -57,6 +57,10 @@ class EvaluationManager:
             results["performance_metrics"] = self._measure_performance(inference_engine)
             
             logger.info("✅ Evaluation completed")
+            logger.info("="*100)
+            logger.info("Evaluation results:")
+            logger.info(results)
+            logger.info("="*100)
             return results
             
         except Exception as e:
@@ -64,6 +68,7 @@ class EvaluationManager:
     
     def _run_inference_tests(self, inference_engine) -> List[Dict[str, Any]]:
         """Run basic inference tests."""
+        logger.info(f"🧪 _run_inference_tests")
         try:
             # Prepare model for inference
             test_cases = self._get_test_cases()
@@ -84,8 +89,8 @@ class EvaluationManager:
                     results.append(result)
                     
                     # Log result
-                    logger.info(f"   Input: {test_case['input'][:100]}...")
-                    logger.info(f"   Output: {response[:100]}...")
+                    logger.info(f"   Input: {test_case['input']} \n")
+                    logger.info(f"   Output: {response} \n")
                     
                 except Exception as e:
                     results.append({
@@ -103,6 +108,7 @@ class EvaluationManager:
     
     def _run_vietnamese_math_tests(self, inference_engine) -> List[Dict[str, Any]]:
         """Run Vietnamese math-specific tests."""
+        logger.info(f"🧪 _run_vietnamese_math_tests")
         vietnamese_tests = [
             {
                 "input": "Tính 15 + 27 = ?",
@@ -158,6 +164,7 @@ class EvaluationManager:
     
     def _evaluate_generation_quality(self, inference_engine) -> Dict[str, Any]:
         """Evaluate overall generation quality."""
+        logger.info(f"🧪 _evaluate_generation_quality")
         try:
             # Test different generation parameters
             test_input = "Giải thích cách tính diện tích hình vuông có cạnh 6cm."
@@ -184,6 +191,7 @@ class EvaluationManager:
     
     def _measure_performance(self, inference_engine) -> Dict[str, Any]:
         """Measure performance metrics."""
+        logger.info(f"🧪 _measure_performance")
         try:
             import time
             import torch

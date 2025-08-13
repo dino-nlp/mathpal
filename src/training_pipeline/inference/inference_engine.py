@@ -62,7 +62,7 @@ class InferenceEngine:
         return_full_text: bool = False
     ) -> str:
         """
-        Generate response for a question.
+        Generate response for a single question.
         
         Args:
             question: Input question
@@ -72,32 +72,15 @@ class InferenceEngine:
         Returns:
             Generated response text
         """
-        # Prepare inputs
-        inputs = self.chat_formatter.prepare_inference_inputs(
-            question=question,
-            device=self.device
+        # Use batch processing with single item for consistency
+        responses = self.generate_batch(
+            questions=[question],
+            generation_config=generation_config,
+            batch_size=1,
+            return_full_text=return_full_text
         )
         
-        # Update generation config (self.generation_config is a dict from to_dict())
-        gen_config = self.generation_config.copy()
-        if generation_config:
-            gen_config.update(generation_config)
-        
-        # Generate
-        with torch.no_grad():
-            outputs = self.model.generate(**inputs, **gen_config)
-        
-        # Decode outputs
-        if return_full_text:
-            # Return full generated text
-            generated_text = self.tokenizer.batch_decode(outputs, skip_special_tokens=True)[0]
-        else:
-            # Return only the new tokens (response)
-            input_length = inputs['input_ids'].shape[1]
-            new_tokens = outputs[0][input_length:]
-            generated_text = self.tokenizer.decode(new_tokens, skip_special_tokens=True)
-        
-        return generated_text.strip()
+        return responses[0] if responses else ""
     
     def generate_batch(
         self,
@@ -107,7 +90,7 @@ class InferenceEngine:
         return_full_text: bool = False
     ) -> List[str]:
         """
-        Generate responses for multiple questions.
+        Generate responses for multiple questions using true batch processing.
         
         Args:
             questions: List of input questions
@@ -118,22 +101,49 @@ class InferenceEngine:
         Returns:
             List of generated responses
         """
+        if not questions:
+            return []
+        
         responses = []
         
         # Process in batches
         for i in range(0, len(questions), batch_size):
             batch_questions = questions[i:i + batch_size]
             
-            # Generate for each question in batch
-            # Note: For simplicity, processing one by one
-            # Can be optimized for true batch processing
+            # Prepare batch inputs
+            batch_inputs = []
             for question in batch_questions:
-                response = self.generate(
+                inputs = self.chat_formatter.prepare_inference_inputs(
                     question=question,
-                    generation_config=generation_config,
-                    return_full_text=return_full_text
+                    device=self.device
                 )
-                responses.append(response)
+                batch_inputs.append(inputs)
+            
+            # Stack inputs for batch processing
+            if len(batch_inputs) == 1:
+                # Single item - use as is
+                batch_inputs = batch_inputs[0]
+            else:
+                # Multiple items - pad and stack
+                batch_inputs = self._prepare_batch_inputs(batch_inputs)
+            
+            # Update generation config
+            gen_config = self.generation_config.copy()
+            if generation_config:
+                gen_config.update(generation_config)
+            
+            # Generate for batch
+            with torch.no_grad():
+                batch_outputs = self.model.generate(**batch_inputs, **gen_config)
+            
+            # Decode batch outputs
+            batch_responses = self._decode_batch_outputs(
+                batch_outputs, 
+                batch_inputs, 
+                return_full_text
+            )
+            
+            responses.extend(batch_responses)
         
         return responses
     
@@ -239,3 +249,65 @@ class InferenceEngine:
                 "do_sample": False
             }
         }
+    
+    def _prepare_batch_inputs(self, batch_inputs: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Prepare batched inputs for model generation.
+        
+        Args:
+            batch_inputs: List of input dictionaries
+            
+        Returns:
+            Batched input dictionary
+        """
+        if len(batch_inputs) == 1:
+            return batch_inputs[0]
+        
+        # Stack input_ids and attention_mask
+        input_ids = torch.stack([inputs['input_ids'] for inputs in batch_inputs])
+        attention_mask = torch.stack([inputs['attention_mask'] for inputs in batch_inputs])
+        
+        return {
+            'input_ids': input_ids,
+            'attention_mask': attention_mask
+        }
+    
+    def _decode_batch_outputs(
+        self, 
+        batch_outputs: torch.Tensor, 
+        batch_inputs: Dict[str, Any], 
+        return_full_text: bool
+    ) -> List[str]:
+        """
+        Decode batch outputs to text responses.
+        
+        Args:
+            batch_outputs: Model outputs tensor
+            batch_inputs: Input dictionary used for generation
+            return_full_text: Whether to return full text
+            
+        Returns:
+            List of decoded text responses
+        """
+        responses = []
+        
+        if return_full_text:
+            # Return full generated text for each item
+            for i in range(batch_outputs.shape[0]):
+                generated_text = self.tokenizer.decode(
+                    batch_outputs[i], 
+                    skip_special_tokens=True
+                )
+                responses.append(generated_text.strip())
+        else:
+            # Return only new tokens for each item
+            input_length = batch_inputs['input_ids'].shape[1]
+            for i in range(batch_outputs.shape[0]):
+                new_tokens = batch_outputs[i][input_length:]
+                generated_text = self.tokenizer.decode(
+                    new_tokens, 
+                    skip_special_tokens=True
+                )
+                responses.append(generated_text.strip())
+        
+        return responses
