@@ -81,7 +81,7 @@ class TrainerFactory:
                 lr_scheduler_type=config.training.lr_scheduler_type,
                 
                 # Logging and saving
-                logging_steps=config.logging.steps,
+                logging_steps=config.logging.logging_steps,
                 save_strategy=config.output.save_strategy,
                 save_steps=config.output.save_steps,
                 report_to=config.logging.report_to,
@@ -181,7 +181,7 @@ class TrainerFactory:
                 learning_rate=config.training.learning_rate,
                 max_steps=config.training.max_steps,
                 warmup_ratio=config.training.warmup_ratio,
-                logging_steps=config.logging.steps,
+                logging_steps=config.logging.logging_steps,
                 save_strategy=config.output.save_strategy,
                 save_steps=config.output.save_steps,
                 evaluation_strategy=config.evaluation.strategy,
@@ -227,7 +227,7 @@ class TrainerFactory:
         # Debug config values
         logger.info(f"🔧 Training config debug: max_steps={config.training.max_steps}, num_epochs={config.training.num_train_epochs}")
         logger.info(f"🔧 Output config debug: save_steps={config.output.save_steps}, save_strategy={config.output.save_strategy}")
-        logger.info(f"🔧 Logging config debug: logging_steps={config.logging.steps}, report_to={config.logging.report_to}")
+        logger.info(f"🔧 Logging config debug: logging_steps={config.logging.logging_steps}, report_to={config.logging.report_to}")
         logger.info(f"🔧 System config debug: seed={config.system.seed}, num_workers={config.system.dataloader_num_workers}")
         
         # Force fp16 for Tesla T4 and pre-Ampere GPUs regardless of config
@@ -309,7 +309,7 @@ class TrainerFactory:
                 greater_is_better=config.evaluation.greater_is_better,
                 
                 # Logging
-                logging_steps=config.logging.steps if config.logging.steps and config.logging.steps > 0 else 10,
+                logging_steps=config.logging.logging_steps if config.logging.logging_steps and config.logging.logging_steps > 0 else 5,
                 report_to=config.logging.report_to,
                 
                 # System

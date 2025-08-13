@@ -15,7 +15,7 @@ logger = get_logger()
 class ExperimentManager:
     """Manages experiment tracking and monitoring."""
     
-    def __init__(self, output_config: OutputConfigSection, comet_config: CometConfigSection):
+    def __init__(self, config_manager: ConfigManager):
         """
         Initialize ExperimentManager with specific config sections.
         
@@ -23,8 +23,10 @@ class ExperimentManager:
             output_config: Output configuration section
             comet_config: Comet ML configuration section
         """
-        self.output_config = output_config
-        self.comet_config = comet_config
+        self.output_config = config_manager.output
+        self.comet_config = config_manager.comet
+        self.is_enable_comet = config_manager.logging.report_to and ('comet_ml' in config_manager.logging.report_to)
+        # TODO: Check for tensorboard and wandb 
         self.comet_experiment = None
         self.start_time = None
         self.experiment_id = None
@@ -41,7 +43,7 @@ class ExperimentManager:
             self._setup_output_directory()
             
             # Setup Comet ML if enabled
-            if self.comet_config.enabled:
+            if self.is_enable_comet:
                 self._setup_comet()
             
             # Log experiment info
@@ -105,7 +107,7 @@ class ExperimentManager:
         logger.info(f"   🆔 ID: {self.experiment_id}")
         logger.info(f"   📛 Name: {self.output_config.experiment_name}")
         logger.info(f"   📁 Output: {self.output_config.get_output_dir()}")
-        logger.info(f"   📊 Comet enabled: {self.comet_config.enabled}")
+        logger.info(f"   📊 Comet enabled: {self.is_enable_comet}")
     
     def log_metric(self, name: str, value: float, step: Optional[int] = None) -> None:
         """Log a metric to tracking systems."""

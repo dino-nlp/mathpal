@@ -122,6 +122,13 @@ lora:
   use_rslora: false
 
 # =============================================================================
+# LOGGING CONFIGURATION
+# =============================================================================
+logging:
+  logging_steps: 5
+  report_to: null   # can be ["tensorboard", "wandb", "comet_ml"]
+
+# =============================================================================
 # SYSTEM AND OPTIMIZATION
 # =============================================================================
 system:
@@ -167,9 +174,6 @@ output:
 # COMET ML CONFIGURATION
 # =============================================================================
 comet:
-  # Enable Comet ML tracking
-  enabled: false
-  
   # Experiment name for Comet
   experiment_name: "gemma3n-unified-experiment"
   

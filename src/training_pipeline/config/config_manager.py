@@ -276,11 +276,32 @@ class OutputConfigSection(ConfigSection):
         """Get full output directory path."""
         return f"{self.base_dir}/{self.experiment_name}"
 
+@dataclass
+class LoggingConfigSection(ConfigSection):
+    logging_steps: int = 5
+    report_to: List[str] = None
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'LoggingConfigSection':
+        if 'logging' in data:
+            logging_data = data['logging']
+        else:
+            logging_data = {
+                'logging_steps' = 5,
+                'report_to' = None
+            }
+        
+        return cls(
+            logging_steps=logging_data.get('logging_steps', 5),
+            report_to=logging_data.get('report_to', None)
+        )
+    
+    def validate(self) -> None:
+        pass  # No specific validation needed
 
 @dataclass
 class CometConfigSection(ConfigSection):
     """Comet ML configuration section."""
-    enabled: bool = False
     experiment_name: str = "gemma3n-experiment"
     tags: List[str] = field(default_factory=lambda: ["gemma3n", "vietnamese", "math"])
     auto_metric_logging: bool = True
@@ -294,7 +315,6 @@ class CometConfigSection(ConfigSection):
             # Handle flat format
             default_tags = ["gemma3n", "vietnamese", "math"]
             comet_data = {
-                'enabled': data.get('report_to') == 'comet_ml',
                 'experiment_name': data.get('experiment_name', cls.experiment_name),
                 'tags': data.get('tags', default_tags),
                 'auto_metric_logging': data.get('auto_metric_logging', cls.auto_metric_logging),
@@ -303,7 +323,6 @@ class CometConfigSection(ConfigSection):
         
         default_tags = ["gemma3n", "vietnamese", "math"]
         return cls(
-            enabled=comet_data.get('enabled', cls.enabled),
             experiment_name=comet_data.get('experiment_name', cls.experiment_name),
             tags=comet_data.get('tags', default_tags),
             auto_metric_logging=comet_data.get('auto_metric_logging', cls.auto_metric_logging),
@@ -377,6 +396,7 @@ class ConfigManager:
         self._output_config = None
         self._comet_config = None
         self._system_config = None
+        self._logging_config = None
     
     def load_from_file(self, config_path: str) -> None:
         """Load configuration from YAML file."""
@@ -434,6 +454,7 @@ class ConfigManager:
         self._output_config = None
         self._comet_config = None
         self._system_config = None
+        self._logging_config = None
     
     @property
     def model(self) -> ModelConfigSection:
@@ -476,6 +497,13 @@ class ConfigManager:
         return self._output_config
     
     @property
+    def logging(self) -> LoggingConfigSession:
+        if self._logging_config is None:
+            self._logging_config = LoggingConfigSession.from_dict(self.raw_config)
+            self._logging_confif.validate()
+        return self._logging_config
+    
+    @property
     def comet(self) -> CometConfigSection:
         """Get Comet ML configuration section."""
         if self._comet_config is None:
@@ -495,7 +523,7 @@ class ConfigManager:
         """Validate all configuration sections."""
         sections = [
             self.model, self.dataset, self.training, 
-            self.lora, self.output, self.comet, self.system
+            self.lora, self.output, self.comet, self.system, self.logging
         ]
         
         errors = []

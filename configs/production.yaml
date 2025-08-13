@@ -106,6 +106,14 @@ lora:
   use_rslora: false
 
 # =============================================================================
+# LOGGING CONFIGURATION
+# =============================================================================
+logging:
+  logging_steps: 5
+  report_to:
+    - "comet_ml"  # Enable Comet ML for production tracking
+
+# =============================================================================
 # SYSTEM CONFIGURATION
 # =============================================================================
 system:
@@ -139,8 +147,6 @@ output:
 # COMET ML CONFIGURATION (Production Tracking)
 # =============================================================================
 comet:
-  # Enable full experiment tracking
-  enabled: true
   experiment_name: "mathpal-production-gemma3n"
   
   # Production tags for organization
