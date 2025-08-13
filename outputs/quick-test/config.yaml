@@ -1,0 +1,106 @@
+comet: !!python/object:training_pipeline.core.enhanced_config.CometConfig
+  auto_histogram_activation_logging: false
+  auto_histogram_gradient_logging: false
+  auto_histogram_weight_logging: false
+  auto_metric_logging: true
+  auto_output_logging: default
+  auto_param_logging: true
+  enabled: false
+  experiment_name: gemma3n-math-tutor
+  log_code: true
+  log_git_metadata: true
+  log_graph: false
+  log_model: true
+  tags:
+  - gemma3n
+  - vietnamese
+  - math-education
+  - 6th-grade
+  - instruction-tuning
+dataset: !!python/object:training_pipeline.core.enhanced_config.DatasetConfig
+  max_length: null
+  name: ngohongthai/exam-sixth_grade-instruct-dataset
+  num_proc: 2
+  packing: false
+  test_split: test
+  text_field: text
+  train_split: train
+evaluation: !!python/object:training_pipeline.core.enhanced_config.EvaluationConfig
+  eval_accumulation_steps: 4
+  eval_steps: 10
+  fp16_full_eval: true
+  greater_is_better: false
+  metric_for_best_model: eval_loss
+  strategy: steps
+hub: !!python/object:training_pipeline.core.enhanced_config.HubConfig
+  private: true
+  push_to_hub: false
+  repo_name: null
+  token: null
+  username: null
+inference: !!python/object:training_pipeline.core.enhanced_config.InferenceConfig
+  generation:
+    do_sample: true
+    max_new_tokens: 512
+    pad_token_id: null
+    temperature: 0.7
+    top_p: 0.9
+  num_test_examples: 5
+  test_after_training: true
+logging: !!python/object:training_pipeline.core.enhanced_config.LoggingConfig
+  level: INFO
+  log_file: null
+  report_to: none
+  steps: 2
+lora: !!python/object:training_pipeline.core.enhanced_config.LoRAConfig
+  alpha: 32
+  bias: none
+  dropout: 0.0
+  loftq_config: null
+  r: 16
+  target_modules:
+  - q_proj
+  - k_proj
+  - v_proj
+  - o_proj
+  - gate_proj
+  - up_proj
+  - down_proj
+  use_rslora: false
+model: !!python/object:training_pipeline.core.enhanced_config.ModelConfig
+  full_finetuning: false
+  load_in_4bit: true
+  load_in_8bit: false
+  max_seq_length: 1024
+  name: unsloth/gemma-3n-E4B-it
+output: !!python/object:training_pipeline.core.enhanced_config.OutputConfig
+  base_dir: outputs
+  experiment_name: quick-test
+  load_best_model_at_end: false
+  save_formats:
+  - lora
+  - merged_16bit
+  save_steps: 10
+  save_strategy: steps
+  save_total_limit: 3
+system: !!python/object:training_pipeline.core.enhanced_config.SystemConfig
+  dataloader_drop_last: true
+  dataloader_num_workers: 0
+  dataloader_pin_memory: true
+  seed: 42
+  use_gradient_checkpointing: unsloth
+training: !!python/object:training_pipeline.core.enhanced_config.TrainingConfig
+  bf16: true
+  fp16: false
+  gradient_accumulation_steps: 4
+  learning_rate: 0.0002
+  lr_scheduler_type: cosine
+  max_grad_norm: 1.0
+  max_steps: 20
+  num_train_epochs: null
+  optim: adamw_8bit
+  per_device_eval_batch_size: 2
+  per_device_train_batch_size: 1
+  train_on_responses_only: true
+  warmup_ratio: 0.03
+  weight_decay: 0.01

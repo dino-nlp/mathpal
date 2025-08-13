@@ -21,13 +21,14 @@ class RawDispatcher:
             try:
                 # Validate message structure before creating model
                 # Required fields: DataModel (entry_id, type) + ExamRawModel (content, link, grade_id)
-                required_fields = ['type', 'entry_id', 'content', 'link', 'grade_id']
+                required_fields = ['type', 'entry_id', 'question', 'solution', 'link', 'grade_id']
                 missing_fields = [field for field in required_fields if field not in message]
                 
                 if missing_fields:
                     logger.error("Missing required fields in message.", missing_fields=missing_fields, message_keys=list(message.keys()))
                     raise ValueError(f"Missing required fields: {missing_fields}")
                 
+                message['content'] = f"### QUESTION: \n {message['question']} \n #### SOLUTION: \n {message['solution']}"
                 return ExamRawModel(**message)
             except ValidationError as ve:
                 logger.error("Validation error creating ExamRawModel.", 

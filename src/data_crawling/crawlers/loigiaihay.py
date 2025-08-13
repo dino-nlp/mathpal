@@ -1,13 +1,23 @@
+from typing import Optional
+from pydantic import BaseModel, Field
 from crawlers.base import BaseAbstractCrawler
 from core.db.documents import ExamDocument
-from core.logger_utils import get_logger
+from aws_lambda_powertools import Logger
+from core.config import settings
 from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, CacheMode, BrowserConfig
 from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
+from crawl4ai.async_dispatcher import SemaphoreDispatcher
 from crawl4ai.async_dispatcher import MemoryAdaptiveDispatcher
-from crawl4ai import RateLimiter
+from crawl4ai import LLMExtractionStrategy
+from crawl4ai import RateLimiter, LLMConfig
 import traceback
+import json
 
-logger = get_logger(__file__)
+logger = Logger(service="mathpal/crawler/loigiaihay")
+
+class Proplem(BaseModel):
+    question: str = Field(..., description="The main questions of the test are often started with 'Câu...' or 'Bài...'. The questions may contain mathematical formulas or illustrative images")
+    solution: str = Field(..., description="The solution of the test are often started with 'Cách giải...' or 'Hướng dẫn...'. The solutions may contain mathematical formulas or illustrative images.")
 
 class LoiGiaiHayCrawler(BaseAbstractCrawler):
     model = ExamDocument
@@ -28,60 +38,122 @@ class LoiGiaiHayCrawler(BaseAbstractCrawler):
             ]
         )
 
-        self.dispatcher = MemoryAdaptiveDispatcher(
-                memory_threshold_percent=90.0,  # Pause if memory exceeds this
-                check_interval=1.0,             # How often to check memory
-                max_session_permit=10,          # Maximum concurrent tasks
-                rate_limiter=RateLimiter(       # Optional rate limiting
-                    base_delay=(1.0, 2.0),
-                    max_delay=30.0,
-                    max_retries=2
-                )
-            )
+        llm_strategy = LLMExtractionStrategy(
+            llm_config = LLMConfig(provider=f"openrouter/{settings.OPENROUTER_BASE_MODEL}", api_token=settings.OPENROUTER_KEY),
+            schema=Proplem.model_json_schema(),
+            extraction_type="schema",
+            instruction="""
+            You are an expert Web Data Extraction agent, You can understand mathematical formulas made by html correctly and understand Vietnamese. 
+            Your task is to parse the content of a provided exam and extract **ALL** the questions and their solutions within it.
+            
+            **Instructions:**
+
+            * Extract all questions sequentially, starting from the first question to the final question.
+            * For each question, capture the following data points:
+                * The `question` are often started with 'Câu...' or 'Bài...' .etc
+                * The `solution`are often started with 'Cách giải...' or 'Hướng dẫn...' .etc
+            * All mathematical formulas within the questions and solutions **MUST** be formatted using LaTeX.
+            * Images in the question or solution must be in Markdown format: `![](image_url)`
+            * Ignore all non-question content, such as page introductions, comments, advertisements, or related links in the footer.
+            * Format the final output to strictly follow the provided `JSON schema` structure.
+            """,
+            chunk_token_threshold=1000,
+            overlap_rate=0.0,
+            apply_chunking=True,
+            input_format="html",   # or "html", "fit_markdown"
+        )
         
         self.run_config = CrawlerRunConfig(
             cache_mode=CacheMode.BYPASS,
             css_selector="#sub-question-2",
-            markdown_generator=DefaultMarkdownGenerator()
+            extraction_strategy=llm_strategy,
         )
 
-    async def extract(self, links, **kwargs):
-        logger.info(f"Starting scrapping loigiaihay.com article: {len(links)} links")
+    async def extract(self, link, **kwargs):
+        logger.info(f"Starting scrapping: {link}")
         
         try:
             logger.info("Initializing AsyncWebCrawler...")
             async with AsyncWebCrawler(config=self.browser_config) as crawler:
                 logger.info("AsyncWebCrawler initialized successfully")
-                logger.info("Starting arun_many...")
                 
-                results = await crawler.arun_many(
-                    urls=links,
+                result = await crawler.arun(
+                    url=link,
                     config=self.run_config,
-                    dispatcher=self.dispatcher
                 )
                 
-                logger.info(f"Received {len(results)} results")
-                
-                for i, result in enumerate(results):
-                    logger.info(f"Processing result {i+1}/{len(results)}")
-                    if result.success:
-                        dr = result.dispatch_result
-                        logger.info(f"URL: {result.url}")
-                        logger.info(f"Memory: {dr.memory_usage:.1f}MB")
-                        logger.info(f"Duration: {dr.end_time - dr.start_time}")
-                        # Save data to database
-                        logger.info(f"Content length: {len(result.markdown) if result.markdown else 0}")
+                if result.success:
+                    # Kiểm tra extracted_content
+                    if hasattr(result, 'extracted_content') and result.extracted_content:
+                        logger.info(f"Found extracted content, processing...")
                         
-                        if len(result.markdown) > 20:
-                            instance = self.model(
-                                content=result.markdown, link=result.url, grade_id=kwargs.get("grade_id")
-                            )
-                            instance.save()
-                        else:
-                            logger.info("CRAWLED CONTENT TOO SHORT")
+                        # Parse extracted content thành list Proplem
+                        try:
+                            # Nếu extracted_content là string JSON
+                            if isinstance(result.extracted_content, str):
+                                extracted_data = json.loads(result.extracted_content)
+                            else:
+                                extracted_data = result.extracted_content
+                            
+                            # Xử lý data để tạo list Proplem
+                            probloms = []
+                            if isinstance(extracted_data, list):
+                                # Nếu là list trực tiếp
+                                for item in extracted_data:
+                                    try:
+                                        proplem = Proplem(**item)
+                                        probloms.append(proplem)
+                                    except Exception as e:
+                                        logger.error(f"❌ Failed to create Proplem from item: {e}")
+                            elif isinstance(extracted_data, dict):
+                                # Nếu là dict, kiểm tra các keys phổ biến
+                                for key in ['problems', 'questions', 'data', 'items']:
+                                    if key in extracted_data and isinstance(extracted_data[key], list):
+                                        for item in extracted_data[key]:
+                                            try:
+                                                proplem = Proplem(**item)
+                                                probloms.append(proplem)
+                                            except Exception as e:
+                                                logger.error(f"❌ Failed to create Proplem from item: {e}")
+                                        break
+                                else:
+                                    # Thử parse toàn bộ dict như 1 Proplem
+                                    try:
+                                        proplem = Proplem(**extracted_data)
+                                        probloms.append(proplem)
+                                    except Exception as e:
+                                        logger.error(f"❌ Failed to create Proplem from dict: {e}")
+                            
+                            logger.info(f"🎯 Total Probloms extracted: {len(probloms)}")
+                            
+                            # Map Proplem thành ExamDocument và lưu vào MongoDB
+                            saved_count = 0
+                            for idx, proplem in enumerate(probloms):
+                                try:
+                                    # Tạo ExamDocument từ Proplem
+                                    exam_doc = ExamDocument(
+                                        question=proplem.question,
+                                        solution=proplem.solution,
+                                        link=link,
+                                        grade_id=kwargs.get("grade_id")
+                                    )
+                                    
+                                    # Lưu vào MongoDB
+                                    exam_doc.save()
+                                    saved_count += 1
+                                    
+                                except Exception as e:
+                                    logger.error(f"❌ Failed to save Proplem {idx+1} to MongoDB: {e}")
+                            
+                            logger.info(f"💾 Successfully saved {saved_count}/{len(probloms)} Proplem objects to MongoDB")
+                            
+                        except Exception as e:
+                            logger.error(f"❌ Error parsing extracted content: {e}")
                     else:
-                        logger.error(f"Failed to crawl {result.url}: {result.error_message}")
-                        
+                        logger.warning("⚠️ No extracted_content found in result")
+                else:
+                    logger.error(f"Failed to crawl {result.url}: {result.error_message}")
+                            
                 logger.info("Crawling completed successfully")
                 
         except Exception as e:

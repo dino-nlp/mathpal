@@ -110,11 +110,13 @@ class GradeDocument(BaseDocument):
     
     class Settings:
         name = "grade"
-    
+
+
 class ExamDocument(BaseDocument):
     """Đại diện cho một bài thi."""
-    content: str
-    link: str
+    question: str
+    solution: str
+    link: str # source link
     grade_id: str = Field(alias="grade_id")
     
     class Settings:

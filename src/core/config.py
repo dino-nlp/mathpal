@@ -32,6 +32,10 @@ class AppSettings(BaseSettings):
     # OpenAI config
     OPENAI_MODEL_ID: str = "gpt-4o-mini"
     OPENAI_API_KEY: str | None = None
+    
+    # OpenRouter config
+    OPENROUTER_KEY: str | None = None
+    OPENROUTER_BASE_MODEL: str = "google/gemini-2.5-flash-lite-preview-06-17"
 
     # CometML config
     COMET_API_KEY: str | None = None
@@ -64,6 +68,5 @@ class AppSettings(BaseSettings):
         self.QDRANT_DATABASE_HOST = "localhost"
         self.RABBITMQ_HOST = "localhost"
     
-
 
 settings = AppSettings()

@@ -1,0 +1,177 @@
+# =============================================================================
+# MathPal Quick Test Configuration
+# =============================================================================
+# Optimized configuration for quick development testing and experimentation.
+# Uses minimal resources and fast training for rapid iteration.
+#
+# Usage:
+#   python -m training_pipeline.cli.train_gemma --config configs/quick_test.yaml
+# =============================================================================
+
+# =============================================================================
+# MODEL CONFIGURATION
+# =============================================================================
+model:
+  # Lightweight Gemma-3n model for quick testing
+  name: "unsloth/gemma-3n-E2B-it"
+  
+  # Reduced sequence length for faster processing
+  max_seq_length: 1024
+  
+  # Enable 4-bit quantization for memory efficiency
+  load_in_4bit: true
+  load_in_8bit: false
+  
+  # Use LoRA for efficiency
+  full_finetuning: false
+
+# =============================================================================
+# DATASET CONFIGURATION  
+# =============================================================================
+dataset:
+  # Vietnamese 6th grade math problems
+  name: "ngohongthai/exam-sixth_grade-instruct-dataset"
+  
+  # Standard splits
+  train_split: "train"
+  test_split: "test"
+  
+  # Text field configuration
+  text_field: "text"
+  
+  # columns
+  instruction_column: "question"
+  answer_column: "solution"
+
+# =============================================================================
+# TRAINING HYPERPARAMETERS (Quick Test)
+# =============================================================================
+training:
+  # Minimal steps for quick testing
+  max_steps: 20
+  num_train_epochs: null
+  
+  
+  # Small batch sizes for memory efficiency
+  per_device_train_batch_size: 1
+  per_device_eval_batch_size: 1
+  gradient_accumulation_steps: 4
+  
+  # Standard learning rate
+  learning_rate: 2.0e-4
+  warmup_ratio: 0.03
+  weight_decay: 0.01
+  
+  # Efficient optimizer
+  optim: "adamw_8bit"
+  lr_scheduler_type: "cosine"
+  max_grad_norm: 1.0
+  
+  # Mixed precision
+  fp16: false
+  bf16: true
+  
+  # Response-only training
+  train_on_responses_only: true
+
+# =============================================================================
+# LORA CONFIGURATION (Lightweight)
+# =============================================================================
+lora:
+  # Small rank for quick testing
+  r: 8
+  alpha: 16
+  dropout: 0.0
+  bias: "none"
+  
+  # Gemma-specific target modules
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+  
+  use_rslora: false
+
+# =============================================================================
+# LOGGING CONFIGURATION
+# =============================================================================
+logging:
+  logging_steps: 5
+  report_to:
+    - "comet_ml"    # can be ["tensorboard", "wandb", "comet_ml"]
+
+# =============================================================================
+# SYSTEM CONFIGURATION
+# =============================================================================
+system:
+  seed: 42
+  use_gradient_checkpointing: "unsloth"
+  dataloader_drop_last: true
+  dataloader_pin_memory: true
+  dataloader_num_workers: 0
+
+# =============================================================================
+# OUTPUT CONFIGURATION (Quick Test)
+# =============================================================================
+output:
+  # Test output directory
+  base_dir: "outputs"
+  experiment_name: "quick-test"
+  
+  # Frequent saves for testing
+  save_strategy: "steps"
+  save_steps: 10
+  save_total_limit: 2
+  load_best_model_at_end: false
+  
+  # Minimal save formats for quick testing
+  save_formats:
+    - "lora"  # Only LoRA adapters for quick testing
+
+# =============================================================================
+# COMET ML CONFIGURATION (Disabled for Quick Test)
+# =============================================================================
+comet:
+  experiment_name: "quick-test"
+  tags:
+    - "quick-test"
+    - "development"
+    - "gemma3n"
+  auto_metric_logging: false
+  auto_param_logging: false
+
+# =============================================================================
+# HUB CONFIGURATION (Disabled for Quick Test)
+# =============================================================================
+hub:
+  # No hub push for quick testing
+  push_to_hub: false
+  username: null
+  repo_name: null
+  private: false
+  token: null
+
+evaluation:
+  regression_test: true
+  num_tc_examples: 2  # Reduced for production efficiency
+
+generation: # Recommended Gemma-3n generation settings
+  max_new_tokens: 512
+  temperature: 1.0
+  top_p: 0.95
+  top_k: 64
+  do_sample: true
+# =============================================================================
+# QUICK TEST OPTIMIZATIONS
+# =============================================================================
+# This configuration is optimized for:
+# - Fast execution (20 steps)
+# - Low memory usage (small batch, 4-bit quantization)
+# - Minimal disk usage (LoRA only)
+# - No external services (Comet/Hub disabled)
+# - Quick iteration cycles
+# =============================================================================
