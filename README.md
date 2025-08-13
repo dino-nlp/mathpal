@@ -1,355 +1,418 @@
-# 🚀 Gemma3N Fine-tuning Pipeline
+# 🧮 MathPal - Vietnamese Math Education AI Platform
 
-Một pipeline modular và dễ mở rộng để fine-tune mô hình Gemma3N cho bài toán hỗ trợ học toán lớp 6 bằng tiếng Việt. Pipeline được xây dựng với Unsloth, TRL, PEFT và Comet ML.
+A comprehensive AI platform for Vietnamese math education, featuring data crawling, processing, model training, and inference capabilities. MathPal is designed to help students learn mathematics through intelligent tutoring and personalized assistance.
 
-## ✨ Tính năng
+## 🌟 Features
 
-- **Modular Architecture**: Cấu trúc module rõ ràng, dễ bảo trì và mở rộng
-- **Unsloth Integration**: Tối ưu hóa tốc độ và memory với Unsloth
-- **Multiple Training Methods**: Hỗ trợ LoRA, QLoRA và full fine-tuning
-- **Experiment Tracking**: Tích hợp với Comet ML để theo dõi thí nghiệm
-- **Flexible Configuration**: Hỗ trợ cấu hình qua YAML/JSON files
-- **Multiple Save Formats**: Lưu model ở nhiều định dạng (LoRA, merged, GGUF)
-- **Inference Engine**: Engine inference với nhiều tùy chọn generation
-- **Command Line Interface**: CLI đơn giản và mạnh mẽ
+### 📊 Data Pipeline
+- **Web Crawling**: Automated data collection from Vietnamese math education websites
+- **Data Processing**: Intelligent cleaning, chunking, and embedding of math problems
+- **Stream Processing**: Real-time data flow with Bytewax integration
+- **Quality Control**: Automated validation and filtering of educational content
 
-## 🏗️ Cấu trúc dự án
+### 🤖 AI Training Pipeline
+- **Modular Architecture**: Clean, maintainable, and extensible training pipeline
+- **Hardware Optimization**: Pre-configured for Tesla T4 (16GB) and A100 (40GB/80GB)
+- **Unsloth Integration**: Optimized speed and memory usage
+- **Multiple Training Methods**: Support for LoRA, QLoRA, and full fine-tuning
+- **Experiment Tracking**: Comet ML integration for experiment monitoring
+- **Flexible Configuration**: YAML-based configuration management
+- **Multiple Save Formats**: Model saving in various formats (LoRA, merged, GGUF)
+
+### 🎯 Inference Engine
+- **Real-time Generation**: Fast inference with optimized models
+- **Vietnamese Math Focus**: Specialized for Vietnamese mathematics
+- **Batch Processing**: Efficient handling of multiple queries
+- **Quality Assessment**: Built-in evaluation metrics
+
+## 🏗️ Project Architecture
 
 ```
-src/training_pipeline/
-├── config/                     # Quản lý cấu hình
-│   ├── base_config.py          # Base configuration class
-│   ├── training_config.py      # Training configuration
-│   └── comet_config.py         # Comet ML configuration
-├── data/                       # Xử lý dữ liệu
-│   ├── dataset_processor.py    # Dataset loading và processing
-│   └── chat_formatter.py       # Chat template formatting
-├── models/                     # Quản lý model
-│   ├── model_loader.py         # Model loading với Unsloth
-│   ├── lora_config.py          # LoRA configuration
-│   └── model_saver.py          # Model saving utilities
-├── training/                   # Training logic
-│   ├── trainer_factory.py      # SFTTrainer setup
-│   └── training_utils.py       # Training utilities
-├── experiments/                # Experiment tracking
-│   └── comet_tracker.py        # Comet ML integration
-├── inference/                  # Inference engine
-│   └── inference_engine.py     # Model inference
-├── cli/                        # Command line interface
-│   └── train_gemma.py          # Main training script
-└── utils/                      # Utilities
-    ├── logging.py              # Logging utilities
-    └── device_utils.py         # Device management
+mathpal/
+├── src/
+│   ├── data_crawling/           # Web crawling and data collection
+│   │   ├── crawlers/            # Website-specific crawlers
+│   │   ├── dispatcher.py        # Crawling orchestration
+│   │   └── main.py             # Crawling entry point
+│   │
+│   ├── feature_pipeline/        # Data processing and feature engineering
+│   │   ├── data_flow/          # Stream processing with Bytewax
+│   │   ├── data_logic/         # Data transformation logic
+│   │   ├── models/             # Data models and schemas
+│   │   ├── utils/              # Processing utilities
+│   │   └── main.py             # Pipeline orchestration
+│   │
+│   ├── training_pipeline/       # Model training and fine-tuning
+│   │   ├── config/             # Configuration management
+│   │   ├── managers/           # Training orchestration
+│   │   ├── factories/          # Object factories
+│   │   ├── training/           # Training logic
+│   │   ├── inference/          # Inference engine
+│   │   ├── experiments/        # Experiment tracking
+│   │   ├── cli/               # Command line interface
+│   │   └── utils/             # Training utilities
+│   │
+│   └── core/                   # Shared core components
+│       ├── db/                # Database connections
+│       ├── rag/               # Retrieval-Augmented Generation
+│       ├── mq/                # Message queue integration
+│       └── utils/             # Shared utilities
+│
+├── configs/                    # Configuration files
+│   ├── tesla_t4_optimized.yaml # Tesla T4 optimized config
+│   ├── a100_optimized.yaml     # A100 optimized config
+│   ├── quick_test.yaml         # Quick development testing
+│   ├── production.yaml         # Production configuration
+│   └── README_OPTIMIZATION.md  # Hardware optimization guide
+│
+├── data/                       # Data storage
+├── outputs/                    # Training outputs
+├── notebooks/                  # Jupyter notebooks
+└── scripts/                    # Utility scripts
 ```
 
-## 🛠️ Cài đặt
+## 🚀 Quick Start
 
-### Yêu cầu hệ thống
+### Prerequisites
 
 - Python 3.8+
-- CUDA 11.8+ (khuyến nghị)
-- GPU với ít nhất 8GB VRAM
+- CUDA 11.8+ (recommended)
+- GPU with at least 8GB VRAM
+- Poetry (for dependency management)
 
-### Cài đặt dependencies
-
-```bash
-# Cài đặt core dependencies
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-
-# Cài đặt Unsloth và các thư viện liên quan
-pip install "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git"
-pip install --no-deps xformers trl peft accelerate bitsandbytes
-
-# Cài đặt experiment tracking (optional)
-pip install comet-ml wandb
-
-# Cài đặt các thư viện khác
-pip install transformers datasets tokenizers sentencepiece
-pip install pyyaml rich click
-```
-
-### Cài đặt từ source
+### Installation
 
 ```bash
+# Clone the repository
 git clone <repository-url>
-cd gemma3n-training-pipeline
-pip install -e .
+cd mathpal
+
+# Install dependencies
+make install
+
+# Setup environment
+make setup-env
+
+# Check environment
+make env-check
 ```
 
-## 🚀 Sử dụng
-
-### 1. Cấu hình environment variables
+### Data Collection
 
 ```bash
-# Comet ML (optional)
-export COMET_API_KEY="your-api-key"
-export COMET_WORKSPACE="your-workspace" 
-export COMET_PROJECT="your-project"
+# Start data crawling
+make local-start
 
-# HuggingFace Hub (optional, for model upload)
-export HF_TOKEN="your-token"
+# Crawl specific websites
+make local-test-crawler
+
+# Ingest data from links
+make local-ingest-data
 ```
 
-### 2. Training cơ bản
+### Model Training
 
 ```bash
-# Training với cấu hình mặc định
-python -m training_pipeline.cli.train_gemma
+# Tesla T4 (16GB VRAM)
+make train-tesla-t4
 
-# Training với cấu hình tùy chỉnh
-python -m training_pipeline.cli.train_gemma \
-    --config configs/training_config.yaml \
-    --experiment-name my_experiment \
-    --max-steps 500
+# A100 (40GB/80GB VRAM)
+make train-a100
+
+# Quick test
+make train-quick
+
+# Production training
+make train-prod
 ```
 
-### 3. Training với các cấu hình có sẵn
+## 🔧 Hardware Optimization
+
+MathPal provides pre-optimized configurations for different hardware:
+
+### Tesla T4 (16GB VRAM)
+- **Model**: Gemma-3n-E2B (smaller)
+- **Mixed Precision**: fp16 (required)
+- **Quantization**: 4-bit
+- **Batch Size**: 2 + gradient accumulation 8
+- **Training Time**: ~2-3 hours
+
+### A100 (40GB/80GB VRAM)
+- **Model**: Gemma-3n-E4B (full)
+- **Mixed Precision**: bf16 (optimal)
+- **Quantization**: 4-bit
+- **Batch Size**: 8 + gradient accumulation 4
+- **Training Time**: ~30-45 minutes
 
 ```bash
-# Development (quick test)
-python -m training_pipeline.cli.train_gemma \
-    --config configs/development.yaml
+# View hardware optimization guide
+make show-hardware-guide
 
-# Production (full training)
-python -m training_pipeline.cli.train_gemma \
-    --config configs/production.yaml \
-    --push-to-hub \
-    --hub-username your-username
+# List all configurations
+make list-configs
 ```
 
-### 4. Training với các tùy chọn nâng cao
+## 📊 Data Pipeline
 
-```bash
-python -m training_pipeline.cli.train_gemma \
-    --model-name unsloth/gemma-3n-E4B-it \
-    --dataset-name your-dataset \
-    --max-steps 1000 \
-    --batch-size 2 \
-    --learning-rate 1e-4 \
-    --lora-r 16 \
-    --lora-alpha 32 \
-    --save-formats lora merged_fp16 gguf_q8 \
-    --test-model
-```
+### Web Crawling
 
-## ⚙️ Cấu hình
-
-### Training Configuration
-
-Tạo file cấu hình YAML:
-
-```yaml
-# training_config.yaml
-model_name: "unsloth/gemma-3n-E4B-it"
-max_seq_length: 2048
-dataset_name: "ngohongthai/exam-sixth_grade-instruct-dataset"
-
-# Training settings
-max_steps: 100
-per_device_train_batch_size: 1
-gradient_accumulation_steps: 8
-learning_rate: 0.0002
-
-# LoRA settings
-lora_r: 8
-lora_alpha: 8
-lora_dropout: 0.0
-
-# Output
-output_dir: "outputs/my-experiment"
-experiment_name: "baseline"
-```
-
-### Comet ML Configuration
+The data crawling system automatically collects Vietnamese math problems from educational websites:
 
 ```python
-from training_pipeline.config import CometConfig
+from src.data_crawling.main import start_crawling
 
-comet_config = CometConfig(
-    workspace="your-workspace",
-    project="gemma3n-finetuning",
-    experiment_name="my_experiment",
-    tags=["gemma3n", "math-tutor", "vietnamese"]
+# Start crawling with configuration
+start_crawling(
+    websites=["loigiaihay.com", "vietjack.com"],
+    grade_levels=["grade_5", "grade_6"],
+    max_pages=1000
 )
 ```
 
-## 📊 Experiment Tracking
+### Data Processing
 
-Pipeline hỗ trợ tracking với:
-
-- **Comet ML**: Tracking metrics, parameters, models
-- **TensorBoard**: Local tracking
-- **Weights & Biases**: Community platform
-
-Ví dụ với Comet ML:
+The feature pipeline processes raw data into training-ready format:
 
 ```python
-from training_pipeline.experiments import CometTracker
+from src.feature_pipeline.main import run_pipeline
 
-tracker = CometTracker(comet_config)
-experiment = tracker.setup_experiment(training_config)
+# Process data with streaming
+run_pipeline(
+    input_data="data/raw/",
+    output_data="data/processed/",
+    chunk_size=512,
+    embedding_model="sentence-transformers/all-MiniLM-L6-v2"
+)
+```
 
-# Training sẽ tự động log metrics
-# trainer.train()
+## 🤖 Training Pipeline
 
-tracker.log_model("path/to/saved/model")
-tracker.end_experiment()
+### Configuration Management
+
+MathPal uses a unified configuration system:
+
+```yaml
+# configs/tesla_t4_optimized.yaml
+model:
+  name: "unsloth/gemma-3n-E2B-it"
+  max_seq_length: 1024
+  load_in_4bit: true
+
+training:
+  max_steps: 200
+  per_device_train_batch_size: 2
+  gradient_accumulation_steps: 8
+  learning_rate: 3.0e-4
+
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.0
+```
+
+### Training Commands
+
+```bash
+# Hardware-specific training
+make train-tesla-t4          # Tesla T4 optimized
+make train-a100              # A100 optimized
+
+# Development and testing
+make train-quick             # Quick test (20 steps)
+make train-dry-run-tesla-t4  # Validate Tesla T4 config
+
+# Custom training
+make train-custom-config CONFIG=my-config.yaml
+make train-custom EXPERIMENT=my-experiment
+```
+
+### Experiment Tracking
+
+```python
+from src.training_pipeline.experiments import CometTracker
+
+# Setup experiment tracking
+tracker = CometTracker(
+    workspace="mathpal",
+    project="vietnamese-math",
+    experiment_name="tesla-t4-training"
+)
+
+# Training automatically logs metrics
+trainer.train()
 ```
 
 ## 🎯 Inference
 
-Sử dụng trained model cho inference:
+### Basic Inference
 
 ```python
-from training_pipeline.inference import InferenceEngine
-from training_pipeline.models import ModelLoader
+from src.training_pipeline.inference import InferenceEngine
 
-# Load model
-model_loader = ModelLoader(config)
-model, tokenizer = model_loader.load_complete_model()
+# Load trained model
+engine = InferenceEngine(
+    model_path="outputs/mathpal-tesla-t4-optimized/",
+    device="cuda"
+)
 
-# Setup inference
-engine = InferenceEngine(model, tokenizer)
+# Generate responses
+questions = [
+    "Tính tổng của 15 + 27 = ?",
+    "Một hình chữ nhật có chiều dài 8cm và chiều rộng 5cm. Tính chu vi.",
+    "Lan có 24 cái kẹo, Lan cho bạn 8 cái. Hỏi Lan còn lại bao nhiêu?"
+]
 
-# Generate response
-question = "Tính tổng của 15 + 27 = ?"
-answer = engine.generate(question)
-print(f"Q: {question}")
-print(f"A: {answer}")
-
-# Test với nhiều câu hỏi
-test_results = engine.test_model()
+for question in questions:
+    answer = engine.generate(question)
+    print(f"Q: {question}")
+    print(f"A: {answer}\n")
 ```
 
-## 💾 Model Saving
-
-Pipeline hỗ trợ lưu model ở nhiều định dạng:
+### Batch Processing
 
 ```python
-from training_pipeline.models import ModelSaver
-
-saver = ModelSaver(model, tokenizer)
-
-# Lưu LoRA adapters
-saver.save_lora_adapters("models/lora-adapters")
-
-# Lưu merged model
-saver.save_merged_model("models/merged-fp16", precision="fp16")
-
-# Lưu GGUF cho llama.cpp
-saver.save_gguf_model("models/gguf", quantization="q8_0")
-
-# Lưu tất cả formats
-results = saver.save_all_formats(
-    base_save_path="models",
-    model_name="gemma3n-math-tutor",
-    formats={
-        "lora": {},
-        "merged_fp16": {"precision": "fp16"},
-        "gguf_q8": {"quantization": "q8_0"}
-    }
+# Process multiple questions efficiently
+answers = engine.generate_batch(
+    questions=questions,
+    batch_size=4,
+    temperature=0.7
 )
 ```
 
-## 🔧 Customization
-
-### Thêm dataset processor mới
+### Quality Evaluation
 
 ```python
-from training_pipeline.data import DatasetProcessor
-
-class CustomDatasetProcessor(DatasetProcessor):
-    def custom_preprocessing(self, sample):
-        # Custom logic
-        return processed_sample
-```
-
-### Thêm LoRA configuration
-
-```python
-from training_pipeline.models import LoRAConfigManager
-
-custom_config = LoRAConfigManager.create_lora_config(
-    r=32,
-    lora_alpha=64,
-    target_modules=["q_proj", "v_proj", "gate_proj"],
-    lora_dropout=0.1
+# Evaluate model performance
+evaluation_results = engine.evaluate_model(
+    test_dataset="data/test/",
+    metrics=["accuracy", "bleu", "rouge"]
 )
+
+print(f"Accuracy: {evaluation_results['accuracy']:.2f}")
+print(f"BLEU Score: {evaluation_results['bleu']:.2f}")
 ```
 
-### Custom training logic
+## 📈 Monitoring and Debugging
 
-```python
-from training_pipeline.training import TrainerFactory
+### Environment Information
 
-class CustomTrainerFactory(TrainerFactory):
-    def create_custom_trainer(self, model, tokenizer, dataset):
-        # Custom trainer setup
-        return trainer
+```bash
+# Check system information
+make env-info
+
+# Monitor GPU usage
+make show-gpu-usage
+
+# Check memory usage
+make memory-info
 ```
 
-## 📈 Monitoring và Debugging
+### Training Monitoring
 
-### Memory monitoring
+```bash
+# Monitor training logs
+make monitor-training
 
-```python
-from training_pipeline.utils import DeviceUtils
+# Test configurations
+make test-configs
 
-# Print device info
-DeviceUtils.print_device_info()
-
-# Monitor memory during training
-result, memory_stats = DeviceUtils.monitor_memory_usage(trainer.train)
-```
-
-### Logging
-
-```python
-from training_pipeline.utils import setup_logging, TrainingLogger
-
-# Setup logging
-setup_logging(log_level="DEBUG", log_file="training.log")
-
-# Use training logger
-logger = TrainingLogger()
-logger.info("Training started")
-logger.metric("loss", 0.5, step=100)
-logger.success("Training completed")
+# Validate specific config
+make validate-config CONFIG=configs/tesla_t4_optimized.yaml
 ```
 
 ## 🧪 Testing
 
-### Quick test
+### Quick Testing
 
 ```bash
-python -m training_pipeline.cli.train_gemma --quick-test
+# Quick test on Tesla T4
+make train-tesla-t4-quick
+
+# Quick test on A100
+make train-a100-quick
+
+# Test all configurations
+make test-hardware-configs
 ```
 
-### Unit tests
+### Data Pipeline Testing
 
 ```bash
-pytest tests/
+# Test crawler
+make local-test-crawler
+
+# Test retriever
+make local-test-retriever
 ```
 
-### Benchmark inference
+## 📊 Performance Benchmarks
+
+| Hardware | Training Time | VRAM Usage | Throughput | Model Size |
+|----------|---------------|------------|------------|------------|
+| Tesla T4 | ~2-3 hours | ~12-14GB | ~2-3 samples/sec | 2B parameters |
+| A100 | ~30-45 min | ~25-35GB | ~8-12 samples/sec | 4B parameters |
+
+## 🔧 Customization
+
+### Adding New Data Sources
 
 ```python
-questions = ["Câu hỏi 1", "Câu hỏi 2", "Câu hỏi 3"]
-results = engine.benchmark_inference(questions, num_runs=3)
-print(f"Average tokens/second: {results['avg_tokens_per_second']:.1f}")
+from src.data_crawling.crawlers.base import BaseCrawler
+
+class CustomCrawler(BaseCrawler):
+    def extract_math_problems(self, page_content):
+        # Custom extraction logic
+        return problems
+```
+
+### Custom Training Configuration
+
+```python
+from src.training_pipeline.config import ConfigManager
+
+# Create custom config
+config = ConfigManager()
+config.model.name = "custom-model"
+config.training.max_steps = 500
+config.save_config("configs/custom.yaml")
+```
+
+### Custom Evaluation Metrics
+
+```python
+from src.training_pipeline.managers import EvaluationManager
+
+class CustomEvaluator(EvaluationManager):
+    def custom_metric(self, predictions, targets):
+        # Custom evaluation logic
+        return score
 ```
 
 ## 🤝 Contributing
 
-1. Fork repository
-2. Tạo feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Tạo Pull Request
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Development Setup
+
+```bash
+# Setup development environment
+make setup-env
+
+# Run tests
+make test-configs
+make test-hardware-configs
+
+# Check code quality
+make env-check
+```
 
 ## 📝 License
 
-Distributed under the MIT License. See `LICENSE` for more information.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
@@ -358,9 +421,22 @@ Distributed under the MIT License. See `LICENSE` for more information.
 - [PEFT](https://github.com/huggingface/peft) - Parameter-Efficient Fine-Tuning
 - [Comet ML](https://www.comet.ml/) - Experiment tracking
 - [Gemma](https://deepmind.google/technologies/gemma/) - Base model
+- [Bytewax](https://bytewax.io/) - Stream processing
+- [Vietnamese Math Education Community](https://loigiaihay.com/) - Data sources
 
 ## 📧 Contact
 
-Your Name - your.email@example.com
+- **Project Maintainer**: [Your Name]
+- **Email**: your.email@example.com
+- **Project Link**: [https://github.com/username/mathpal](https://github.com/username/mathpal)
 
-Project Link: [https://github.com/username/gemma3n-training-pipeline](https://github.com/username/gemma3n-training-pipeline)
+## 📚 Documentation
+
+- [Hardware Optimization Guide](configs/README_OPTIMIZATION.md)
+- [Makefile Updates](MAKEFILE_UPDATES.md)
+- [Training Pipeline Architecture](src/training_pipeline/README.md)
+- [Data Pipeline Documentation](src/data_crawling/README.md)
+
+---
+
+**MathPal** - Empowering Vietnamese students with AI-powered math education! 🧮✨

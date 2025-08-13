@@ -104,6 +104,23 @@ train-prod: ## Run production training with full features
 	@echo "🏭 Starting production training..."
 	@PYTHONPATH=$(PYTHONPATH) python3 -m training_pipeline.cli.train_gemma --config configs/production.yaml
 
+# Hardware-optimized training commands
+train-tesla-t4: ## Run training optimized for Tesla T4 (16GB VRAM)
+	@echo "🔧 Starting Tesla T4 optimized training..."
+	@PYTHONPATH=$(PYTHONPATH) python3 -m training_pipeline.cli.train_gemma --config configs/tesla_t4_optimized.yaml
+
+train-a100: ## Run training optimized for A100 (40GB/80GB VRAM)
+	@echo "🚀 Starting A100 optimized training..."
+	@PYTHONPATH=$(PYTHONPATH) python3 -m training_pipeline.cli.train_gemma --config configs/a100_optimized.yaml
+
+train-tesla-t4-quick: ## Run quick test on Tesla T4 config
+	@echo "⚡ Starting Tesla T4 quick test..."
+	@PYTHONPATH=$(PYTHONPATH) python3 -m training_pipeline.cli.train_gemma --config configs/tesla_t4_optimized.yaml --quick-test
+
+train-a100-quick: ## Run quick test on A100 config
+	@echo "⚡ Starting A100 quick test..."
+	@PYTHONPATH=$(PYTHONPATH) python3 -m training_pipeline.cli.train_gemma --config configs/a100_optimized.yaml --quick-test
+
 # Validation and testing
 train-dry-run: ## Validate config and estimate resources without training
 	@echo "🔍 Running training dry run..."
@@ -116,6 +133,15 @@ train-dry-run-quick: ## Dry run with quick test config
 train-dry-run-prod: ## Dry run with production config
 	@echo "🔍 Running production dry run..."
 	@PYTHONPATH=$(PYTHONPATH) python3 -m training_pipeline.cli.train_gemma --config configs/production.yaml --dry-run
+
+# Hardware-optimized dry run commands
+train-dry-run-tesla-t4: ## Dry run with Tesla T4 config
+	@echo "🔍 Running Tesla T4 dry run..."
+	@PYTHONPATH=$(PYTHONPATH) python3 -m training_pipeline.cli.train_gemma --config configs/tesla_t4_optimized.yaml --dry-run
+
+train-dry-run-a100: ## Dry run with A100 config
+	@echo "🔍 Running A100 dry run..."
+	@PYTHONPATH=$(PYTHONPATH) python3 -m training_pipeline.cli.train_gemma --config configs/a100_optimized.yaml --dry-run
 
 # Custom training with any config
 train-custom-config: ## Run training with custom config (usage: make train-custom-config CONFIG=my-config.yaml)
@@ -194,6 +220,33 @@ compare-configs: ## Compare old vs new configuration approaches
 	@echo "📁 Available configurations:"
 	@ls -la configs/*.yaml 2>/dev/null || echo "No config files found in configs/"
 
+# Hardware optimization guide
+show-hardware-guide: ## Show hardware optimization guide
+	@echo "🔧 Hardware Optimization Guide"
+	@echo "=============================="
+	@echo ""
+	@echo "🚀 Tesla T4 Optimizations (16GB VRAM):"
+	@echo "   • Model: Gemma-3n-E2B (smaller)"
+	@echo "   • Mixed Precision: fp16 (required)"
+	@echo "   • Quantization: 4-bit"
+	@echo "   • Batch Size: 2 + gradient accumulation 8"
+	@echo "   • LoRA Rank: 16"
+	@echo "   • Usage: make train-tesla-t4"
+	@echo ""
+	@echo "🔥 A100 Optimizations (40GB/80GB VRAM):"
+	@echo "   • Model: Gemma-3n-E4B (full)"
+	@echo "   • Mixed Precision: bf16 (optimal)"
+	@echo "   • Quantization: 4-bit"
+	@echo "   • Batch Size: 8 + gradient accumulation 4"
+	@echo "   • LoRA Rank: 32"
+	@echo "   • Usage: make train-a100"
+	@echo ""
+	@echo "📊 Performance Expectations:"
+	@echo "   Tesla T4: ~2-3 hours, ~12-14GB VRAM"
+	@echo "   A100: ~30-45 minutes, ~25-35GB VRAM"
+	@echo ""
+	@echo "📖 For detailed info: cat configs/README_OPTIMIZATION.md"
+
 # Show architecture overview
 show-architecture: ## Show current training pipeline architecture
 	@echo "🏗️ MathPal Training Pipeline - Enhanced Architecture"
@@ -211,14 +264,41 @@ show-architecture: ## Show current training pipeline architecture
 	@echo "   🚀 unified_training_config.yaml - Full configuration template"
 	@echo "   ⚡ quick_test.yaml - Quick development testing (20 steps)"
 	@echo "   🏭 production.yaml - Production with Comet ML + Hub push"
+	@echo "   🔧 tesla_t4_optimized.yaml - Tesla T4 optimized (16GB VRAM)"
+	@echo "   🔥 a100_optimized.yaml - A100 optimized (40GB/80GB VRAM)"
 	@echo ""
 	@echo "📁 Usage Examples:"
 	@echo "   Quick test:  make train-quick"
 	@echo "   Production:  make train-prod"
+	@echo "   Tesla T4:    make train-tesla-t4"
+	@echo "   A100:        make train-a100"
 	@echo "   Custom:      make train-custom EXPERIMENT=my-exp"
 	@echo "   Dry run:     make train-dry-run"
 	@echo "   With config: make train-custom-config CONFIG=my-config.yaml"
 	@echo ""
+
+# List all available configurations
+list-configs: ## List all available configuration files with descriptions
+	@echo "📁 Available Configuration Files:"
+	@echo "=================================="
+	@echo ""
+	@echo "🔧 Hardware Optimized:"
+	@echo "   tesla_t4_optimized.yaml - Tesla T4 (16GB VRAM) optimized config"
+	@echo "   a100_optimized.yaml     - A100 (40GB/80GB VRAM) optimized config"
+	@echo ""
+	@echo "⚡ Development:"
+	@echo "   quick_test.yaml         - Quick test (20 steps) for development"
+	@echo ""
+	@echo "🏭 Production:"
+	@echo "   production.yaml         - Full production with Comet ML + Hub"
+	@echo "   unified_training_config.yaml - Template for custom configs"
+	@echo ""
+	@echo "📖 Usage:"
+	@echo "   make train-tesla-t4     # Train on Tesla T4"
+	@echo "   make train-a100         # Train on A100"
+	@echo "   make train-quick        # Quick test"
+	@echo "   make train-prod         # Production training"
+	@echo "   make show-hardware-guide # Detailed optimization guide"
 
 # Testing and validation
 test-architecture: ## Test and validate the new training pipeline architecture
@@ -240,6 +320,14 @@ test-configs: ## Test all configuration files
 		PYTHONPATH=$(PYTHONPATH) python3 -m training_pipeline.cli.train_gemma --config $$config --dry-run || echo "❌ Failed: $$config"; \
 	done
 	@echo "✅ Configuration testing completed"
+
+test-hardware-configs: ## Test hardware-optimized configurations
+	@echo "🧪 Testing hardware-optimized configurations..."
+	@echo "Testing Tesla T4 config..."
+	@PYTHONPATH=$(PYTHONPATH) python3 -m training_pipeline.cli.train_gemma --config configs/tesla_t4_optimized.yaml --dry-run
+	@echo "Testing A100 config..."
+	@PYTHONPATH=$(PYTHONPATH) python3 -m training_pipeline.cli.train_gemma --config configs/a100_optimized.yaml --dry-run
+	@echo "✅ Hardware configuration testing completed"
 
 test-config-manager: ## Test ConfigManager with demo script
 	@echo "🧪 Testing ConfigManager system..."

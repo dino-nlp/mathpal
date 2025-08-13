@@ -103,6 +103,7 @@ class TrainerFactory:
                 "model": model,
                 "tokenizer": tokenizer,
                 "train_dataset": datasets["train"],
+                "dataset_packing": True,
                 "args": sft_config,  # Use SFTConfig instead of TrainingArguments
             }
             
