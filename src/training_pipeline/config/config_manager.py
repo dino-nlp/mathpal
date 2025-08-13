@@ -93,9 +93,8 @@ class DatasetConfigSection(ConfigSection):
     train_split: str = "train"
     test_split: str = "test"
     text_field: str = "text"
-    max_length: Optional[int] = None
-    num_proc: int = 2
-    packing: bool = False
+    instruction_column: str = "question"
+    answer_column: str = "solution"
     
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'DatasetConfigSection':
@@ -108,9 +107,8 @@ class DatasetConfigSection(ConfigSection):
                 'train_split': data.get('train_split', cls.train_split),
                 'test_split': data.get('test_split', cls.test_split),
                 'text_field': data.get('dataset_text_field', data.get('text_field', cls.text_field)),
-                'max_length': data.get('max_length', cls.max_length),
-                'num_proc': data.get('num_proc', cls.num_proc),
-                'packing': data.get('packing', cls.packing),
+                'instruction_column': data.get('instruction_column', cls.instruction_column),
+                'answer_column': data.get('answer_column', cls.answer_column)
             }
         
         return cls(
@@ -118,9 +116,8 @@ class DatasetConfigSection(ConfigSection):
             train_split=dataset_data.get('train_split', cls.train_split),
             test_split=dataset_data.get('test_split', cls.test_split),
             text_field=dataset_data.get('text_field', cls.text_field),
-            max_length=dataset_data.get('max_length', cls.max_length),
-            num_proc=dataset_data.get('num_proc', cls.num_proc),
-            packing=dataset_data.get('packing', cls.packing),
+            instruction_column=dataset_data.get('instruction_column', cls.instruction_column),
+            answer_column=dataset_data.get('answer_column', cls.num_answer_columnproc)
         )
     
     def validate(self) -> None:
@@ -298,16 +295,8 @@ class LoggingConfigSection(ConfigSection):
     
     def validate(self) -> None:
         pass  # No specific validation needed
-# hub:
-#   # No hub push for quick testing
-#   push_to_hub: false
-#   username: null
-#   repo_name: null
-#   private: false
-#   token: null
 
-# evaluation:
-#   regression_test: true
+
 @dataclass
 class HubConfigSection(ConfigSection):
     push_to_hub: bool = False
@@ -348,6 +337,7 @@ class HubConfigSection(ConfigSection):
 @dataclass
 class EvaluationConfigSection(ConfigSection):
     regression_test: bool = False
+    num_tc_examples: int = 2
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'EvaluationConfigSection':
@@ -355,17 +345,51 @@ class EvaluationConfigSection(ConfigSection):
             evaluation_data = data['evaluation']
         else:
             evaluation_data = {
-                "regression_test": False
+                "regression_test": False,
+                "num_tc_examples": 2
             }
         
         return cls(
-            regression_test=evaluation_data.get('regression_test', False)
+            regression_test=evaluation_data.get('regression_test', False),
+            num_tc_examples=evaluation_data.get('num_tc_examples', 2)
         )
 
     def validate(self) -> None:
         pass
         
-        
+
+@dataclass
+class GenerationConfigSection(ConfigSection):
+    max_new_tokens: int = 512
+    temperature: float = 1.0
+    top_p: float = 0.95
+    top_k: int = 64
+    do_sample: bool = True
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'GenerationConfigSection':
+        if 'generation' in data:
+            generation_data = data['generation']
+        else:
+            generation_data = {
+                "max_new_tokens": 512,
+                "temperature": 1.0,
+                "top_p": 0.95,
+                "top_k": 64,
+                "do_sample": True
+            }
+        return cls(
+            max_new_tokens=generation_data.get('max_new_tokens', 512),
+            temperature=generation_data.get('temperature', 1.0),
+            top_p=generation_data.get('top_p', 0.95),
+            top_k=generation_data.get('top_k', 64),
+            do_sample=generation_data.get('do_sample', True)
+        )
+    
+    def validate(self) -> None:
+        pass
+
+
 @dataclass
 class CometConfigSection(ConfigSection):
     """Comet ML configuration section."""
@@ -466,6 +490,7 @@ class ConfigManager:
         self._logging_config = None
         self._hub_config = None 
         self._evaluation_config = None
+        self._generation_config = None
     
     def load_from_file(self, config_path: str) -> None:
         """Load configuration from YAML file."""
@@ -526,6 +551,7 @@ class ConfigManager:
         self._logging_config = None
         self._hub_config = None 
         self._evaluation_config = None
+        self._generation_config = None
     
     @property
     def model(self) -> ModelConfigSection:
@@ -595,6 +621,13 @@ class ConfigManager:
             self._evaluation_config = EvaluationConfigSection.from_dict(self.raw_config)
             self._evaluation_config.validate()
         return self._evaluation_config
+    
+    @property 
+    def generation(self) -> GenerationConfigSection:
+        if self._generation_config is None: 
+            self._generation_config = GenerationConfigSection.from_dict(self.raw_config)
+            self._generation_config.validate()
+        return self._generation_config
     
     @property
     def system(self) -> SystemConfigSection:

@@ -7,6 +7,7 @@ import torch
 from training_pipeline.utils.exceptions import InferenceError
 from training_pipeline.config.config_manager import ConfigManager
 from training_pipeline.utils import get_logger
+from training_pipeline.inference import InferenceEngine
 
 logger = get_logger()
 
@@ -38,17 +39,22 @@ class EvaluationManager:
                 "performance_metrics": {}
             }
             
+            inference_engine = InferenceEngine(model=model, 
+                                            tokenizer=tokenizer,
+                                            device="cuda",
+                                            generation_config=self.config.generation)
+            
             # Run basic inference tests
-            results["inference_tests"] = self._run_inference_tests(model, tokenizer)
+            results["inference_tests"] = self._run_inference_tests(inference_engine)
             
             # Run Vietnamese math-specific tests
-            results["vietnamese_math_tests"] = self._run_vietnamese_math_tests(model, tokenizer)
+            results["vietnamese_math_tests"] = self._run_vietnamese_math_tests(inference_engine)
             
             # Evaluate generation quality
-            results["generation_quality"] = self._evaluate_generation_quality(model, tokenizer)
+            results["generation_quality"] = self._evaluate_generation_quality(inference_engine)
             
             # Performance metrics
-            results["performance_metrics"] = self._measure_performance(model, tokenizer)
+            results["performance_metrics"] = self._measure_performance(inference_engine)
             
             logger.info("✅ Evaluation completed")
             return results
@@ -56,33 +62,17 @@ class EvaluationManager:
         except Exception as e:
             raise InferenceError(f"Evaluation failed: {e}")
     
-    def _run_inference_tests(self, model: Any, tokenizer: Any) -> List[Dict[str, Any]]:
+    def _run_inference_tests(self, inference_engine) -> List[Dict[str, Any]]:
         """Run basic inference tests."""
         try:
             # Prepare model for inference
-            if hasattr(model, 'eval'):
-                model.eval()
-            
-            # Enable Unsloth's fast inference if available
-            try:
-                from unsloth import FastModel
-                FastModel.for_inference(model)
-                logger.info("⚡ Enabled Unsloth fast inference")
-            except:
-                pass
-            
             test_cases = self._get_test_cases()
             results = []
             
-            for i, test_case in enumerate(test_cases[:self.config.inference.num_test_examples]):
+            for i, test_case in enumerate(test_cases[:self.config.evaluation.num_tc_examples]):
                 try:
                     logger.info(f"🧪 Running test case {i+1}/{len(test_cases)}")
-                    
-                    # Generate response
-                    response = self._generate_response(
-                        model, tokenizer, test_case["input"]
-                    )
-                    
+                    response = inference_engine.generate(test_case["input"])
                     result = {
                         "test_id": i + 1,
                         "input": test_case["input"],
@@ -111,7 +101,7 @@ class EvaluationManager:
         except Exception as e:
             raise InferenceError(f"Inference tests failed: {e}")
     
-    def _run_vietnamese_math_tests(self, model: Any, tokenizer: Any) -> List[Dict[str, Any]]:
+    def _run_vietnamese_math_tests(self, inference_engine) -> List[Dict[str, Any]]:
         """Run Vietnamese math-specific tests."""
         vietnamese_tests = [
             {
@@ -139,7 +129,7 @@ class EvaluationManager:
         results = []
         for i, test in enumerate(vietnamese_tests):
             try:
-                response = self._generate_response(model, tokenizer, test["input"])
+                response = inference_engine.generate(test["input"])
                 
                 # Basic quality checks for Vietnamese math
                 quality_score = self._assess_vietnamese_math_quality(
@@ -166,7 +156,7 @@ class EvaluationManager:
         
         return results
     
-    def _evaluate_generation_quality(self, model: Any, tokenizer: Any) -> Dict[str, Any]:
+    def _evaluate_generation_quality(self, inference_engine) -> Dict[str, Any]:
         """Evaluate overall generation quality."""
         try:
             # Test different generation parameters
@@ -176,9 +166,8 @@ class EvaluationManager:
             
             # Test with different temperatures
             for temp in [0.1, 0.7, 1.0]:
-                response = self._generate_response(
-                    model, tokenizer, test_input, temperature=temp
-                )
+                response = inference_engine.generate(question=test_input,
+                                                    generation_config={"temperature": temp})
                 
                 quality_metrics[f"temp_{temp}"] = {
                     "response_length": len(response),
@@ -193,7 +182,7 @@ class EvaluationManager:
             logger.warning(f"Generation quality evaluation failed: {e}")
             return {}
     
-    def _measure_performance(self, model: Any, tokenizer: Any) -> Dict[str, Any]:
+    def _measure_performance(self, inference_engine) -> Dict[str, Any]:
         """Measure performance metrics."""
         try:
             import time
@@ -204,7 +193,7 @@ class EvaluationManager:
             # Measure inference time
             start_time = time.time()
             for _ in range(5):  # Average over 5 runs
-                _ = self._generate_response(model, tokenizer, test_input)
+                _ = inference_engine.generate(test_input)
             avg_time = (time.time() - start_time) / 5
             
             # Memory usage
@@ -222,64 +211,7 @@ class EvaluationManager:
             logger.warning(f"Performance measurement failed: {e}")
             return {}
     
-    def _generate_response(self, model: Any, tokenizer: Any, prompt: str, 
-                          temperature: Optional[float] = None) -> str:
-        """Generate response from model."""
-        try:
-            # Use generation config from settings
-            gen_config = self.config.inference.generation.copy()
-            if temperature is not None:
-                gen_config["temperature"] = temperature
-            
-            # Format prompt properly
-            formatted_prompt = self._format_prompt(prompt)
-            
-            # Tokenize input
-            inputs = tokenizer(
-                formatted_prompt,
-                return_tensors="pt",
-                truncation=True,
-                max_length=self.config.model.max_seq_length - gen_config["max_new_tokens"]
-            )
-            
-            # Move to device if needed
-            if hasattr(model, 'device'):
-                inputs = {k: v.to(model.device) for k, v in inputs.items()}
-            
-            # Generate
-            with torch.no_grad():
-                outputs = model.generate(
-                    **inputs,
-                    max_new_tokens=gen_config["max_new_tokens"],
-                    temperature=gen_config["temperature"],
-                    top_p=gen_config["top_p"],
-                    do_sample=gen_config["do_sample"],
-                    pad_token_id=tokenizer.eos_token_id,
-                    eos_token_id=tokenizer.eos_token_id,
-                )
-            
-            # Decode response
-            full_response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-            
-            # Extract only the new part (after the prompt)
-            response = full_response[len(formatted_prompt):].strip()
-            
-            return response
-            
-        except Exception as e:
-            raise InferenceError(f"Generation failed: {e}")
-    
-    def _format_prompt(self, prompt: str) -> str:
-        """Format prompt according to model's chat template."""
-        # Basic Gemma/instruction format
-        return f"""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
 
-Bạn là một trợ lý giáo dục chuyên về toán học cho học sinh lớp 6 tại Việt Nam. Hãy giải thích chi tiết và dễ hiểu.<|eot_id|><|start_header_id|>user<|end_header_id|>
-
-{prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>
-
-"""
-    
     def _get_test_cases(self) -> List[Dict[str, str]]:
         """Get test cases for evaluation."""
         return [

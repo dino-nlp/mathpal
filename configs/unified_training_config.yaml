@@ -31,24 +31,19 @@ model:
 # DATASET CONFIGURATION  
 # =============================================================================
 dataset:
-  # Primary dataset for Vietnamese 6th grade math problems
+  # Vietnamese 6th grade math problems
   name: "ngohongthai/exam-sixth_grade-instruct-dataset"
   
-  # Training and test data splits
+  # Standard splits
   train_split: "train"
   test_split: "test"
   
-  # Text field in dataset containing the training examples
+  # Text field configuration
   text_field: "text"
   
-  # Maximum length for training sequences (null = use model.max_seq_length)
-  max_length: null
-  
-  # Number of CPU processes for dataset preprocessing
-  num_proc: 2
-  
-  # Pack multiple short sequences together (disabled for stability)
-  packing: false
+  # columns
+  instruction_column: "question"
+  answer_column: "solution"
 
 # =============================================================================
 # TRAINING HYPERPARAMETERS

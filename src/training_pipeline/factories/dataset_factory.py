@@ -5,7 +5,7 @@ from datasets import load_dataset, Dataset, DatasetDict
 
 from training_pipeline.utils.exceptions import DatasetError
 from training_pipeline.config.config_manager import ConfigManager
-from training_pipeline.utils import get_logger
+from training_pipeline.utils import get_logger, ChatFormatter
 
 logger = get_logger()
 
@@ -71,28 +71,8 @@ class DatasetFactory:
                         config: ConfigManager, 
                         tokenizer: Any) -> Dataset:
         """Process dataset with tokenization and formatting for SFTTrainer compatibility."""
-        def process_sample(sample: Dict[str, str]) -> Dict[str, List[Dict[str, Any]]]:
-            # Create conversation
-            conversations = [
-                {
-                    "role": "user",
-                    "content": [{"type": "text", "text": sample["question"]}]
-                },
-                {
-                    "role": "assistant",
-                    "content": [{"type": "text", "text": sample["solution"]}]
-                }
-            ]
-
-            return {"conversations": conversations}
-        
-        def formatting_prompts_func(examples):
-            convos = examples["conversations"]
-            texts = [tokenizer.apply_chat_template(convo, tokenize = False, add_generation_prompt = False).removeprefix('<bos>') for convo in convos]
-            return { "text" : texts, }
-        
-        processed_dataset = dataset.map(process_sample)
-        formated_dataset = processed_dataset.map(formatting_prompts_func, batched=True)
+        chat_formater = ChatFormatter(tokenizer=tokenizer, data_config=config.dataset)
+        formated_dataset = chat_formater.apply_chat_template_to_dataset(dataset)
         return formated_dataset
         
     
@@ -110,10 +90,7 @@ class DatasetFactory:
                 if isinstance(text_content, dict):
                     text_content = str(text_content)
                 
-                # Truncate for preview
-                preview_text = text_content[:200] + "..." if len(text_content) > 200 else text_content
-                
-                logger.info(f"   Sample {i+1}: {preview_text}")
+                logger.info(f"   Sample {i+1}: {text_content}")
                 logger.info("   " + "-" * 50)
                 
         except Exception as e:

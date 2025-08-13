@@ -2,14 +2,16 @@
 
 from typing import Dict, List, Any, Optional
 from datasets import Dataset
+from training_pipeline.config import DatasetConfigSection
 
 
 class ChatFormatter:
     """Handles chat template formatting for conversational datasets."""
     
-    def __init__(self, tokenizer):
+    def __init__(self, tokenizer: Any, data_config: DatasetConfigSection):
         """Initialize ChatFormatter with tokenizer."""
         self.tokenizer = tokenizer
+        self.data_config = data_config
     
     def process_sample(self, sample: Dict[str, str]) -> Dict[str, List[Dict[str, Any]]]:
         """
@@ -24,11 +26,11 @@ class ChatFormatter:
         conversations = [
             {
                 "role": "user",
-                "content": [{"type": "text", "text": sample["question"]}]
+                "content": [{"type": "text", "text": sample[self.data_config.instruction_column]}]
             },
             {
                 "role": "assistant", 
-                "content": [{"type": "text", "text": sample["solution"]}]
+                "content": [{"type": "text", "text": sample[self.data_config.answer_column]}]
             }
         ]
         
@@ -53,7 +55,7 @@ class ChatFormatter:
             ).removeprefix('<bos>') 
             for convo in convos
         ]
-        return {"text": texts}
+        return {self.data_config.text_field: texts}
     
     def apply_chat_template_to_dataset(self, dataset: Dataset) -> Dataset:
         """

@@ -59,7 +59,7 @@ class TrainingManager:
             output_config=config_manager.output,
             hub_config=config_manager.hub
         )
-        # self.evaluation_manager = EvaluationManager(config_manager)  # TODO: Refactor later
+        self.evaluation_manager = EvaluationManager(config=config_manager) 
         
         # State tracking
         self.model = None

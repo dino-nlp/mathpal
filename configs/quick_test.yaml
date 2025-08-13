@@ -38,11 +38,10 @@ dataset:
   
   # Text field configuration
   text_field: "text"
-  max_length: null
   
-  # Single process for simplicity
-  num_proc: 1
-  packing: false
+  # columns
+  instruction_column: "question"
+  answer_column: "solution"
 
 # =============================================================================
 # TRAINING HYPERPARAMETERS (Quick Test)
@@ -158,6 +157,14 @@ hub:
 
 evaluation:
   regression_test: true
+  num_tc_examples: 2  # Reduced for production efficiency
+
+generation: # Recommended Gemma-3n generation settings
+  max_new_tokens: 512
+  temperature: 1.0
+  top_p: 0.95
+  top_k: 64
+  do_sample: true
 # =============================================================================
 # QUICK TEST OPTIMIZATIONS
 # =============================================================================
