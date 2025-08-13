@@ -22,7 +22,7 @@
 # =============================================================================
 model:
   # Production Gemma-3n model
-  name: "unsloth/gemma-3n-E4B-it"
+  name: "unsloth/gemma-3n-E2B-it"
   
   # Full sequence length for production
   max_seq_length: 2048
