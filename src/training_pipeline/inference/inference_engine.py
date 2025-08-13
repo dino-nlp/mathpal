@@ -3,7 +3,7 @@
 import torch
 from typing import Dict, Any, List, Optional, Union
 from training_pipeline.utils import ChatFormatter
-from training_pipeline.config import GenerationConfigSection
+from training_pipeline.config import ConfigManager
 
 
 class InferenceEngine:
@@ -13,7 +13,7 @@ class InferenceEngine:
         self,
         model: Any,
         tokenizer: Any,
-        generation_config: GenerationConfigSection,
+        config_manager: ConfigManager,
         device: str = "cuda",):
         """
         Initialize InferenceEngine.
@@ -31,8 +31,8 @@ class InferenceEngine:
         self.model = model
         self.tokenizer = tokenizer
         self.device = device
-        self.chat_formatter = ChatFormatter(tokenizer)
-        self.generation_config = generation_config.copy()
+        self.chat_formatter = ChatFormatter(tokenizer=tokenizer, data_config=config_manager.dataset)
+        self.generation_config = config_manager.generation.copy()
         # Generation parameters
         self.generation_config["pad_token_id"] = tokenizer.eos_token_id,
         

@@ -41,7 +41,7 @@ class EvaluationManager:
             
             inference_engine = InferenceEngine(model=model, 
                                             tokenizer=tokenizer,
-                                            generation_config=self.config.generation,
+                                            config_manager=self.config,
                                             device="cuda")
             
             # Run basic inference tests
