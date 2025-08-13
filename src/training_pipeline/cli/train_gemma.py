@@ -259,7 +259,7 @@ def setup_environment(args: argparse.Namespace, config_manager: ConfigManager) -
     logger.info(f"   🎲 LoRA rank: {config_manager.lora.r}")
     logger.info(f"   📁 Output: {config_manager.output.get_output_dir()}")
     logger.info(f"   📊 Effective batch size: {config_manager.get_effective_batch_size()}")
-    logger.info(f"   🔬 Comet tracking: {config_manager.comet.enabled}")
+    logger.info(f"   🔬 Comet tracking: {config_manager.logging.report_to and ('comet_ml' in config_manager.logging.report_to)}")
     logger.info("=" * 60)
 
 

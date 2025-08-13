@@ -3,7 +3,7 @@
 from .config_manager import (
     ConfigManager, create_config_manager,
     ModelConfigSection, DatasetConfigSection, TrainingConfigSection, 
-    LoRAConfigSection, OutputConfigSection, CometConfigSection, SystemConfigSection
+    LoRAConfigSection, OutputConfigSection, CometConfigSection, SystemConfigSection, LoggingConfigSection
 )
 
 __all__ = [
@@ -11,5 +11,5 @@ __all__ = [
     "ConfigManager", "create_config_manager",
     # Config sections (new)
     "ModelConfigSection", "DatasetConfigSection", "TrainingConfigSection", 
-    "LoRAConfigSection", "OutputConfigSection", "CometConfigSection", "SystemConfigSection",
+    "LoRAConfigSection", "OutputConfigSection", "CometConfigSection", "SystemConfigSection", "LoggingConfigSection",
 ]

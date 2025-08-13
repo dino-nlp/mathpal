@@ -54,7 +54,7 @@ class TrainingManager:
         self.model_factory = ModelFactory()
         self.dataset_factory = DatasetFactory()
         self.trainer_factory = TrainerFactory()
-        self.experiment_manager = ExperimentManager(config=config_manager)
+        self.experiment_manager = ExperimentManager(config_manager=config_manager)
         self.checkpoint_manager = CheckpointManager(
             output_config=config_manager.output,
             hub_config=config_manager.raw_config.get('hub', {})  # Using raw config for hub

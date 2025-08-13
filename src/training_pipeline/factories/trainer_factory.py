@@ -77,7 +77,7 @@ class TrainerFactory:
                 learning_rate=config.training.learning_rate,
                 warmup_ratio=config.training.warmup_ratio,
                 weight_decay=config.training.weight_decay,
-                optim=config.training.optim
+                optim=config.training.optim,
                 lr_scheduler_type=config.training.lr_scheduler_type,
                 
                 # Logging and saving
@@ -89,7 +89,7 @@ class TrainerFactory:
                 max_length=config.model.max_seq_length,
                 
                 # Reproducibility
-                seed=training_args.seed,
+                seed=config.system.seed,
             )
             
             logger.info(f"📋 SFTConfig Configuration:")
@@ -104,8 +104,6 @@ class TrainerFactory:
                 "tokenizer": tokenizer,
                 "train_dataset": datasets["train"],
                 "args": sft_config,  # Use SFTConfig instead of TrainingArguments
-                # NO data_collator like notebook
-                # NO formatting_func - data is already formatted
             }
             
             # Only add eval_dataset if it exists
@@ -148,7 +146,6 @@ class TrainerFactory:
                 logger.warning(f"⚠️ Failed to apply train_on_responses_only: {e}")
                 logger.info("Proceeding without train_on_responses_only...")
                 
-            
             # Print training info
             TrainerFactory._print_training_info(trainer, datasets, config)
             

@@ -497,10 +497,10 @@ class ConfigManager:
         return self._output_config
     
     @property
-    def logging(self) -> LoggingConfigSession:
+    def logging(self) -> LoggingConfigSection:
         if self._logging_config is None:
-            self._logging_config = LoggingConfigSession.from_dict(self.raw_config)
-            self._logging_confif.validate()
+            self._logging_config = LoggingConfigSection.from_dict(self.raw_config)
+            self._logging_config.validate()
         return self._logging_config
     
     @property
