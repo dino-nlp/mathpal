@@ -28,19 +28,25 @@ def setup_logging(
     # Convert string level to logging constant
     numeric_level = getattr(logging, log_level.upper(), logging.INFO)
     
-    # Configure root logger
-    logging.basicConfig(
-        level=numeric_level,
-        format=format_string,
-        handlers=[]
-    )
+    # Configure root logger only if not already configured
+    if not logging.getLogger().handlers:
+        logging.basicConfig(
+            level=numeric_level,
+            format=format_string,
+            handlers=[]
+        )
+    
+    # Set transformers logger level
     logging.getLogger("transformers").setLevel(logging.WARNING)
     
     # Create logger
-    logger = logging.getLogger("gemma3n_training")
+    logger = logging.getLogger("mathpal_training")
     logger.setLevel(numeric_level)
     
-    # Clear existing handlers
+    # Prevent propagation to root logger to avoid duplicates
+    logger.propagate = False
+    
+    # Clear existing handlers to prevent duplicates
     logger.handlers.clear()
     
     # Add console handler
@@ -66,7 +72,7 @@ def setup_logging(
     return logger
 
 
-def get_logger(name: str = "gemma3n_training") -> logging.Logger:
+def get_logger(name: str = "mathpal_training") -> logging.Logger:
     """
     Get logger instance.
     
@@ -82,7 +88,7 @@ def get_logger(name: str = "gemma3n_training") -> logging.Logger:
 class TrainingLogger:
     """Custom logger for training pipeline with enhanced formatting."""
     
-    def __init__(self, logger_name: str = "gemma3n_training"):
+    def __init__(self, logger_name: str = "mathpal_training"):
         """Initialize TrainingLogger."""
         self.logger = get_logger(logger_name)
     

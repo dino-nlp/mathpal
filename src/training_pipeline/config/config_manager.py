@@ -117,7 +117,7 @@ class DatasetConfigSection(ConfigSection):
             test_split=dataset_data.get('test_split', cls.test_split),
             text_field=dataset_data.get('text_field', cls.text_field),
             instruction_column=dataset_data.get('instruction_column', cls.instruction_column),
-            answer_column=dataset_data.get('answer_column', cls.num_answer_columnproc)
+            answer_column=dataset_data.get('answer_column', cls.answer_column)
         )
     
     def validate(self) -> None:

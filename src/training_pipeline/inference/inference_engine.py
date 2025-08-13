@@ -2,7 +2,7 @@
 
 import torch
 from typing import Dict, Any, List, Optional, Union
-from training_pipeline.data.chat_formatter import ChatFormatter
+from training_pipeline.utils import ChatFormatter
 from training_pipeline.config import GenerationConfigSection
 
 

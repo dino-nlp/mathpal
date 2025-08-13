@@ -234,17 +234,13 @@ def load_and_validate_config(args: argparse.Namespace) -> ConfigManager:
 
 def setup_environment(args: argparse.Namespace, config_manager: ConfigManager) -> None:
     """
-    Setup logging and environment.
+    Setup training environment.
     
     Args:
         args: Command line arguments  
         config_manager: Configuration manager
     """
-    # Setup logging
-    log_level = "DEBUG" if args.debug else "INFO"
-    setup_logging(log_level=log_level)
-    
-    # Update logger reference
+    # Update logger reference (logging already setup in main())
     global logger
     logger = get_logger("mathpal_training")
     
