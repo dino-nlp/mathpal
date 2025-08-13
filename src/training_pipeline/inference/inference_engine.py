@@ -13,8 +13,8 @@ class InferenceEngine:
         self,
         model: Any,
         tokenizer: Any,
-        device: str = "cuda",
-        generation_config: GenerationConfigSection):
+        generation_config: GenerationConfigSection,
+        device: str = "cuda",):
         """
         Initialize InferenceEngine.
         
