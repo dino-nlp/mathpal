@@ -1,14 +1,16 @@
 """Chat template formatting utilities."""
 
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, TYPE_CHECKING
 from datasets import Dataset
-from training_pipeline.config import DatasetConfigSection
+
+if TYPE_CHECKING:
+    from training_pipeline.config import DatasetConfigSection
 
 
 class ChatFormatter:
     """Handles chat template formatting for conversational datasets."""
     
-    def __init__(self, tokenizer: Any, data_config: DatasetConfigSection):
+    def __init__(self, tokenizer: Any, data_config: "DatasetConfigSection"):
         """Initialize ChatFormatter with tokenizer."""
         self.tokenizer = tokenizer
         self.data_config = data_config
