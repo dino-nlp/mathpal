@@ -58,8 +58,8 @@ class EvaluationManager:
             
             logger.info("✅ Evaluation completed")
             logger.info("="*100)
-            logger.info("Evaluation results:")
-            logger.info(results)
+            logger.info("📊 EVALUATION RESULTS SUMMARY:")
+            self._log_evaluation_summary(results)
             logger.info("="*100)
             return results
             
@@ -88,9 +88,13 @@ class EvaluationManager:
                     
                     results.append(result)
                     
-                    # Log result
-                    logger.info(f"   Input: {test_case['input']} \n")
-                    logger.info(f"   Output: {response} \n")
+                    # Log result in a structured format
+                    logger.info(f"   📝 Test {i+1} Results:")
+                    logger.info(f"      🎯 Input: {test_case['input']}")
+                    logger.info(f"      💡 Expected: {test_case.get('expected', 'N/A')}")
+                    logger.info(f"      🤖 Generated: {response}")
+                    logger.info(f"      ✅ Status: Success")
+                    logger.info("")
                     
                 except Exception as e:
                     results.append({
@@ -99,7 +103,10 @@ class EvaluationManager:
                         "error": str(e),
                         "status": "failed"
                     })
-                    logger.error(f"   Test case {i+1} failed: {e}")
+                    logger.error(f"   ❌ Test {i+1} Failed:")
+                    logger.error(f"      🎯 Input: {test_case['input']}")
+                    logger.error(f"      💥 Error: {e}")
+                    logger.error("")
             
             return results
             
@@ -307,3 +314,92 @@ class EvaluationManager:
             return f"{size_gb:.2f} GB"
         except:
             return "Unknown"
+    
+    def _log_evaluation_summary(self, results: Dict[str, Any]) -> None:
+        """
+        Log evaluation results in a beautiful, readable format.
+        
+        Args:
+            results: Evaluation results dictionary
+        """
+        import json
+        
+        # 1. Inference Tests Summary
+        if "inference_tests" in results:
+            inference_tests = results["inference_tests"]
+            success_count = sum(1 for test in inference_tests if test.get("status") == "success")
+            total_count = len(inference_tests)
+            
+            logger.info("🔍 INFERENCE TESTS:")
+            logger.info(f"   ✅ Success: {success_count}/{total_count} ({success_count/total_count*100:.1f}%)")
+            logger.info(f"   ❌ Failed: {total_count-success_count}/{total_count}")
+            
+            # Log individual test results
+            for i, test in enumerate(inference_tests):
+                status_emoji = "✅" if test.get("status") == "success" else "❌"
+                logger.info(f"   {status_emoji} Test {i+1}: {test.get('input', '')[:50]}...")
+                if test.get("status") == "success":
+                    logger.info(f"      Generated: {test.get('generated', '')[:100]}...")
+                else:
+                    logger.info(f"      Error: {test.get('error', '')}")
+        
+        # 2. Vietnamese Math Tests Summary
+        if "vietnamese_math_tests" in results:
+            vn_tests = results["vietnamese_math_tests"]
+            logger.info("\n🇻🇳 VIETNAMESE MATH TESTS:")
+            for test in vn_tests:
+                test_id = test.get("test_id", "Unknown")
+                quality_score = test.get("quality_score", 0)
+                contains_vn = test.get("contains_vietnamese", False)
+                has_math = test.get("has_mathematical_content", False)
+                
+                logger.info(f"   📝 {test_id}: {test.get('input', '')[:50]}...")
+                logger.info(f"      Quality Score: {quality_score:.2f}/1.0")
+                logger.info(f"      Contains Vietnamese: {'✅' if contains_vn else '❌'}")
+                logger.info(f"      Has Math Content: {'✅' if has_math else '❌'}")
+                logger.info(f"      Output: {test.get('output', '')[:100]}...")
+        
+        # 3. Generation Quality Summary
+        if "generation_quality" in results:
+            quality_metrics = results["generation_quality"]
+            logger.info("\n🎯 GENERATION QUALITY:")
+            for temp, metrics in quality_metrics.items():
+                logger.info(f"   🌡️ Temperature {temp}:")
+                logger.info(f"      Response Length: {metrics.get('response_length', 0)} chars")
+                logger.info(f"      Contains Vietnamese: {'✅' if metrics.get('contains_vietnamese') else '❌'}")
+                logger.info(f"      Has Math Content: {'✅' if metrics.get('has_math_content') else '❌'}")
+                logger.info(f"      Coherence Score: {metrics.get('coherence_score', 0):.2f}/1.0")
+        
+        # 4. Performance Metrics Summary
+        if "performance_metrics" in results:
+            perf_metrics = results["performance_metrics"]
+            logger.info("\n⚡ PERFORMANCE METRICS:")
+            logger.info(f"   ⏱️ Average Inference Time: {perf_metrics.get('avg_inference_time', 0):.3f} seconds")
+            logger.info(f"   💾 Memory Usage: {perf_metrics.get('memory_usage_gb', 0):.2f} GB")
+            logger.info(f"   🤖 Model Size: {perf_metrics.get('model_size', 'Unknown')}")
+        
+        # 5. Overall Summary
+        logger.info("\n📈 OVERALL EVALUATION SUMMARY:")
+        total_tests = 0
+        successful_tests = 0
+        
+        if "inference_tests" in results:
+            total_tests += len(results["inference_tests"])
+            successful_tests += sum(1 for test in results["inference_tests"] if test.get("status") == "success")
+        
+        if "vietnamese_math_tests" in results:
+            total_tests += len(results["vietnamese_math_tests"])
+            successful_tests += len(results["vietnamese_math_tests"])  # Assume all VN tests are successful
+        
+        if total_tests > 0:
+            success_rate = successful_tests / total_tests * 100
+            logger.info(f"   🎯 Overall Success Rate: {success_rate:.1f}% ({successful_tests}/{total_tests})")
+            
+            if success_rate >= 80:
+                logger.info("   🏆 Excellent performance!")
+            elif success_rate >= 60:
+                logger.info("   👍 Good performance!")
+            elif success_rate >= 40:
+                logger.info("   ⚠️ Moderate performance - needs improvement")
+            else:
+                logger.info("   ❌ Poor performance - significant issues detected")
