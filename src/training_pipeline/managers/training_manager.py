@@ -249,9 +249,6 @@ class TrainingManager:
     def _run_evaluation(self) -> Optional[Dict[str, Any]]:
         """Run model evaluation if enabled."""
         try:
-            if not self.config_manager.inference.test_after_training:
-                return None
-            
             logger.info("🧪 Running model evaluation...")
             return self.evaluation_manager.run_evaluation(self.model, self.tokenizer)
             

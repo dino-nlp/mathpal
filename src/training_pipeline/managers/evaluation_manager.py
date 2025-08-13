@@ -65,8 +65,8 @@ class EvaluationManager:
             
             # Enable Unsloth's fast inference if available
             try:
-                from unsloth import FastLanguageModel
-                FastLanguageModel.for_inference(model)
+                from unsloth import FastModel
+                FastModel.for_inference(model)
                 logger.info("⚡ Enabled Unsloth fast inference")
             except:
                 pass

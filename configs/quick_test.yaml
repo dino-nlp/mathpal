@@ -102,7 +102,8 @@ lora:
 # =============================================================================
 logging:
   logging_steps: 5
-  report_to: null   # can be ["tensorboard", "wandb", "comet_ml"]
+  report_to:
+    - "comet_ml"    # can be ["tensorboard", "wandb", "comet_ml"]
 
 # =============================================================================
 # SYSTEM CONFIGURATION

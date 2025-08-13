@@ -34,6 +34,7 @@ def setup_logging(
         format=format_string,
         handlers=[]
     )
+    logging.getLogger("transformers").setLevel(logging.WARNING)
     
     # Create logger
     logger = logging.getLogger("gemma3n_training")
