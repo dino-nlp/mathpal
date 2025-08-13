@@ -6,7 +6,7 @@ from typing import Dict, Any, List, Optional
 from pathlib import Path
 
 from training_pipeline.utils.exceptions import CheckpointError
-from training_pipeline.config.config_manager import OutputConfigSection
+from training_pipeline.config.config_manager import OutputConfigSection, HubConfigSection
 from training_pipeline.utils import get_logger
 
 logger = get_logger()
@@ -15,7 +15,7 @@ logger = get_logger()
 class CheckpointManager:
     """Manages model checkpoints and saving."""
     
-    def __init__(self, output_config: OutputConfigSection, hub_config: Optional[Dict[str, Any]] = None):
+    def __init__(self, output_config: OutputConfigSection, hub_config: HubConfigSection):
         """
         Initialize CheckpointManager with specific config sections.
         
@@ -24,7 +24,7 @@ class CheckpointManager:
             hub_config: Optional HuggingFace Hub configuration
         """
         self.output_config = output_config
-        self.hub_config = hub_config or {}
+        self.hub_config = hub_config
         self.saved_models = {}
         
     def save_model(self, model: Any, tokenizer: Any, training_results: Optional[Dict[str, Any]] = None) -> Dict[str, str]:
@@ -148,21 +148,21 @@ class CheckpointManager:
     def push_to_hub(self, model: Any, tokenizer: Any) -> Optional[str]:
         """Push model to HuggingFace Hub."""
         try:
-            if not self.hub_config.get('push_to_hub', False):
+            if not self.hub_config.push_to_hub:
                 return None
             
-            username = self.hub_config.get('username') or os.getenv("HF_USERNAME")
+            username = self.hub_config.username or os.getenv("HF_USERNAME")
             if not username:
                 logger.warning("⚠️ HuggingFace username not provided, skipping Hub push")
                 return None
             
-            repo_name = self.hub_config.get('repo_name') or self.output_config.experiment_name
+            repo_name = self.hub_config.repo_name or self.output_config.experiment_name
             hub_repo = f"{username}/{repo_name}"
             
             logger.info(f"📤 Pushing model to HuggingFace Hub: {hub_repo}")
             
             # Get token
-            token = self.hub_config.get('token') or os.getenv("HF_TOKEN")
+            token = self.hub_config.token or os.getenv("HF_TOKEN")
             
             if hasattr(model, 'push_to_hub_merged'):
                 # Use Unsloth's optimized push method
@@ -171,12 +171,12 @@ class CheckpointManager:
                     tokenizer,
                     save_method="lora",
                     token=token,
-                    private=self.hub_config.get('private', True)
+                    private=self.hub_config.private
                 )
             else:
                 # Standard HuggingFace push
-                model.push_to_hub(hub_repo, token=token, private=self.hub_config.get('private', True))
-                tokenizer.push_to_hub(hub_repo, token=token, private=self.hub_config.get('private', True))
+                model.push_to_hub(hub_repo, token=token, private=self.hub_config.private)
+                tokenizer.push_to_hub(hub_repo, token=token, private=self.hub_config.private)
             
             logger.info(f"✅ Model pushed to Hub: {hub_repo}")
             return hub_repo

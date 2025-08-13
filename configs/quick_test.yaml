@@ -153,9 +153,11 @@ hub:
   push_to_hub: false
   username: null
   repo_name: null
-  private: true
+  private: false
   token: null
 
+evaluation:
+  regression_test: true
 # =============================================================================
 # QUICK TEST OPTIMIZATIONS
 # =============================================================================

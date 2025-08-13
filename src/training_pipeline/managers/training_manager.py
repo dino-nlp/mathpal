@@ -57,7 +57,7 @@ class TrainingManager:
         self.experiment_manager = ExperimentManager(config_manager=config_manager)
         self.checkpoint_manager = CheckpointManager(
             output_config=config_manager.output,
-            hub_config=config_manager.raw_config.get('hub', {})  # Using raw config for hub
+            hub_config=config_manager.hub
         )
         # self.evaluation_manager = EvaluationManager(config_manager)  # TODO: Refactor later
         
@@ -227,10 +227,12 @@ class TrainingManager:
             logger.info(f"✅ Training completed in {training_time:.2f} seconds")
             
             # Log final metrics to experiment tracker
-            if self.experiment_manager.is_active():
-                self.experiment_manager.log_training_summary(trainer_stats.__dict__)
+            global_step, train_loss, metrics = trainer_stats
             
-            return trainer_stats.__dict__ if hasattr(trainer_stats, '__dict__') else {}
+            if self.experiment_manager.is_active():
+                self.experiment_manager.log_training_summary(metrics)
+            
+            return metrics
             
         except Exception as e:
             raise TrainingError(f"Training failed: {e}")
@@ -249,6 +251,8 @@ class TrainingManager:
     def _run_evaluation(self) -> Optional[Dict[str, Any]]:
         """Run model evaluation if enabled."""
         try:
+            if not self.config_manager.evaluation.regression_test:
+                return None
             logger.info("🧪 Running model evaluation...")
             return self.evaluation_manager.run_evaluation(self.model, self.tokenizer)
             

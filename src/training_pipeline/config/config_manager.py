@@ -298,7 +298,74 @@ class LoggingConfigSection(ConfigSection):
     
     def validate(self) -> None:
         pass  # No specific validation needed
+# hub:
+#   # No hub push for quick testing
+#   push_to_hub: false
+#   username: null
+#   repo_name: null
+#   private: false
+#   token: null
 
+# evaluation:
+#   regression_test: true
+@dataclass
+class HubConfigSection(ConfigSection):
+    push_to_hub: bool = False
+    username: str = None 
+    repo_name: str = None 
+    private: bool = False 
+    token: str = None 
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'HubConfigSection':
+        if 'hub' in data:
+            hub_data = data['hub']
+        else:
+            hub_data = {
+                'push_to_hub': False,
+                'username': None,
+                'repo_name': None,
+                'private': False
+            }
+        
+        hub_data['token'] = os.getenv('HF_TOKEN', default=None)
+        
+        return cls(
+            push_to_hub=hub_data.get('push_to_hub', False),
+            username=hub_data.get('username', None),
+            repo_name=hub_data.get('repo_name', None),
+            private=hub_data.get('private', False),
+            token=hub_data.get('token', None)
+        )
+    
+    def validate(self) -> None:
+        if not self.push_to_hub:
+            pass
+        else:
+            if (not self.username) or (not self.repo_name) or (not self.token):
+                raise ValidationError("Username or repo name or HF_TOKEN is empty")
+
+@dataclass
+class EvaluationConfigSection(ConfigSection):
+    regression_test: bool = False
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'EvaluationConfigSection':
+        if 'evaluation' in data:
+            evaluation_data = data['evaluation']
+        else:
+            evaluation_data = {
+                "regression_test": False
+            }
+        
+        return cls(
+            regression_test=evaluation_data.get('regression_test', False)
+        )
+
+    def validate(self) -> None:
+        pass
+        
+        
 @dataclass
 class CometConfigSection(ConfigSection):
     """Comet ML configuration section."""
@@ -397,6 +464,8 @@ class ConfigManager:
         self._comet_config = None
         self._system_config = None
         self._logging_config = None
+        self._hub_config = None 
+        self._evaluation_config = None
     
     def load_from_file(self, config_path: str) -> None:
         """Load configuration from YAML file."""
@@ -455,6 +524,8 @@ class ConfigManager:
         self._comet_config = None
         self._system_config = None
         self._logging_config = None
+        self._hub_config = None 
+        self._evaluation_config = None
     
     @property
     def model(self) -> ModelConfigSection:
@@ -512,6 +583,20 @@ class ConfigManager:
         return self._comet_config
     
     @property
+    def hub(self) -> HubConfigSection:
+        if self._hub_config is None:
+            self._hub_config = HubConfigSection.from_dict(self.raw_config)
+            self._hub_config.validate()
+        return self._hub_config
+    
+    @property 
+    def evaluation(self) -> EvaluationConfigSection:
+        if self._evaluation_config is None: 
+            self._evaluation_config = EvaluationConfigSection.from_dict(self.raw_config)
+            self._evaluation_config.validate()
+        return self._evaluation_config
+    
+    @property
     def system(self) -> SystemConfigSection:
         """Get system configuration section."""
         if self._system_config is None:
@@ -523,7 +608,7 @@ class ConfigManager:
         """Validate all configuration sections."""
         sections = [
             self.model, self.dataset, self.training, 
-            self.lora, self.output, self.comet, self.system, self.logging
+            self.lora, self.output, self.comet, self.system, self.logging, self.hub, self.evaluation
         ]
         
         errors = []

@@ -192,20 +192,17 @@ comet:
 # HUGGINGFACE HUB INTEGRATION
 # =============================================================================
 hub:
-  # Push model to HuggingFace Hub after training
-  push_to_hub: false
+  # Enable automatic model push to Hub
+  push_to_hub: true
   
-  # HuggingFace Hub username
-  username: null
-  
-  # Repository name (defaults to experiment_name if null)
-  repo_name: null
-  
-  # Model visibility on Hub
-  private: true
-  
-  # Authentication token (use HF_TOKEN env var)
-  token: null
+  # HuggingFace configuration (use env vars)
+  username: 'ngohongthai'  # Set via HF_USERNAME env var
+  repo_name: "mathpal-gemma3n-vietnamese-math"
+  private: false  # Make public for community use
+  token: null     # Set via HF_TOKEN env var
+
+evaluation:
+  regression_test: true
 
 # =============================================================================
 # ENVIRONMENT PROFILES (for quick overrides)

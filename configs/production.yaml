@@ -170,11 +170,13 @@ hub:
   push_to_hub: true
   
   # HuggingFace configuration (use env vars)
-  username: null  # Set via HF_USERNAME env var
+  username: 'ngohongthai'  # Set via HF_USERNAME env var
   repo_name: "mathpal-gemma3n-vietnamese-math"
   private: false  # Make public for community use
   token: null     # Set via HF_TOKEN env var
 
+evaluation:
+  regression_test: true
 # =============================================================================
 # PRODUCTION MONITORING & VALIDATION
 # =============================================================================
