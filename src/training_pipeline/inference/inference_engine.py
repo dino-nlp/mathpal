@@ -32,9 +32,9 @@ class InferenceEngine:
         self.tokenizer = tokenizer
         self.device = device
         self.chat_formatter = ChatFormatter(tokenizer=tokenizer, data_config=config_manager.dataset)
-        self.generation_config = config_manager.generation.copy()
+        self.generation_config = config_manager.generation.to_dict()
         # Generation parameters
-        self.generation_config["pad_token_id"] = tokenizer.eos_token_id,
+        self.generation_config["pad_token_id"] = tokenizer.eos_token_id
         
         # Prepare model for inference
         self._setup_for_inference()
@@ -78,7 +78,7 @@ class InferenceEngine:
             device=self.device
         )
         
-        # Update generation config
+        # Update generation config (self.generation_config is a dict from to_dict())
         gen_config = self.generation_config.copy()
         if generation_config:
             gen_config.update(generation_config)
@@ -164,7 +164,7 @@ class InferenceEngine:
             # Setup streamer
             streamer = TextStreamer(self.tokenizer, skip_prompt=True)
             
-            # Update generation config
+            # Update generation config (self.generation_config is a dict from to_dict())
             gen_config = self.generation_config.copy()
             if generation_config:
                 gen_config.update(generation_config)
@@ -200,7 +200,7 @@ class InferenceEngine:
         Get current generation configuration.
         
         Returns:
-            Current generation configuration
+            Current generation configuration (copy of the dict)
         """
         return self.generation_config.copy()
     

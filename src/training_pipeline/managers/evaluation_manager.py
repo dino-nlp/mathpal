@@ -166,7 +166,7 @@ class EvaluationManager:
             
             # Test with different temperatures
             for temp in [0.1, 0.7, 1.0]:
-                response = inference_engine.generate(question=test_input,
+                response = inference_engine.generate(test_input,
                                                     generation_config={"temperature": temp})
                 
                 quality_metrics[f"temp_{temp}"] = {
@@ -204,7 +204,7 @@ class EvaluationManager:
             return {
                 "avg_inference_time": avg_time,
                 "memory_usage_gb": memory_used,
-                "model_size": self._estimate_model_size(model)
+                "model_size": self._estimate_model_size(inference_engine.model)
             }
             
         except Exception as e:
