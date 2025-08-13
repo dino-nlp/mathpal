@@ -1,0 +1,194 @@
+# =============================================================================
+# MathPal Tesla T4 Optimized Configuration
+# =============================================================================
+# Tối ưu hóa cho Tesla T4 với dataset 1000 bài toán
+# Tesla T4: 16GB VRAM, compute capability 7.5, không hỗ trợ bf16
+# Sử dụng fp16 và 4-bit quantization để tối ưu memory
+#
+# Usage:
+#   python -m training_pipeline.cli.train_gemma --config configs/tesla_t4_optimized.yaml
+# =============================================================================
+
+# =============================================================================
+# MODEL CONFIGURATION (Tesla T4 Optimized)
+# =============================================================================
+model:
+  # Sử dụng Gemma-3n-E2B nhỏ hơn cho Tesla T4
+  name: "unsloth/gemma-3n-E2B-it"
+  
+  # Giảm sequence length để tiết kiệm memory
+  max_seq_length: 1024
+  
+  # Bắt buộc sử dụng 4-bit quantization cho Tesla T4
+  load_in_4bit: true
+  load_in_8bit: false
+  
+  # Sử dụng LoRA thay vì full fine-tuning
+  full_finetuning: false
+
+# =============================================================================
+# DATASET CONFIGURATION  
+# =============================================================================
+dataset:
+  # Vietnamese 6th grade math problems
+  name: "ngohongthai/exam-sixth_grade-instruct-dataset"
+  
+  # Standard splits
+  train_split: "train"
+  test_split: "test"
+  
+  # Text field configuration
+  text_field: "text"
+  
+  # columns
+  instruction_column: "question"
+  answer_column: "solution"
+
+# =============================================================================
+# TRAINING HYPERPARAMETERS (Tesla T4 Optimized)
+# =============================================================================
+training:
+  # Tính toán steps dựa trên dataset 1000 samples
+  # Với effective batch size = 2 * 8 = 16, epochs = 3
+  # Steps = (1000 * 3) / 16 ≈ 188 steps
+  max_steps: 200
+  num_train_epochs: null
+  
+  # Batch size nhỏ cho Tesla T4
+  per_device_train_batch_size: 2
+  per_device_eval_batch_size: 2
+  gradient_accumulation_steps: 8  # Effective batch size = 16
+  
+  # Learning rate cao hơn cho LoRA training
+  learning_rate: 3.0e-4  # Unsloth khuyến nghị 1e-4 cho adapters
+  warmup_ratio: 0.1      # 10% warmup
+  weight_decay: 0.01
+  
+  # Optimizer tối ưu cho Tesla T4
+  optim: "adamw_8bit"    # Tiết kiệm memory
+  lr_scheduler_type: "cosine"
+  max_grad_norm: 1.0
+  
+  # Bắt buộc sử dụng fp16 cho Tesla T4 (không hỗ trợ bf16)
+  fp16: true
+  bf16: false
+  
+  # Response-only training để tối ưu
+  train_on_responses_only: true
+
+# =============================================================================
+# LORA CONFIGURATION (Tesla T4 Optimized)
+# =============================================================================
+lora:
+  # Rank thấp hơn để tiết kiệm memory
+  r: 16
+  alpha: 32
+  dropout: 0.0  # Unsloth khuyến nghị 0 cho tối ưu
+  bias: "none"  # Unsloth khuyến nghị "none" cho tối ưu
+  
+  # Target modules cho Gemma
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+  
+  use_rslora: false
+
+# =============================================================================
+# LOGGING CONFIGURATION
+# =============================================================================
+logging:
+  logging_steps: 10  # Log mỗi 10 steps
+  report_to:
+    - "comet_ml"
+
+# =============================================================================
+# SYSTEM CONFIGURATION (Tesla T4 Optimized)
+# =============================================================================
+system:
+  seed: 42
+  # Sử dụng Unsloth gradient checkpointing để tiết kiệm memory
+  use_gradient_checkpointing: "unsloth"
+  dataloader_drop_last: true
+  dataloader_pin_memory: true
+  dataloader_num_workers: 0  # Giảm workers để tránh memory issues
+
+# =============================================================================
+# OUTPUT CONFIGURATION
+# =============================================================================
+output:
+  base_dir: "outputs"
+  experiment_name: "mathpal-tesla-t4-optimized"
+  
+  # Save strategy cho Tesla T4
+  save_strategy: "steps"
+  save_steps: 50  # Save mỗi 50 steps
+  save_total_limit: 3  # Giữ 3 checkpoints để tiết kiệm disk
+  load_best_model_at_end: true
+  
+  # Save formats tối ưu cho Tesla T4
+  save_formats:
+    - "lora"           # LoRA adapters (nhỏ nhất)
+    - "merged_16bit"   # Full model 16-bit
+
+# =============================================================================
+# COMET ML CONFIGURATION
+# =============================================================================
+comet:
+  experiment_name: "mathpal-tesla-t4-optimized"
+  tags:
+    - "tesla-t4"
+    - "optimized"
+    - "gemma3n"
+    - "vietnamese"
+    - "math"
+    - "1000-samples"
+  auto_metric_logging: true
+  auto_param_logging: true
+
+# =============================================================================
+# HUB CONFIGURATION
+# =============================================================================
+hub:
+  push_to_hub: false  # Tắt để tránh memory issues
+  username: null
+  repo_name: null
+  private: false
+  token: null
+
+# =============================================================================
+# EVALUATION CONFIGURATION
+# =============================================================================
+evaluation:
+  regression_test: true
+  num_tc_examples: 3  # Giảm số test cases để tiết kiệm memory
+
+# =============================================================================
+# GENERATION CONFIGURATION
+# =============================================================================
+generation:
+  max_new_tokens: 256  # Giảm để tiết kiệm memory
+  temperature: 1.0
+  top_p: 0.95
+  top_k: 64
+  do_sample: true
+
+# =============================================================================
+# TESLA T4 OPTIMIZATIONS
+# =============================================================================
+# Các tối ưu hóa đặc biệt cho Tesla T4:
+# 1. Sử dụng Gemma-3n-E2B thay vì E4B để giảm memory
+# 2. Bắt buộc fp16 (Tesla T4 không hỗ trợ bf16)
+# 3. 4-bit quantization bắt buộc
+# 4. Batch size nhỏ (2) với gradient accumulation (8)
+# 5. LoRA rank thấp (16) để tiết kiệm memory
+# 6. Gradient checkpointing với Unsloth
+# 7. Sequence length giảm (1024)
+# 8. Learning rate cao hơn (3e-4) cho LoRA training
+# 9. Warmup ratio cao hơn (10%) để ổn định training
+# 10. Số workers = 0 để tránh memory issues
+# =============================================================================

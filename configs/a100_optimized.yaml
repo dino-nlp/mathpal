@@ -1,0 +1,196 @@
+# =============================================================================
+# MathPal A100 Optimized Configuration
+# =============================================================================
+# Tối ưu hóa cho A100 với dataset 1000 bài toán
+# A100: 40GB/80GB VRAM, compute capability 8.0+, hỗ trợ bf16
+# Sử dụng bf16 và batch size lớn hơn để tận dụng sức mạnh A100
+#
+# Usage:
+#   python -m training_pipeline.cli.train_gemma --config configs/a100_optimized.yaml
+# =============================================================================
+
+# =============================================================================
+# MODEL CONFIGURATION (A100 Optimized)
+# =============================================================================
+model:
+  # Sử dụng Gemma-3n-E4B đầy đủ cho A100
+  name: "unsloth/gemma-3n-E4B-it"
+  
+  # Sequence length cao hơn cho A100
+  max_seq_length: 2048
+  
+  # Có thể sử dụng 4-bit hoặc 8-bit quantization
+  load_in_4bit: true
+  load_in_8bit: false
+  
+  # Sử dụng LoRA để tối ưu training
+  full_finetuning: false
+
+# =============================================================================
+# DATASET CONFIGURATION  
+# =============================================================================
+dataset:
+  # Vietnamese 6th grade math problems
+  name: "ngohongthai/exam-sixth_grade-instruct-dataset"
+  
+  # Standard splits
+  train_split: "train"
+  test_split: "test"
+  
+  # Text field configuration
+  text_field: "text"
+  
+  # columns
+  instruction_column: "question"
+  answer_column: "solution"
+
+# =============================================================================
+# TRAINING HYPERPARAMETERS (A100 Optimized)
+# =============================================================================
+training:
+  # Tính toán steps dựa trên dataset 1000 samples
+  # Với effective batch size = 8 * 4 = 32, epochs = 3
+  # Steps = (1000 * 3) / 32 ≈ 94 steps
+  max_steps: 100
+  num_train_epochs: null
+  
+  # Batch size lớn hơn cho A100
+  per_device_train_batch_size: 8
+  per_device_eval_batch_size: 8
+  gradient_accumulation_steps: 4  # Effective batch size = 32
+  
+  # Learning rate tối ưu cho LoRA training
+  learning_rate: 2.0e-4  # Unsloth khuyến nghị 1e-4 cho adapters
+  warmup_ratio: 0.05     # 5% warmup
+  weight_decay: 0.01
+  
+  # Optimizer tối ưu cho A100
+  optim: "adamw_8bit"    # Tiết kiệm memory
+  lr_scheduler_type: "cosine"
+  max_grad_norm: 1.0
+  
+  # Sử dụng bf16 cho A100 (hiệu quả hơn fp16)
+  fp16: false
+  bf16: true
+  
+  # Response-only training để tối ưu
+  train_on_responses_only: true
+
+# =============================================================================
+# LORA CONFIGURATION (A100 Optimized)
+# =============================================================================
+lora:
+  # Rank cao hơn cho A100 để tăng capacity
+  r: 32
+  alpha: 64
+  dropout: 0.0  # Unsloth khuyến nghị 0 cho tối ưu
+  bias: "none"  # Unsloth khuyến nghị "none" cho tối ưu
+  
+  # Target modules cho Gemma
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+  
+  use_rslora: false
+
+# =============================================================================
+# LOGGING CONFIGURATION
+# =============================================================================
+logging:
+  logging_steps: 5  # Log mỗi 5 steps
+  report_to:
+    - "comet_ml"
+
+# =============================================================================
+# SYSTEM CONFIGURATION (A100 Optimized)
+# =============================================================================
+system:
+  seed: 42
+  # Sử dụng Unsloth gradient checkpointing để tối ưu
+  use_gradient_checkpointing: "unsloth"
+  dataloader_drop_last: true
+  dataloader_pin_memory: true
+  dataloader_num_workers: 2  # Tăng workers cho A100
+
+# =============================================================================
+# OUTPUT CONFIGURATION
+# =============================================================================
+output:
+  base_dir: "outputs"
+  experiment_name: "mathpal-a100-optimized"
+  
+  # Save strategy cho A100
+  save_strategy: "steps"
+  save_steps: 25  # Save mỗi 25 steps
+  save_total_limit: 5  # Giữ 5 checkpoints
+  load_best_model_at_end: true
+  
+  # Save formats đầy đủ cho A100
+  save_formats:
+    - "lora"           # LoRA adapters
+    - "merged_16bit"   # Full model 16-bit
+    - "merged_4bit"    # Full model 4-bit
+
+# =============================================================================
+# COMET ML CONFIGURATION
+# =============================================================================
+comet:
+  experiment_name: "mathpal-a100-optimized"
+  tags:
+    - "a100"
+    - "optimized"
+    - "gemma3n"
+    - "vietnamese"
+    - "math"
+    - "1000-samples"
+    - "bf16"
+  auto_metric_logging: true
+  auto_param_logging: true
+
+# =============================================================================
+# HUB CONFIGURATION
+# =============================================================================
+hub:
+  push_to_hub: true  # Bật cho A100
+  username: 'ngohongthai'
+  repo_name: "mathpal-gemma3n-vietnamese-math-a100"
+  private: false
+  token: null  # Set via HF_TOKEN env var
+
+# =============================================================================
+# EVALUATION CONFIGURATION
+# =============================================================================
+evaluation:
+  regression_test: true
+  num_tc_examples: 5  # Tăng số test cases cho A100
+
+# =============================================================================
+# GENERATION CONFIGURATION
+# =============================================================================
+generation:
+  max_new_tokens: 512  # Tăng cho A100
+  temperature: 1.0
+  top_p: 0.95
+  top_k: 64
+  do_sample: true
+
+# =============================================================================
+# A100 OPTIMIZATIONS
+# =============================================================================
+# Các tối ưu hóa đặc biệt cho A100:
+# 1. Sử dụng Gemma-3n-E4B đầy đủ để tận dụng VRAM
+# 2. Bf16 thay vì fp16 (hiệu quả hơn trên A100)
+# 3. Batch size lớn hơn (8) với gradient accumulation (4)
+# 4. LoRA rank cao hơn (32) để tăng capacity
+# 5. Sequence length cao hơn (2048)
+# 6. Learning rate tối ưu (2e-4) cho LoRA training
+# 7. Warmup ratio thấp hơn (5%) do batch size lớn
+# 8. Số workers cao hơn (2) để tận dụng CPU
+# 9. Save formats đầy đủ (lora, merged_16bit, merged_4bit)
+# 10. Hub push enabled để chia sẻ model
+# =============================================================================
