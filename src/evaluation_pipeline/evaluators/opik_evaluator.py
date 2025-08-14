@@ -480,9 +480,20 @@ class OpikEvaluator:
                     # Configure metric with LLM judge settings if available
                     if hasattr(self.opik_config, 'llm_judge') and self.opik_config.llm_judge:
                         llm_config = self.opik_config.llm_judge
-                        metric = metric_class(model=llm_config.get("model", "gpt-4o"))
+                        # Special handling for AnswerRelevance to disable context requirement
+                        if metric_name == "answer_relevance":
+                            metric = metric_class(
+                                model=llm_config.get("model", "gpt-4o"),
+                                require_context=False
+                            )
+                        else:
+                            metric = metric_class(model=llm_config.get("model", "gpt-4o"))
                     else:
-                        metric = metric_class()
+                        # Special handling for AnswerRelevance to disable context requirement
+                        if metric_name == "answer_relevance":
+                            metric = metric_class(require_context=False)
+                        else:
+                            metric = metric_class()
                     metrics.append(metric)
                 else:
                     self.logger.warning(f"Unknown metric: {metric_name}")
