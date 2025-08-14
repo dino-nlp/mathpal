@@ -53,6 +53,22 @@ opik:
   project: "vietnamese-math-evaluation"
   batch_size: 8
   max_samples: 113
+  
+  # Metrics to evaluate
+  metrics:
+    - "hallucination"
+    - "context_precision"
+    - "context_recall"
+    - "answer_relevance"
+    - "usefulness"
+    - "moderation"
+  
+  # LLM-as-a-judge configuration
+  llm_judge:
+    provider: "openrouter"
+    model: "openai/gpt-4o"
+    temperature: 0.0
+    max_tokens: 1000
 
 hardware:
   device: "auto"

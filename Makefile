@@ -39,15 +39,15 @@ test-env: ## Test environment setup
 
 evaluate-quick: ## Run quick evaluation (3 samples)
 	@echo "⚡ Starting quick evaluation..."
-	@PYTHONPATH=$(PYTHONPATH) poetry run python -m src.evaluation_pipeline.cli.main -c configs/evaluation_quick.yaml evaluate -m unsloth/gemma-3n-E2B-it
+	@PYTHONPATH=$(PYTHONPATH) python -m src.evaluation_pipeline.cli.main -c configs/evaluation_quick.yaml evaluate -m unsloth/gemma-3n-E2B-it
 
 evaluate-production: ## Run production evaluation (full test set)
 	@echo "📊 Starting production evaluation..."
-	@PYTHONPATH=$(PYTHONPATH) poetry run python -m src.evaluation_pipeline.cli.main -c configs/evaluation_production.yaml evaluate -m unsloth/gemma-3n-E2B-it
+	@PYTHONPATH=$(PYTHONPATH)  python -m src.evaluation_pipeline.cli.main -c configs/evaluation_production.yaml evaluate -m unsloth/gemma-3n-E2B-it
 
 evaluate-custom: ## Run evaluation with custom config (usage: make evaluate-custom CONFIG=path/to/config.yaml)
 	@echo "📋 Starting evaluation with config: $(CONFIG)..."
-	@PYTHONPATH=$(PYTHONPATH) poetry run python -m src.evaluation_pipeline.cli.main -c $(CONFIG) evaluate -m unsloth/gemma-3n-E2B-it
+	@PYTHONPATH=$(PYTHONPATH)  python -m src.evaluation_pipeline.cli.main -c $(CONFIG) evaluate -m unsloth/gemma-3n-E2B-it
 
 # ======================================
 # ----------- Training Pipeline --------

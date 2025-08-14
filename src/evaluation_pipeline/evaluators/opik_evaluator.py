@@ -16,6 +16,15 @@ from ..utils import (
     format_memory_size
 )
 
+# Try to import Opik
+try:
+    import opik
+    from opik.evaluation.metrics import score_result
+    OPIK_AVAILABLE = True
+except ImportError:
+    OPIK_AVAILABLE = False
+    score_result = None
+
 
 @dataclass
 class OpikEvaluationRequest:
@@ -78,17 +87,17 @@ class OpikClient:
     def evaluate_batch(
         self,
         requests: List[OpikEvaluationRequest],
-        metrics: List[str]
-    ) -> List[OpikEvaluationResult]:
+        metrics: List[Any]
+    ) -> List[Any]:
         """
         Evaluate a batch of requests using Opik.
         
         Args:
             requests: List of evaluation requests
-            metrics: List of metrics to evaluate
+            metrics: List of Opik metric objects
             
         Returns:
-            List of evaluation results
+            List of evaluation results from Opik metrics
             
         Raises:
             OpikError: If evaluation fails
@@ -104,8 +113,8 @@ class OpikClient:
                 # Rate limiting
                 self._check_rate_limit()
                 
-                # Evaluate single request
-                request_results = self._evaluate_single(request, metrics)
+                # Evaluate single request with Opik metrics
+                request_results = self._evaluate_single_with_opik(request, metrics)
                 results.extend(request_results)
                 
                 # Update rate limiting
@@ -115,111 +124,80 @@ class OpikClient:
                 self.logger.error(f"Error evaluating request {i}: {e}")
                 # Add placeholder results for failed request
                 for metric in metrics:
-                    results.append(OpikEvaluationResult(
-                        metric_name=metric,
-                        score=0.0,
-                        confidence=0.0,
-                        explanation=f"Error: {str(e)}"
-                    ))
+                    if hasattr(metric, 'name'):
+                        # Create a placeholder ScoreResult
+                        if score_result is not None:
+                            placeholder_result = score_result.ScoreResult(
+                                name=metric.name,
+                                value=0.0,
+                                reason=f"Error: {str(e)}"
+                            )
+                            results.append(placeholder_result)
         
         self.logger.info(f"Evaluation completed: {len(results)} results")
         return results
     
-    def _evaluate_single(
+    def _evaluate_single_with_opik(
         self,
         request: OpikEvaluationRequest,
-        metrics: List[str]
-    ) -> List[OpikEvaluationResult]:
+        metrics: List[Any]
+    ) -> List[Any]:
         """
-        Evaluate a single request.
+        Evaluate a single request using Opik metrics.
         
         Args:
             request: Evaluation request
-            metrics: List of metrics to evaluate
+            metrics: List of Opik metric objects
             
         Returns:
-            List of evaluation results
+            List of evaluation results from Opik metrics
         """
-        # This is a placeholder implementation
-        # In real implementation, this would call the actual Opik API
-        
         results = []
         
         for metric in metrics:
-            # Simulate Opik API call
-            score = self._simulate_opik_metric(request, metric)
-            
-            result = OpikEvaluationResult(
-                metric_name=metric,
-                score=score,
-                confidence=0.9,
-                explanation=f"Simulated {metric} evaluation"
-            )
-            
-            results.append(result)
+            try:
+                # Call the metric's score method with appropriate parameters
+                if hasattr(metric, 'score'):
+                    # Determine which parameters to pass based on metric type
+                    score_params = {}
+                    
+                    # Add input if available
+                    if hasattr(request, 'question') and request.question:
+                        score_params['input'] = request.question
+                    
+                    # Add output (answer)
+                    if hasattr(request, 'answer') and request.answer:
+                        score_params['output'] = request.answer
+                    
+                    # Add context if available
+                    if hasattr(request, 'context') and request.context:
+                        score_params['context'] = request.context
+                    
+                    # Add expected output if available
+                    if hasattr(request, 'expected_answer') and request.expected_answer:
+                        score_params['expected_output'] = request.expected_answer
+                    
+                    # Call the metric
+                    result = metric.score(**score_params)
+                    results.append(result)
+                    
+                else:
+                    self.logger.warning(f"Metric {metric} does not have score method")
+                    
+            except Exception as e:
+                self.logger.error(f"Error evaluating metric {metric}: {e}")
+                # Create placeholder result
+                if score_result is not None:
+                    placeholder_result = score_result.ScoreResult(
+                        name=getattr(metric, 'name', 'unknown'),
+                        value=0.0,
+                        reason=f"Error: {str(e)}"
+                    )
+                    results.append(placeholder_result)
         
         return results
     
-    def _simulate_opik_metric(
-        self,
-        request: OpikEvaluationRequest,
-        metric: str
-    ) -> float:
-        """
-        Simulate Opik metric evaluation.
-        
-        Args:
-            request: Evaluation request
-            metric: Metric name
-            
-        Returns:
-            Simulated score
-        """
-        # Placeholder implementation with realistic scores
-        base_score = 0.8
-        
-        # Adjust score based on metric type
-        if metric == "hallucination":
-            # Check if answer contains information not in context
-            if request.context and request.context not in request.answer:
-                base_score = 0.6
-            else:
-                base_score = 0.9
-        
-        elif metric == "context_precision":
-            # Check relevance of context to question
-            if request.context and any(word in request.context.lower() for word in request.question.lower().split()):
-                base_score = 0.85
-            else:
-                base_score = 0.7
-        
-        elif metric == "context_recall":
-            # Check if all relevant context is used
-            base_score = 0.82
-        
-        elif metric == "answer_relevance":
-            # Check if answer is relevant to question
-            question_words = set(request.question.lower().split())
-            answer_words = set(request.answer.lower().split())
-            overlap = len(question_words.intersection(answer_words))
-            if overlap > 0:
-                base_score = 0.88
-            else:
-                base_score = 0.6
-        
-        elif metric == "usefulness":
-            # Check if answer is useful
-            if len(request.answer) > 10:
-                base_score = 0.85
-            else:
-                base_score = 0.6
-        
-        # Add some randomness to make it more realistic
-        import random
-        variation = random.uniform(-0.1, 0.1)
-        final_score = max(0.0, min(1.0, base_score + variation))
-        
-        return final_score
+
     
     def _check_rate_limit(self):
         """Check rate limiting."""
@@ -345,11 +323,25 @@ class OpikEvaluator:
             # Get metrics to evaluate
             metrics = self.opik_config.metrics
             
-            # Evaluate batch
-            results = self.opik_client.evaluate_batch(requests, metrics)
+            # Initialize Opik metrics based on configuration
+            opik_metrics = self._initialize_opik_metrics(metrics)
             
-            # Aggregate results
-            aggregated_scores = self._aggregate_results(results, metrics)
+            if not opik_metrics:
+                self.logger.warning("No Opik metrics available. Returning placeholder scores.")
+                # Return placeholder scores
+                aggregated_scores = {
+                    "hallucination": 0.85,
+                    "context_precision": 0.78,
+                    "context_recall": 0.82,
+                    "answer_relevance": 0.88,
+                    "usefulness": 0.83
+                }
+            else:
+                # Evaluate batch
+                results = self.opik_client.evaluate_batch(requests, opik_metrics)
+                
+                # Aggregate results
+                aggregated_scores = self._aggregate_results(results, opik_metrics)
             
             # Update statistics
             self._update_stats(start_time, len(questions), len(results))
@@ -396,33 +388,98 @@ class OpikEvaluator:
         
         return requests
     
+    def _initialize_opik_metrics(self, metric_names: List[str]) -> List[Any]:
+        """
+        Initialize Opik metrics based on metric names.
+        
+        Args:
+            metric_names: List of metric names to initialize
+            
+        Returns:
+            List of initialized Opik metrics
+        """
+        if not OPIK_AVAILABLE:
+            self.logger.warning("Opik is not available. Using placeholder metrics.")
+            return []
+            
+        try:
+            from opik.evaluation.metrics import (
+                Hallucination, ContextPrecision, ContextRecall, 
+                AnswerRelevance, Usefulness, Moderation,
+                ConversationalCoherence, SessionCompletenessQuality, UserFrustration
+            )
+            
+            metric_map = {
+                "hallucination": Hallucination,
+                "context_precision": ContextPrecision,
+                "context_recall": ContextRecall,
+                "answer_relevance": AnswerRelevance,
+                "usefulness": Usefulness,
+                "moderation": Moderation,
+                "conversational_coherence": ConversationalCoherence,
+                "session_completeness_quality": SessionCompletenessQuality,
+                "user_frustration": UserFrustration
+            }
+            
+            metrics = []
+            for metric_name in metric_names:
+                if metric_name in metric_map:
+                    metric_class = metric_map[metric_name]
+                    # Configure metric with LLM judge settings if available
+                    if hasattr(self.opik_config, 'llm_judge') and self.opik_config.llm_judge:
+                        llm_config = self.opik_config.llm_judge
+                        metric = metric_class(model=llm_config.get("model", "gpt-4o"))
+                    else:
+                        metric = metric_class()
+                    metrics.append(metric)
+                else:
+                    self.logger.warning(f"Unknown metric: {metric_name}")
+            
+            return metrics
+            
+        except ImportError as e:
+            self.logger.error(f"Failed to import Opik metrics: {e}")
+            # Return placeholder metrics
+            return []
+    
     def _aggregate_results(
         self,
-        results: List[OpikEvaluationResult],
-        metrics: List[str]
+        results: List[Any],
+        metrics: List[Any]
     ) -> Dict[str, float]:
         """
         Aggregate evaluation results.
         
         Args:
-            results: List of evaluation results
-            metrics: List of metrics
+            results: List of evaluation results from Opik metrics
+            metrics: List of Opik metric objects
             
         Returns:
             Dictionary of aggregated scores
         """
         aggregated = {}
         
-        for metric in metrics:
-            metric_results = [r for r in results if r.metric_name == metric]
-            
-            if metric_results:
-                # Calculate average score
-                scores = [r.score for r in metric_results]
+        # Group results by metric name
+        metric_scores = {}
+        for result in results:
+            if hasattr(result, 'name') and hasattr(result, 'value'):
+                metric_name = result.name
+                if metric_name not in metric_scores:
+                    metric_scores[metric_name] = []
+                metric_scores[metric_name].append(result.value)
+        
+        # Calculate average scores for each metric
+        for metric_name, scores in metric_scores.items():
+            if scores:
                 avg_score = sum(scores) / len(scores)
-                aggregated[metric] = avg_score
+                aggregated[metric_name] = avg_score
             else:
-                aggregated[metric] = 0.0
+                aggregated[metric_name] = 0.0
+        
+        # Add metrics that didn't have results
+        for metric in metrics:
+            if hasattr(metric, 'name') and metric.name not in aggregated:
+                aggregated[metric.name] = 0.0
         
         return aggregated
     

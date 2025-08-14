@@ -46,7 +46,6 @@ huggingface-hub = "0.25.1"
 sagemaker = ">=2.232.2"
 sentence-transformers = "^2.2.2"
 crawl4ai = "^0.7.2"
-unsloth = "*"
 
 [tool.poetry.group.feature_pipeline.dependencies]
 bytewax = "0.18.2"

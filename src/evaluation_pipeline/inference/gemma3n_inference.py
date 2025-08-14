@@ -89,12 +89,12 @@ class Gemma3NInferenceEngine:
             self.logger.info(f"Using CUDA device: {device_info['device_name']}")
             
             # Set memory fraction if specified
-            memory_fraction = self.hardware_config.get("memory_fraction", 0.9)
+            memory_fraction = getattr(self.hardware_config, "memory_fraction", 0.9)
             if hasattr(torch.cuda, 'set_per_process_memory_fraction'):
                 torch.cuda.set_per_process_memory_fraction(memory_fraction)
             
             # Enable gradient checkpointing for memory efficiency
-            if self.hardware_config.get("gradient_checkpointing", True):
+            if getattr(self.hardware_config, "gradient_checkpointing", True):
                 torch.backends.cudnn.benchmark = True
             
         else:

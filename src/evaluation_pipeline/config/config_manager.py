@@ -122,6 +122,26 @@ class OpikConfig(BaseModel):
     project: str = Field(default="vietnamese-math-evaluation", description="Opik project")
     batch_size: int = Field(default=8, description="Batch size for Opik evaluation")
     max_samples: int = Field(default=113, description="Maximum samples for Opik evaluation")
+    
+    # Metrics to evaluate - list of metric names
+    metrics: List[str] = Field(
+        default=[
+            "hallucination", "context_precision", "context_recall", 
+            "answer_relevance", "usefulness"
+        ],
+        description="List of Opik metrics to evaluate"
+    )
+    
+    # LLM-as-a-judge configuration
+    llm_judge: Dict[str, Any] = Field(
+        default={
+            "provider": "openrouter",
+            "model": "openai/gpt-4o",
+            "temperature": 0.0,
+            "max_tokens": 1000
+        },
+        description="LLM-as-a-judge configuration"
+    )
 
 
 class HardwareConfig(BaseModel):
@@ -129,6 +149,9 @@ class HardwareConfig(BaseModel):
     
     device: str = Field(default="auto", description="Device to use: auto, cuda, cpu")
     memory_efficient: bool = Field(default=True, description="Use memory efficient settings")
+    memory_fraction: float = Field(default=0.9, description="Memory fraction to use")
+    gradient_checkpointing: bool = Field(default=True, description="Enable gradient checkpointing")
+    optimize_for: str = Field(default="auto", description="Hardware optimization target: tesla_t4, a100, auto")
 
 
 class LoggingConfig(BaseModel):
