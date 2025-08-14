@@ -156,23 +156,48 @@ class Gemma3NInferenceEngine:
                     self.logger.info("Applying MatFormer optimizations...")
                     self.model = apply_matformer_optimizations(self.model, self.model_config.matformer_config)
 
-            # Move model to device and eval
+            # Move model to device and eval (skip for quantized models)
             if self.device.type == "cuda" and hasattr(self.model, "to"):
-                self.model = self.model.to(self.device)
+                # Check if model is quantized (bitsandbytes models or Unsloth models)
+                is_quantized = (
+                    hasattr(self.model, 'is_loaded_in_8bit') and self.model.is_loaded_in_8bit
+                ) or (
+                    hasattr(self.model, 'is_loaded_in_4bit') and self.model.is_loaded_in_4bit
+                ) or (
+                    self.model_config.load_in_4bit or self.model_config.load_in_8bit
+                )
+                
+                if not is_quantized:
+                    self.model = self.model.to(self.device)
+                else:
+                    self.logger.info("Skipping .to() for quantized model (already on correct device)")
+            
             if hasattr(self.model, "eval"):
                 self.model.eval()
 
-            # Optional compile for extra speed
+            # Optional compile for extra speed (skip for quantized models)
             if hasattr(torch, 'compile') and self.device.type == "cuda":
-                try:
-                    self.logger.info("Compiling model with torch.compile...")
-                    self.model = torch.compile(
-                        self.model,
-                        mode="reduce-overhead",
-                        fullgraph=True
-                    )
-                except Exception as e:
-                    self.logger.warning(f"Model compilation failed: {e}")
+                # Check if model is quantized
+                is_quantized = (
+                    hasattr(self.model, 'is_loaded_in_8bit') and self.model.is_loaded_in_8bit
+                ) or (
+                    hasattr(self.model, 'is_loaded_in_4bit') and self.model.is_loaded_in_4bit
+                ) or (
+                    self.model_config.load_in_4bit or self.model_config.load_in_8bit
+                )
+                
+                if not is_quantized:
+                    try:
+                        self.logger.info("Compiling model with torch.compile...")
+                        self.model = torch.compile(
+                            self.model,
+                            mode="reduce-overhead",
+                            fullgraph=True
+                        )
+                    except Exception as e:
+                        self.logger.warning(f"Model compilation failed: {e}")
+                else:
+                    self.logger.info("Skipping torch.compile for quantized model")
 
             self.logger.info("Gemma 3N model loaded successfully")
             self._log_model_info()
