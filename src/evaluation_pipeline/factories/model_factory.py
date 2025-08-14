@@ -13,7 +13,7 @@ from ..utils import (
     get_logger,
     get_device_info
 )
-from ..inference import Gemma3NInferenceEngine, BatchInferenceEngine
+from ..inference import Gemma3NInferenceEngine
 
 
 class BaseModel(ABC):
@@ -91,7 +91,7 @@ class BaseModel(ABC):
 
 class Gemma3NModel(BaseModel):
     """
-    Gemma 3N model with MatFormer optimization.
+    Gemma 3N model with optimized inference.
     """
     
     def __init__(self, config: ConfigManager):
@@ -103,9 +103,24 @@ class Gemma3NModel(BaseModel):
         """
         super().__init__(config)
         
-        # Initialize inference engines
-        self.inference_engine = Gemma3NInferenceEngine(config)
-        self.batch_engine = BatchInferenceEngine(self.inference_engine)
+        # Get model and hardware config
+        model_config = config.get_model_config()
+        hardware_config = config.get_hardware_config()
+        
+        # Create ModelConfig dataclass
+        from ..inference.gemma3n_inference import ModelConfig
+        model_config_obj = ModelConfig(
+            name=model_config.name,
+            max_seq_length=model_config.max_seq_length,
+            load_in_4bit=model_config.load_in_4bit,
+            load_in_8bit=model_config.load_in_8bit,
+            batch_size=model_config.batch_size,
+            torch_dtype=model_config.torch_dtype,
+            device_map=model_config.device_map
+        )
+        
+        # Initialize inference engine
+        self.inference_engine = Gemma3NInferenceEngine(model_config_obj, hardware_config)
         
         self.logger.info("Gemma 3N model initialized")
     
@@ -143,7 +158,7 @@ class Gemma3NModel(BaseModel):
             ModelError: If generation fails
         """
         try:
-            return self.inference_engine.generate(prompt, **kwargs)
+            return self.inference_engine.generate(question=prompt, **kwargs)
         except Exception as e:
             raise ModelError(f"Error generating response: {e}")
     
@@ -162,7 +177,7 @@ class Gemma3NModel(BaseModel):
             ModelError: If generation fails
         """
         try:
-            return self.batch_engine.process_batch(prompts, **kwargs)
+            return self.inference_engine.generate_batch(questions=prompts, **kwargs)
         except Exception as e:
             raise ModelError(f"Error in batch generation: {e}")
     
@@ -173,16 +188,12 @@ class Gemma3NModel(BaseModel):
         Returns:
             Model information
         """
-        return self.inference_engine.get_inference_stats()
-    
-    def get_batch_stats(self) -> Dict[str, Any]:
-        """
-        Get batch processing statistics.
-        
-        Returns:
-            Dictionary with batch statistics
-        """
-        return self.batch_engine.get_batch_stats()
+        # Return basic model info since we don't have stats anymore
+        return {
+            "model_type": "Gemma3N",
+            "device": str(self.device),
+            "model_loaded": self.inference_engine.model is not None
+        }
 
 
 class ModelFactory:

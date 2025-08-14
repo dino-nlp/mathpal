@@ -257,6 +257,8 @@ class DatasetManager:
                 question = self._get_field_value(item, [field_mapping["question"]] if isinstance(field_mapping["question"], str) else field_mapping["question"])
                 context = self._get_field_value(item, [field_mapping["context"]] if isinstance(field_mapping["context"], str) else field_mapping["context"])
                 expected_answer = self._get_field_value(item, [field_mapping["answer"]] if isinstance(field_mapping["answer"], str) else field_mapping["answer"])
+                
+                # Handle optional fields with defaults
                 grade_level = self._get_field_value(item, [field_mapping["grade_level"]] if isinstance(field_mapping["grade_level"], str) else field_mapping["grade_level"], default="5")
                 subject = self._get_field_value(item, [field_mapping["subject"]] if isinstance(field_mapping["subject"], str) else field_mapping["subject"], default="Toán")
                 difficulty = self._get_field_value(item, [field_mapping["difficulty"]] if isinstance(field_mapping["difficulty"], str) else field_mapping["difficulty"], default="Trung bình")

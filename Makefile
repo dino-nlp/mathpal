@@ -17,15 +17,14 @@ install: ## Install dependencies with Poetry
 	@echo "✅ Installation completed"
 ## eval $(poetry env activate)
 
-setup-env: ## Setup environment variables
-	@echo "🔧 Setting up environment..."
-	@if [ ! -f .env ]; then \
-		echo "📝 Creating .env file from template..."; \
-		cp env.example .env; \
-		echo "⚠️  Please edit .env file with your API keys"; \
-	else \
-		echo "✅ .env file already exists"; \
-	fi
+setup-env: ## Setup complete environment for finetuning with GPU support
+	@echo "🚀 Setting up complete finetuning environment..."
+	@pip install --upgrade pip
+	@python3 scripts/setup_finetuning_env.py
+	@echo "✅ Environment setup completed"
+
+setup-thuegpu: ## Alias for setup-env (backward compatibility)
+	@$(MAKE) setup-en
 
 test-env: ## Test environment setup
 	@echo "🧪 Testing environment setup..."
@@ -40,15 +39,15 @@ test-env: ## Test environment setup
 
 evaluate-quick: ## Run quick evaluation (3 samples)
 	@echo "⚡ Starting quick evaluation..."
-	@PYTHONPATH=$(PYTHONPATH) python -m src.evaluation_pipeline.cli.main -c configs/evaluation_quick.yaml evaluate -m unsloth/gemma-3n-E2B-it
+	@PYTHONPATH=$(PYTHONPATH) python3 -m src.evaluation_pipeline.cli.main -c configs/evaluation_quick.yaml evaluate -m unsloth/gemma-3n-E2B-it
 
 evaluate-production: ## Run production evaluation (full test set)
 	@echo "📊 Starting production evaluation..."
-	@PYTHONPATH=$(PYTHONPATH)  python -m src.evaluation_pipeline.cli.main -c configs/evaluation_production.yaml evaluate -m unsloth/gemma-3n-E2B-it
+	@PYTHONPATH=$(PYTHONPATH)  python3 -m src.evaluation_pipeline.cli.main -c configs/evaluation_production.yaml evaluate -m unsloth/gemma-3n-E2B-it
 
 evaluate-custom: ## Run evaluation with custom config (usage: make evaluate-custom CONFIG=path/to/config.yaml)
 	@echo "📋 Starting evaluation with config: $(CONFIG)..."
-	@PYTHONPATH=$(PYTHONPATH)  python -m src.evaluation_pipeline.cli.main -c $(CONFIG) evaluate -m unsloth/gemma-3n-E2B-it
+	@PYTHONPATH=$(PYTHONPATH)  python3 -m src.evaluation_pipeline.cli.main -c $(CONFIG) evaluate -m unsloth/gemma-3n-E2B-it
 
 # ======================================
 # ----------- Training Pipeline --------

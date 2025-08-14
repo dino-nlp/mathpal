@@ -89,12 +89,9 @@ class MatFormerOptimizer:
         Returns:
             MatFormer configuration dictionary
         """
+        # Only include valid parameters for AutoModelForCausalLM.from_pretrained()
         config = {
-            "attention_window_size": self.window_size,
-            "num_attention_heads": self.num_heads,
-            "use_flash_attention_2": self.use_flash_attention,
-            "rope_scaling": self.rope_scaling,
-            "matformer_enabled": True
+            "attn_implementation": "flash_attention_2" if self.use_flash_attention else "eager",
         }
         
         return config
@@ -111,18 +108,13 @@ class MatFormerOptimizer:
         """
         if device_type == "cuda":
             return {
-                "gradient_checkpointing": True,
                 "use_cache": False,
                 "attn_implementation": "flash_attention_2" if self.use_flash_attention else "eager",
-                "torch_compile": True,
-                "compile_mode": "reduce-overhead"
             }
         else:
             return {
-                "gradient_checkpointing": False,
                 "use_cache": True,
                 "attn_implementation": "eager",
-                "torch_compile": False
             }
 
 

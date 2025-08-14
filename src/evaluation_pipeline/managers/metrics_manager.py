@@ -247,10 +247,12 @@ class MetricsManager:
                         
                         prediction = model.generate(
                             prompt=question,
-                            max_new_tokens=512,
-                            temperature=0.7,
-                            top_p=0.9,
-                            do_sample=True
+                            generation_config={
+                                "max_new_tokens": 512,
+                                "temperature": 0.7,
+                                "top_p": 0.9,
+                                "do_sample": True
+                            }
                         )
                         
                         self.logger.info(f"📝 [Model Output] Answer {i+1}: {prediction}")
@@ -337,10 +339,12 @@ class MetricsManager:
             # Generate predictions using batch processing
             predictions = model.batch_generate(
                 prompts=questions,
-                max_new_tokens=512,
-                temperature=0.7,
-                top_p=0.9,
-                do_sample=True
+                generation_config={
+                    "max_new_tokens": 512,
+                    "temperature": 0.7,
+                    "top_p": 0.9,
+                    "do_sample": True
+                }
             )
             
             self.logger.info(f"Generated {len(predictions)} predictions")

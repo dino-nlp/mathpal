@@ -2,16 +2,19 @@
   "experiment_name": "quick_evaluation",
   "model_path": "unsloth/gemma-3n-E2B-it",
   "metrics": {
-    "answer_relevance_metric": 0.6999999999999998,
-    "UsefulnessMetric": 0.4666666666666666,
+    "hallucination": 0.85,
+    "context_precision": 0.78,
+    "context_recall": 0.82,
+    "answer_relevance": 0.88,
+    "usefulness": 0.83,
     "mathematical_accuracy": 0.5,
     "vietnamese_language_quality": 0.5,
-    "accuracy": 0.0,
-    "completeness": 0.0,
-    "clarity": 0.0,
-    "relevance": 0.0,
-    "helpfulness": 0.0,
-    "overall_score": 0.2333333333333333
+    "accuracy": 1.0,
+    "completeness": 1.0,
+    "clarity": 1.0,
+    "relevance": 1.0,
+    "helpfulness": 1.0,
+    "overall_score": 0.7981481481481482
   },
   "metadata": {
     "config": {
@@ -27,20 +30,20 @@
         "cuda_available": true,
         "device_count": 1,
         "current_device": "cuda:0",
-        "device_name": "NVIDIA GeForce RTX 3070",
+        "device_name": "NVIDIA RTX A4000",
         "memory_info": {
           "cuda:0": {
-            "total": 8589410304,
-            "allocated": 0,
-            "cached": 0
+            "total": 16674979840,
+            "allocated": 1349925376,
+            "cached": 9613344768
           }
         }
       },
       "environment_variables": {
         "OPENROUTER_API_KEY": "sk-or-v1...",
         "OPENAI_API_KEY": "sk-proj-...",
-        "PYTHONPATH": "/home/dino/workdpace/mathpal/src",
-        "PWD": "/home/dino/workdpace/mathpal"
+        "PYTHONPATH": "/root/mathpal/src",
+        "PWD": "/root/mathpal"
       },
       "hardware_config": {
         "device": "auto",
@@ -64,6 +67,6 @@
     }
   },
   "samples_evaluated": 3,
-  "evaluation_time": 121.60259795188904,
+  "evaluation_time": 64.16415810585022,
   "output_path": "evaluation_outputs/quick_evaluation"
 }
