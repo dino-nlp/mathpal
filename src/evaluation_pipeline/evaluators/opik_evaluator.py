@@ -169,6 +169,9 @@ class OpikClient:
                     # Add input (question) - required for most metrics
                     if hasattr(request, 'question') and request.question:
                         score_params['input'] = request.question
+                    else:
+                        # Use a default question if none is provided
+                        score_params['input'] = "Please evaluate this response"
                     
                     # Add output (answer) - required for most metrics
                     if hasattr(request, 'answer') and request.answer:
