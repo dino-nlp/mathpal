@@ -1,0 +1,66 @@
+{
+  "experiment_name": "quick_evaluation",
+  "model_path": "unsloth/gemma-3n-E2B-it",
+  "metrics": {
+    "hallucination": 0.85,
+    "context_precision": 0.78,
+    "context_recall": 0.82,
+    "answer_relevance": 0.88,
+    "usefulness": 0.83,
+    "mathematical_accuracy": 0.85,
+    "vietnamese_language_quality": 0.9,
+    "step_by_step_reasoning": 0.75,
+    "grade_level_appropriateness": 0.88,
+    "problem_solving_approach": 0.82,
+    "accuracy": 1.0,
+    "completeness": 1.0,
+    "clarity": 2.3333333333333335,
+    "relevance": 1.6666666666666667,
+    "helpfulness": 1.0,
+    "overall_score": 0.9761904761904764
+  },
+  "metadata": {
+    "config": {
+      "experiment_name": "quick_evaluation",
+      "output_dir": "./evaluation_outputs",
+      "model": "unsloth/gemma-3n-E2B-it",
+      "dataset": "ngohongthai/exam-sixth_grade-instruct-dataset",
+      "evaluation_mode": "comprehensive",
+      "max_samples": 3
+    },
+    "system_info": {
+      "device_info": {
+        "cuda_available": false,
+        "device_count": 0,
+        "current_device": "cpu",
+        "device_name": "CPU",
+        "memory_info": {}
+      },
+      "environment_variables": {
+        "OPENROUTER_API_KEY": "sk-or-v1...",
+        "OPENAI_API_KEY": "sk-proj-...",
+        "PYTHONPATH": "/home/dino/Documents/mathpal/src",
+        "PWD": "/home/dino/Documents/mathpal"
+      },
+      "hardware_config": {
+        "device": "auto",
+        "memory_efficient": true
+      },
+      "performance_config": {
+        "enable_profiling": false,
+        "profile_output": "profiles/evaluation_profile.json",
+        "enable_metrics": false,
+        "metrics_port": 8000
+      }
+    },
+    "dataset_info": {
+      "source": "huggingface",
+      "id": "ngohongthai/exam-sixth_grade-instruct-dataset",
+      "split": "test",
+      "info": {}
+    }
+  },
+  "samples_evaluated": 3,
+  "evaluation_time": 44.611833333969116,
+  "output_path": "evaluation_outputs/quick_evaluation"
+}

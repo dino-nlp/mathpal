@@ -1,0 +1,174 @@
+# =============================================================================
+# MathPal Evaluation Pipeline - Default Configuration
+# =============================================================================
+# Cấu hình mặc định cho evaluation pipeline với Gemma 3N, Opik và OpenRouter
+#
+# Usage:
+#   python -m evaluation_pipeline.main --config configs/evaluation_config.yaml
+# =============================================================================
+
+# =============================================================================
+# EXPERIMENT SETTINGS
+# =============================================================================
+experiment_name: "mathpal-vietnamese-math-evaluation"
+output_dir: "./evaluation_outputs"
+
+# =============================================================================
+# MODEL CONFIGURATION (Gemma 3N + MatFormer)
+# =============================================================================
+model:
+  # Gemma 3N model configuration
+  name: "google/gemma-3n-2b-it"  # hoặc "google/gemma-3n-4b-it" cho A100
+  max_seq_length: 2048
+  load_in_4bit: true
+  load_in_8bit: false
+  use_matformer: true
+  device_map: "auto"
+  torch_dtype: "bfloat16"
+  
+  # MatFormer optimization configuration
+  matformer_config:
+    window_size: 512
+    num_heads: 8
+    use_flash_attention: true
+    use_rope: true
+    rope_scaling:
+      type: "linear"
+      factor: 1.0
+
+# =============================================================================
+# OPENROUTER CONFIGURATION
+# =============================================================================
+openrouter:
+  # API Configuration
+  api_key: "${OPENROUTER_API_KEY}"  # Set via environment variable
+  base_url: "https://openrouter.ai/api/v1"
+  
+  # Model configurations for different purposes
+  models:
+    primary: "qwen/qwen3-8b:free"
+    fallback: "openai/gpt-4o-mini"
+    judge: "openai/gpt-4o"
+  
+  # Rate limiting
+  rate_limits:
+    requests_per_minute: 60
+    tokens_per_minute: 10000
+  
+  # Headers for tracking
+  headers:
+    HTTP-Referer: "https://mathpal.ai"
+    X-Title: "MathPal Evaluation"
+
+# =============================================================================
+# DATASET CONFIGURATION
+# =============================================================================
+dataset:
+  # Default dataset settings
+  default_source: "huggingface"  # huggingface, local
+  default_dataset_id: "ngohongthai/exam-sixth_grade-instruct-dataset"
+  default_split: "test"
+  
+  # Dataset information
+  info:
+    name: "Vietnamese Math Grade 5-6 Transition"
+    description: "Vietnamese mathematics problems for grade 5-6 students"
+    total_samples: 113
+    grade_levels: ["5", "6"]
+    subjects: ["Toán"]
+    difficulties: ["Dễ", "Trung bình", "Khó"]
+    language: "Vietnamese"
+    source: "Hugging Face Hub"
+    
+  # Field mapping for Hugging Face datasets
+  field_mapping:
+    question: ["question", "instruction", "text"]
+    context: ["context", "input"]
+    answer: ["answer", "output", "response"]
+    grade_level: ["grade_level", "grade"]
+    subject: ["subject"]
+    difficulty: ["difficulty"]
+    
+  # Evaluation settings
+  evaluation:
+    mode: "comprehensive"  # quick, comprehensive
+    max_samples: 1000
+    save_predictions: false
+    batch_size: 8
+    
+  # Predefined datasets
+  predefined:
+    ngohongthai:
+      id: "ngohongthai/exam-sixth_grade-instruct-dataset"
+      split: "test"
+      description: "Vietnamese math problems for grade 5-6 transition"
+      samples: 113
+      grade_level: "5"
+      subject: "Toán"
+      
+    # Add more predefined datasets here
+    # custom_dataset:
+    #   id: "username/custom-dataset"
+    #   split: "test"
+    #   description: "Custom dataset description"
+
+# =============================================================================
+# OPIK EVALUATION CONFIGURATION
+# =============================================================================
+opik:
+  # Opik settings
+  api_key: null  # Optional, set if required
+  workspace: "mathpal"
+  project: "vietnamese-math-evaluation"
+  
+  # Evaluation settings
+  batch_size: 32
+  max_samples: 1000
+  
+  # Metrics to evaluate
+  metrics:
+    - "hallucination"
+    - "context_precision"
+    - "context_recall"
+    - "answer_relevance"
+    - "usefulness"
+    - "mathematical_accuracy"
+    - "vietnamese_language_quality"
+    - "step_by_step_reasoning"
+    - "grade_level_appropriateness"
+    - "problem_solving_approach"
+  
+  # LLM-as-a-judge configuration
+  llm_judge:
+    provider: "openrouter"
+    model: "openai/gpt-4o"
+    temperature: 0.0
+    max_tokens: 1000
+
+# =============================================================================
+# HARDWARE OPTIMIZATION
+# =============================================================================
+hardware:
+  # Hardware optimization target
+  optimize_for: "auto"  # tesla_t4, a100, auto
+  
+  # Memory settings
+  memory_fraction: 0.9
+  gradient_checkpointing: true
+
+# =============================================================================
+# LOGGING CONFIGURATION
+# =============================================================================
+logging:
+  level: "INFO"
+  log_file: null  # Set to path for file logging
+  use_structlog: true
+
+# =============================================================================
+# PERFORMANCE SETTINGS
+# =============================================================================
+performance:
+  num_workers: 4
+  prefetch_factor: 2
+  pin_memory: true
+  persistent_workers: true

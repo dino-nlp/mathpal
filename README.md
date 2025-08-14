@@ -90,40 +90,112 @@ cd mathpal
 # Install dependencies
 make install
 
-# Setup environment
+# Setup environment variables
 make setup-env
 
-# Check environment
-make env-check
+# Test environment setup
+make test-env
 ```
 
-### Data Collection
+### Environment Variables Setup
+
+For security reasons, API keys are read from environment variables instead of config files:
+
+1. **Setup environment automatically:**
+   ```bash
+   make setup-env
+   ```
+
+2. **Edit `.env` file with your actual API keys:**
+   ```bash
+   # OpenRouter API Key for LLM-as-a-judge evaluation
+   # Get your API key from: https://openrouter.ai/keys
+   OPENROUTER_API_KEY=sk-or-v1-your-actual-api-key-here
+   
+   # Opik API Key for evaluation metrics
+   # Get your API key from: https://opik.ai
+   OPIK_API_KEY=your-actual-opik-api-key-here
+   
+   # OpenAI API Key (optional, for fallback)
+   # Get your API key from: https://platform.openai.com/api-keys
+   OPENAI_API_KEY=sk-proj-your-actual-openai-api-key-here
+   ```
+
+3. **Test environment setup:**
+   ```bash
+   make test-env
+   ```
+
+### Quick Start Commands
+
+```bash
+# Show all available commands
+make help
+
+# Check project status
+make status
+
+# Show detailed information
+make info
+```
+
+### Data Pipeline
 
 ```bash
 # Start data crawling
-make local-start
+make crawl
 
-# Crawl specific websites
-make local-test-crawler
-
-# Ingest data from links
-make local-ingest-data
+# Process crawled data
+make process
 ```
 
 ### Model Training
 
 ```bash
-# Tesla T4 (16GB VRAM)
-make train-tesla-t4
-
-# A100 (40GB/80GB VRAM)
-make train-a100
-
-# Quick test
+# Quick training test (20 steps)
 make train-quick
 
-# Production training
-make train-prod
+# Full training
+make train
+
+# Training with custom config
+make train-custom CONFIG=path/to/config.yaml
+```
+
+### Model Evaluation
+
+```bash
+# Quick evaluation (3 samples)
+make evaluate-quick
+
+# Production evaluation (full test set)
+make evaluate-production
+
+# Evaluation with custom config
+make evaluate-custom CONFIG=path/to/config.yaml
+```
+
+### Docker Commands
+
+```bash
+# Start Docker infrastructure
+make docker-start
+
+# Stop Docker infrastructure
+make docker-stop
+
+# Show Docker logs
+make docker-logs
+```
+
+### Utility Commands
+
+```bash
+# Clean up generated files
+make clean
+
+# Test environment setup
+make test-env
 ```
 
 ## 🔧 Hardware Optimization

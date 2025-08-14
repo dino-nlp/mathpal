@@ -1,0 +1,71 @@
+# MathPal Production Evaluation Configuration
+# For comprehensive evaluation with full test set
+
+experiment_name: "production_evaluation"
+output_dir: "./evaluation_outputs"
+
+model:
+  name: "unsloth/gemma-3n-E2B-it"
+  max_seq_length: 2048
+  load_in_4bit: true
+  batch_size: 8
+
+dataset:
+  source: "huggingface"
+  dataset_id: "ngohongthai/exam-sixth_grade-instruct-dataset"
+  split: "test"
+  max_samples: 113  # Full test set
+
+evaluation:
+  mode: "comprehensive"
+  save_predictions: true
+  
+  # Full metrics suite
+  metrics:
+    opik:
+      enabled: true
+      metrics: ["hallucination", "context_precision", "context_recall", "answer_relevance", "usefulness"]
+    
+    vietnamese_math:
+      enabled: true
+      metrics: ["mathematical_accuracy", "vietnamese_language_quality", "step_by_step_reasoning", "grade_level_appropriateness", "problem_solving_approach"]
+    
+    llm_as_judge:
+      enabled: true
+      metrics: ["accuracy", "completeness", "clarity", "relevance", "helpfulness"]
+
+openrouter:
+  # API key will be read from OPENROUTER_API_KEY environment variable
+  base_url: "https://openrouter.ai/api/v1"
+  models:
+    primary: "anthropic/claude-3.5-sonnet"
+    fallback: "openai/gpt-4o-mini"
+    judge: "openai/gpt-4o"
+  rate_limits:
+    requests_per_minute: 60
+    tokens_per_minute: 10000
+    max_retries: 3
+    retry_delay: 1.0
+
+opik:
+  # API key will be read from OPIK_API_KEY environment variable
+  workspace: "mathpal"
+  project: "vietnamese-math-evaluation"
+  batch_size: 8
+  max_samples: 113
+
+hardware:
+  device: "auto"
+  memory_efficient: true
+
+logging:
+  level: "INFO"
+  format: "json"
+  output: "both"
+  log_file: "logs/evaluation.log"
+
+performance:
+  enable_profiling: true
+  profile_output: "profiles/evaluation_profile.json"
+  enable_metrics: true
+  metrics_port: 8000
