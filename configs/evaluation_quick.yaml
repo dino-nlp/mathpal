@@ -51,8 +51,8 @@ opik:
   
   # LLM-as-a-judge configuration
   llm_judge:
-    provider: "openrouter"
-    model: "qwen/qwen3-8b:free"
+    provider: "openai"
+    model: "gpt-4o"
     temperature: 0.0
     max_tokens: 1000
 
