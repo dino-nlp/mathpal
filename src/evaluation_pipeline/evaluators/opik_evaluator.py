@@ -336,6 +336,8 @@ class OpikEvaluator:
                     "answer_relevance": 0.88,
                     "usefulness": 0.83
                 }
+                # Create empty results for statistics
+                results = []
             else:
                 # Evaluate batch
                 results = self.opik_client.evaluate_batch(requests, opik_metrics)
@@ -405,8 +407,7 @@ class OpikEvaluator:
         try:
             from opik.evaluation.metrics import (
                 Hallucination, ContextPrecision, ContextRecall, 
-                AnswerRelevance, Usefulness, Moderation,
-                ConversationalCoherence, SessionCompletenessQuality, UserFrustration
+                AnswerRelevance, Usefulness, Moderation
             )
             
             metric_map = {
@@ -415,10 +416,7 @@ class OpikEvaluator:
                 "context_recall": ContextRecall,
                 "answer_relevance": AnswerRelevance,
                 "usefulness": Usefulness,
-                "moderation": Moderation,
-                "conversational_coherence": ConversationalCoherence,
-                "session_completeness_quality": SessionCompletenessQuality,
-                "user_frustration": UserFrustration
+                "moderation": Moderation
             }
             
             metrics = []
