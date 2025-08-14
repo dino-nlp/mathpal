@@ -161,11 +161,11 @@ class OpikClient:
                     # Determine which parameters to pass based on metric type
                     score_params = {}
                     
-                    # Add input if available
+                    # Add input (question) - required for most metrics
                     if hasattr(request, 'question') and request.question:
                         score_params['input'] = request.question
                     
-                    # Add output (answer)
+                    # Add output (answer) - required for most metrics
                     if hasattr(request, 'answer') and request.answer:
                         score_params['output'] = request.answer
                     
@@ -177,9 +177,33 @@ class OpikClient:
                     if hasattr(request, 'expected_answer') and request.expected_answer:
                         score_params['expected_output'] = request.expected_answer
                     
-                    # Call the metric
-                    result = metric.score(**score_params)
-                    results.append(result)
+                    # Call the metric with required parameters
+                    try:
+                        result = metric.score(**score_params)
+                        results.append(result)
+                    except TypeError as e:
+                        # If missing required parameters, try with minimal parameters
+                        self.logger.warning(f"Metric {metric} failed with full params: {e}")
+                        minimal_params = {}
+                        if 'input' in score_params:
+                            minimal_params['input'] = score_params['input']
+                        if 'output' in score_params:
+                            minimal_params['output'] = score_params['output']
+                        
+                        if minimal_params:
+                            try:
+                                result = metric.score(**minimal_params)
+                                results.append(result)
+                            except Exception as e2:
+                                self.logger.error(f"Metric {metric} failed with minimal params: {e2}")
+                                # Create placeholder result
+                                if score_result is not None:
+                                    placeholder_result = score_result.ScoreResult(
+                                        name=getattr(metric, 'name', 'unknown'),
+                                        value=0.0,
+                                        reason=f"Error: {str(e2)}"
+                                    )
+                                    results.append(placeholder_result)
                     
                 else:
                     self.logger.warning(f"Metric {metric} does not have score method")
