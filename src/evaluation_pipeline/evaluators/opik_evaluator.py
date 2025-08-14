@@ -159,9 +159,9 @@ class OpikClient:
                 # Call the metric's score method with appropriate parameters
                 if hasattr(metric, 'score'):
                     # Debug log to see what's in the request
-                    self.logger.debug(f"Request fields: {[attr for attr in dir(request) if not attr.startswith('_')]}")
-                    self.logger.debug(f"Request question: {getattr(request, 'question', 'NOT_FOUND')}")
-                    self.logger.debug(f"Request answer: {getattr(request, 'answer', 'NOT_FOUND')}")
+                    self.logger.info(f"Request fields: {[attr for attr in dir(request) if not attr.startswith('_')]}")
+                    self.logger.info(f"Request question: {getattr(request, 'question', 'NOT_FOUND')}")
+                    self.logger.info(f"Request answer: {getattr(request, 'answer', 'NOT_FOUND')}")
                     
                     # Determine which parameters to pass based on metric type
                     score_params = {}
@@ -183,7 +183,7 @@ class OpikClient:
                         score_params['expected_output'] = request.expected_answer
                     
                     # Debug log
-                    self.logger.debug(f"Score params for metric {type(metric)}: {score_params}")
+                    self.logger.info(f"Score params for metric {type(metric)}: {score_params}")
                     
                     # Call the metric with required parameters
                     try:
@@ -192,14 +192,14 @@ class OpikClient:
                         if any(name in metric_type for name in ['AnswerRelevance', 'Usefulness', 'Hallucination']):
                             # These metrics expect input and output as positional arguments
                             if 'input' in score_params and 'output' in score_params:
-                                self.logger.debug(f"Calling {metric_type} with positional args: input='{score_params['input'][:50]}...', output='{score_params['output'][:50]}...'")
+                                self.logger.info(f"Calling {metric_type} with positional args: input='{score_params['input'][:50]}...', output='{score_params['output'][:50]}...'")
                                 result = metric.score(score_params['input'], score_params['output'])
                                 results.append(result)
                             else:
                                 raise ValueError("Missing required input or output parameters")
                         else:
                             # For other metrics, use keyword arguments
-                            self.logger.debug(f"Calling {metric_type} with keyword args: {score_params}")
+                            self.logger.info(f"Calling {metric_type} with keyword args: {score_params}")
                             result = metric.score(**score_params)
                             results.append(result)
                     except (TypeError, ValueError) as e:
