@@ -177,18 +177,24 @@ class OpikClient:
                     if hasattr(request, 'expected_answer') and request.expected_answer:
                         score_params['expected_output'] = request.expected_answer
                     
+                    # Debug log
+                    self.logger.debug(f"Score params for metric {type(metric)}: {score_params}")
+                    
                     # Call the metric with required parameters
                     try:
                         # For LLM-as-a-judge metrics, pass input and output as positional arguments
-                        if hasattr(metric, 'name') and any(name in str(type(metric)) for name in ['AnswerRelevance', 'Usefulness', 'Hallucination']):
+                        metric_type = str(type(metric))
+                        if any(name in metric_type for name in ['AnswerRelevance', 'Usefulness', 'Hallucination']):
                             # These metrics expect input and output as positional arguments
                             if 'input' in score_params and 'output' in score_params:
+                                self.logger.debug(f"Calling {metric_type} with positional args: input='{score_params['input'][:50]}...', output='{score_params['output'][:50]}...'")
                                 result = metric.score(score_params['input'], score_params['output'])
                                 results.append(result)
                             else:
                                 raise ValueError("Missing required input or output parameters")
                         else:
                             # For other metrics, use keyword arguments
+                            self.logger.debug(f"Calling {metric_type} with keyword args: {score_params}")
                             result = metric.score(**score_params)
                             results.append(result)
                     except (TypeError, ValueError) as e:
