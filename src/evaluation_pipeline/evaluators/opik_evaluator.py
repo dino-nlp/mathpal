@@ -158,6 +158,11 @@ class OpikClient:
             try:
                 # Call the metric's score method with appropriate parameters
                 if hasattr(metric, 'score'):
+                    # Debug log to see what's in the request
+                    self.logger.debug(f"Request fields: {[attr for attr in dir(request) if not attr.startswith('_')]}")
+                    self.logger.debug(f"Request question: {getattr(request, 'question', 'NOT_FOUND')}")
+                    self.logger.debug(f"Request answer: {getattr(request, 'answer', 'NOT_FOUND')}")
+                    
                     # Determine which parameters to pass based on metric type
                     score_params = {}
                     
