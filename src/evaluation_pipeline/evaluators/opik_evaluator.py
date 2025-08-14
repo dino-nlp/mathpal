@@ -179,23 +179,29 @@ class OpikClient:
                     
                     # Call the metric with required parameters
                     try:
-                        result = metric.score(**score_params)
-                        results.append(result)
-                    except TypeError as e:
+                        # For LLM-as-a-judge metrics, pass input and output as positional arguments
+                        if hasattr(metric, 'name') and any(name in str(type(metric)) for name in ['AnswerRelevance', 'Usefulness', 'Hallucination']):
+                            # These metrics expect input and output as positional arguments
+                            if 'input' in score_params and 'output' in score_params:
+                                result = metric.score(score_params['input'], score_params['output'])
+                                results.append(result)
+                            else:
+                                raise ValueError("Missing required input or output parameters")
+                        else:
+                            # For other metrics, use keyword arguments
+                            result = metric.score(**score_params)
+                            results.append(result)
+                    except (TypeError, ValueError) as e:
                         # If missing required parameters, try with minimal parameters
                         self.logger.warning(f"Metric {metric} failed with full params: {e}")
-                        minimal_params = {}
-                        if 'input' in score_params:
-                            minimal_params['input'] = score_params['input']
-                        if 'output' in score_params:
-                            minimal_params['output'] = score_params['output']
                         
-                        if minimal_params:
+                        # Try with just input and output as positional arguments
+                        if 'input' in score_params and 'output' in score_params:
                             try:
-                                result = metric.score(**minimal_params)
+                                result = metric.score(score_params['input'], score_params['output'])
                                 results.append(result)
                             except Exception as e2:
-                                self.logger.error(f"Metric {metric} failed with minimal params: {e2}")
+                                self.logger.error(f"Metric {metric} failed with positional params: {e2}")
                                 # Create placeholder result
                                 if score_result is not None:
                                     placeholder_result = score_result.ScoreResult(
@@ -204,6 +210,16 @@ class OpikClient:
                                         reason=f"Error: {str(e2)}"
                                     )
                                     results.append(placeholder_result)
+                        else:
+                            self.logger.error(f"Missing required input or output for metric {metric}")
+                            # Create placeholder result
+                            if score_result is not None:
+                                placeholder_result = score_result.ScoreResult(
+                                    name=getattr(metric, 'name', 'unknown'),
+                                    value=0.0,
+                                    reason=f"Missing required parameters"
+                                )
+                                results.append(placeholder_result)
                     
                 else:
                     self.logger.warning(f"Metric {metric} does not have score method")
