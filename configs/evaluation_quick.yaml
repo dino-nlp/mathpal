@@ -15,6 +15,15 @@ dataset:
   dataset_id: "ngohongthai/exam-sixth_grade-instruct-dataset"
   split: "test"
   max_samples: 3  # Quick test with only 3 samples
+  
+  # Field mapping for this specific dataset
+  field_mapping:
+    question: "question"
+    answer: "solution"  # Dataset uses 'solution' instead of 'answer'
+    context: "question"  # Use question as context if needed
+    grade_level: "5"  # Default grade level for this dataset
+    subject: "Toán"  # Default subject for this dataset
+    difficulty: "Trung bình"  # Default difficulty for this dataset
 
 evaluation:
   mode: "quick"

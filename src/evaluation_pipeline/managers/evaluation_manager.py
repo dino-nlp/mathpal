@@ -316,3 +316,41 @@ class EvaluationManager(BaseEvaluationManager):
         finally:
             # Restore original metrics
             self.config.config.opik.metrics = original_metrics
+    
+    def cleanup(self):
+        """
+        Cleanup resources and free memory.
+        
+        This method should be called when the evaluation manager is no longer needed
+        to ensure proper resource cleanup.
+        """
+        try:
+            self.logger.info("Cleaning up evaluation manager resources...")
+            
+            # Cleanup sub-managers
+            if hasattr(self, 'dataset_manager') and self.dataset_manager is not None:
+                if hasattr(self.dataset_manager, 'cleanup'):
+                    self.dataset_manager.cleanup()
+            
+            if hasattr(self, 'metrics_manager') and self.metrics_manager is not None:
+                if hasattr(self.metrics_manager, 'cleanup'):
+                    self.metrics_manager.cleanup()
+            
+            # Clear references
+            self.dataset_manager = None
+            self.metrics_manager = None
+            
+            self.logger.info("Evaluation manager cleanup completed")
+            
+        except Exception as e:
+            self.logger.error(f"Error during cleanup: {e}", exc_info=True)
+    
+    def __del__(self):
+        """
+        Destructor to ensure cleanup is called.
+        """
+        try:
+            self.cleanup()
+        except Exception:
+            # Ignore errors in destructor
+            pass

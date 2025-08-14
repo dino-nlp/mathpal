@@ -13,6 +13,16 @@ sys.path.insert(0, str(project_root))
 
 from src.evaluation_pipeline.utils import setup_logging
 from src.evaluation_pipeline.config import ConfigManager
+from src.evaluation_pipeline.utils.logger import (
+    setup_logger as setup_rich_logger, 
+    print_evaluation_header, 
+    print_evaluation_results,
+    print_model_info,
+    print_dataset_info,
+    print_step_header,
+    print_error_summary,
+    print_success_message
+)
 
 
 @click.group()
@@ -140,11 +150,18 @@ def evaluate(ctx, model_path, dataset, output, mode, batch_size, max_samples, sa
     config = ctx.obj['config']
     logger = ctx.obj['logger']
     
+    # Print evaluation header
+    print_evaluation_header()
+    
+    eval_manager = None
     try:
-        # Create evaluation manager
+        # Step 1: Create evaluation manager
+        print_step_header("Initializing Evaluation Manager", 1, 5)
         eval_manager = EvaluationManager(config)
+        print_success_message("Evaluation manager initialized successfully")
         
-        # Load dataset
+        # Step 2: Load dataset
+        print_step_header("Loading Dataset", 2, 5)
         if dataset:
             # Check if it's a predefined dataset name
             predefined_datasets = config.config.dataset.predefined
@@ -154,6 +171,13 @@ def evaluate(ctx, model_path, dataset, output, mode, batch_size, max_samples, sa
                 samples = eval_manager.dataset_manager.load_dataset(dataset)
         else:
             samples = eval_manager.dataset_manager.get_default_dataset()
+        
+        # Print dataset info
+        print_dataset_info(
+            dataset_name=dataset or "Default Dataset",
+            sample_count=len(samples),
+            source=config.config.dataset.source
+        )
         
         # Limit samples if specified
         if max_samples and len(samples) > max_samples:
@@ -167,25 +191,37 @@ def evaluate(ctx, model_path, dataset, output, mode, batch_size, max_samples, sa
         
         if dry_run:
             logger.info("DRY RUN MODE - No actual evaluation will be performed")
-            click.echo("Dry run completed successfully")
+            print_warning_message("Dry run completed successfully")
             return
         
-        # Run evaluation
+        # Step 3: Print model info
+        print_step_header("Model Information", 3, 5)
+        print_model_info(
+            model_name=model_path.split("/")[-1] if "/" in model_path else model_path,
+            model_path=model_path,
+            device=config.config.hardware.device
+        )
+        
+        # Step 4: Run evaluation
+        print_step_header("Running Evaluation", 4, 5)
         logger.info(f"Starting evaluation of {len(samples)} samples")
         results = eval_manager.evaluate_model(
             model_path=model_path,
             samples=samples
         )
         
-        # Save results
+        # Step 5: Save and display results
+        print_step_header("Saving Results", 5, 5)
         eval_manager.save_results(results)
         
+        # Display results with beautiful formatting
+        print_evaluation_results(
+            results=results.metrics,
+            model_name=model_path.split("/")[-1] if "/" in model_path else model_path
+        )
+        
         # Display summary
-        click.echo(f"\n✅ Evaluation completed successfully!")
-        overall_score = results.metrics.get("overall_score", 0.0)
-        click.echo(f"📊 Overall Score: {overall_score:.3f}")
-        click.echo(f"📁 Results saved to: {output}")
-        click.echo(f"📈 Samples evaluated: {len(samples)}")
+        print_success_message(f"Evaluation completed successfully! Results saved to: {output}")
         
         # Show top metrics
         click.echo(f"\n🏆 Top Metrics:")
@@ -199,9 +235,22 @@ def evaluate(ctx, model_path, dataset, output, mode, batch_size, max_samples, sa
             click.echo(f"  {metric}: {score:.3f}")
         
     except Exception as e:
-        logger.error(f"Evaluation failed: {e}")
-        click.echo(f"❌ Evaluation failed: {e}", err=True)
+        logger.error(f"Evaluation failed: {e}", exc_info=True)
+        print_error_summary(str(e), "Evaluation process encountered an error")
+        # Cleanup resources
+        if eval_manager is not None:
+            try:
+                eval_manager.cleanup()
+            except Exception as cleanup_error:
+                logger.error(f"Cleanup failed: {cleanup_error}", exc_info=True)
         sys.exit(1)
+    finally:
+        # Ensure cleanup happens even on success
+        if eval_manager is not None:
+            try:
+                eval_manager.cleanup()
+            except Exception as cleanup_error:
+                logger.warning(f"Cleanup failed: {cleanup_error}")
 
 
 @cli.command()

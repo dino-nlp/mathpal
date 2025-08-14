@@ -55,12 +55,40 @@ class OpenRouterProvider:
     ) -> Dict[str, Any]:
         """Use LLM-as-a-judge to evaluate an answer."""
         try:
+            # Log input details
+            self.logger.info(f"🔍 [LLM-as-a-Judge Input] Question: {question}")
+            self.logger.info(f"📚 [LLM-as-a-Judge Input] Context: {context}")
+            self.logger.info(f"💬 [LLM-as-a-Judge Input] Model Answer: {answer}")
+            if expected_answer:
+                self.logger.info(f"🎯 [LLM-as-a-Judge Input] Expected Answer: {expected_answer}")
+            
             prompt = self._create_evaluation_prompt(
                 question, context, answer, expected_answer
             )
             
+            # Log prompt details
+            self.logger.info(f"Created evaluation prompt with {len(prompt)} messages")
+            self.logger.info(f"System prompt: {prompt[0]['content'][:200]}...")
+            
             response = self._make_chat_request(prompt)
+            
+            # Log response details
+            self.logger.info(f"🤖 [LLM-as-a-Judge Response] Model: {response.model}")
+            self.logger.info(f"📄 [LLM-as-a-Judge Response] Content: {response.content}")
+            self.logger.info(f"💰 [LLM-as-a-Judge Response] Cost: {response.cost}")
+            
             results = self._parse_evaluation_response(response.content)
+            
+            # Log parsed results
+            self.logger.info(f"📊 [LLM-as-a-Judge Results] Parsed scores: {results}")
+            
+            # Log individual scores
+            if "scores" in results:
+                for criterion, score_data in results["scores"].items():
+                    if isinstance(score_data, dict) and "score" in score_data:
+                        self.logger.info(f"📈 [LLM-as-a-Judge Score] {criterion}: {score_data['score']:.2f}")
+                    else:
+                        self.logger.info(f"📈 [LLM-as-a-Judge Score] {criterion}: {score_data}")
             
             results.update({
                 "model_used": response.model,
@@ -70,6 +98,7 @@ class OpenRouterProvider:
             return results
             
         except Exception as e:
+            self.logger.error(f"LLM-as-a-judge evaluation failed: {e}", exc_info=True)
             raise ProviderError(f"LLM-as-a-judge evaluation failed: {e}")
     
     def _create_evaluation_prompt(
@@ -135,6 +164,12 @@ AI Answer: {answer}"""
                 "max_tokens": 1000
             }
             
+            # Log request details
+            self.logger.info(f"Making OpenRouter request to: {self.base_url}/chat/completions")
+            self.logger.info(f"Model: {self.default_model}")
+            self.logger.info(f"Messages count: {len(messages)}")
+            self.logger.info(f"Payload: {json.dumps(payload, indent=2)}")
+            
             response = requests.post(
                 f"{self.base_url}/chat/completions",
                 headers=headers,
@@ -142,8 +177,17 @@ AI Answer: {answer}"""
                 timeout=30
             )
             
+            # Log response details
+            self.logger.info(f"Response status: {response.status_code}")
+            self.logger.info(f"Response headers: {dict(response.headers)}")
+            
             response.raise_for_status()
             data = response.json()
+            
+            # Log response data
+            self.logger.info(f"Response data keys: {list(data.keys())}")
+            if "choices" in data and len(data["choices"]) > 0:
+                self.logger.info(f"Response content length: {len(data['choices'][0]['message']['content'])}")
             
             return OpenRouterResponse(
                 content=data["choices"][0]["message"]["content"],
@@ -151,6 +195,7 @@ AI Answer: {answer}"""
             )
             
         except Exception as e:
+            self.logger.error(f"Chat request failed: {e}", exc_info=True)
             raise ProviderError(f"Chat request failed: {e}")
     
     def _parse_evaluation_response(self, content: str) -> Dict[str, Any]:

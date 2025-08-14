@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from ..config import ConfigManager
 from ..utils import (
     DatasetError,
+    ValidationError,
     get_logger,
     load_yaml_config
 )
@@ -99,7 +100,7 @@ class DatasetManager:
     
     def load_dataset(self, dataset_path: Union[str, Path]) -> List[EvaluationSample]:
         """
-        Load dataset from file or Hugging Face Hub.
+        Load dataset from file or Hugging Face Hub with validation.
         
         Args:
             dataset_path: Path to dataset file or Hugging Face dataset ID
@@ -108,45 +109,122 @@ class DatasetManager:
             List of evaluation samples
             
         Raises:
-            DatasetError: If dataset cannot be loaded
+            DatasetError: If dataset cannot be loaded or is invalid
         """
         dataset_path = str(dataset_path)
         
         # Check if it's a Hugging Face dataset ID
         if "/" in dataset_path and not Path(dataset_path).exists():
-            return self._load_huggingface_dataset(dataset_path)
-        
-        # Load from local file
-        dataset_path = Path(dataset_path)
-        
-        if not dataset_path.exists():
-            raise DatasetError(f"Dataset file does not exist: {dataset_path}")
-        
-        try:
-            with open(dataset_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
+            raw_samples = self._load_huggingface_dataset(dataset_path)
+        else:
+            # Load from local file
+            dataset_path = Path(dataset_path)
             
-            samples = []
-            for item in data:
-                sample = EvaluationSample(
-                    id=item.get("id", str(len(samples))),
-                    question=item["question"],
-                    context=item.get("context"),
-                    expected_answer=item.get("expected_answer"),
-                    grade_level=item.get("grade_level"),
-                    subject=item.get("subject"),
-                    difficulty=item.get("difficulty"),
-                    metadata=item.get("metadata", {})
-                )
-                samples.append(sample)
+            if not dataset_path.exists():
+                raise DatasetError(f"Dataset file does not exist: {dataset_path}")
             
-            self.logger.info(f"Loaded {len(samples)} samples from {dataset_path}")
-            return samples
+            try:
+                with open(dataset_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                
+                raw_samples = []
+                for item in data:
+                    sample = EvaluationSample(
+                        id=item.get("id", str(len(raw_samples))),
+                        question=item["question"],
+                        context=item.get("context"),
+                        expected_answer=item.get("expected_answer"),
+                        grade_level=item.get("grade_level"),
+                        subject=item.get("subject"),
+                        difficulty=item.get("difficulty"),
+                        metadata=item.get("metadata", {})
+                    )
+                    raw_samples.append(sample)
+                
+            except json.JSONDecodeError as e:
+                raise DatasetError(f"Error parsing JSON dataset: {e}")
+            except Exception as e:
+                raise DatasetError(f"Error loading dataset: {e}")
+        
+        # Validate and filter samples
+        validated_samples = self._validate_samples(raw_samples)
+        
+        self.logger.info(f"Loaded {len(validated_samples)} valid samples from {dataset_path}")
+        return validated_samples
+    
+    def _validate_samples(self, samples: List[EvaluationSample]) -> List[EvaluationSample]:
+        """
+        Validate and filter samples.
+        
+        Args:
+            samples: List of raw samples
             
-        except json.JSONDecodeError as e:
-            raise DatasetError(f"Error parsing JSON dataset: {e}")
-        except Exception as e:
-            raise DatasetError(f"Error loading dataset: {e}")
+        Returns:
+            List of validated samples
+        """
+        validated_samples = []
+        invalid_count = 0
+        
+        for i, sample in enumerate(samples):
+            try:
+                validated_sample = self._validate_single_sample(sample)
+                validated_samples.append(validated_sample)
+            except ValidationError as e:
+                invalid_count += 1
+                self.logger.warning(f"Sample {i} (ID: {sample.id}) validation failed: {e}")
+            except Exception as e:
+                invalid_count += 1
+                self.logger.error(f"Unexpected error validating sample {i} (ID: {sample.id}): {e}")
+        
+        if invalid_count > 0:
+            self.logger.warning(f"Skipped {invalid_count} invalid samples out of {len(samples)} total")
+        
+        return validated_samples
+    
+    def _validate_single_sample(self, sample: EvaluationSample) -> EvaluationSample:
+        """
+        Validate a single sample.
+        
+        Args:
+            sample: Sample to validate
+            
+        Returns:
+            Validated sample
+            
+        Raises:
+            ValidationError: If sample is invalid
+        """
+        # Check required fields
+        if not sample.question or not sample.question.strip():
+            raise ValidationError("Question is required and cannot be empty")
+        
+        # Validate question length
+        if len(sample.question) > 10000:  # 10KB limit
+            raise ValidationError("Question is too long (max 10KB)")
+        
+        # Validate answer length if present
+        if sample.expected_answer and len(sample.expected_answer) > 50000:  # 50KB limit
+            raise ValidationError("Expected answer is too long (max 50KB)")
+        
+        # Validate grade level if present
+        if sample.grade_level:
+            valid_grades = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]
+            if sample.grade_level not in valid_grades:
+                raise ValidationError(f"Invalid grade level: {sample.grade_level}")
+        
+        # Validate subject if present
+        if sample.subject:
+            valid_subjects = ["Toán", "Văn", "Tiếng Việt", "Khoa học", "Lịch sử", "Địa lý"]
+            if sample.subject not in valid_subjects:
+                raise ValidationError(f"Invalid subject: {sample.subject}")
+        
+        # Validate difficulty if present
+        if sample.difficulty:
+            valid_difficulties = ["Dễ", "Trung bình", "Khó"]
+            if sample.difficulty not in valid_difficulties:
+                raise ValidationError(f"Invalid difficulty: {sample.difficulty}")
+        
+        return sample
     
     def _load_huggingface_dataset(self, dataset_id: str, split: str = "test") -> List[EvaluationSample]:
         """
@@ -176,12 +254,12 @@ class DatasetManager:
             samples = []
             for i, item in enumerate(dataset):
                 # Map fields using config
-                question = self._get_field_value(item, field_mapping["question"])
-                context = self._get_field_value(item, field_mapping["context"])
-                expected_answer = self._get_field_value(item, field_mapping["answer"])
-                grade_level = self._get_field_value(item, field_mapping["grade_level"], default="5")
-                subject = self._get_field_value(item, field_mapping["subject"], default="Toán")
-                difficulty = self._get_field_value(item, field_mapping["difficulty"], default="Trung bình")
+                question = self._get_field_value(item, [field_mapping["question"]] if isinstance(field_mapping["question"], str) else field_mapping["question"])
+                context = self._get_field_value(item, [field_mapping["context"]] if isinstance(field_mapping["context"], str) else field_mapping["context"])
+                expected_answer = self._get_field_value(item, [field_mapping["answer"]] if isinstance(field_mapping["answer"], str) else field_mapping["answer"])
+                grade_level = self._get_field_value(item, [field_mapping["grade_level"]] if isinstance(field_mapping["grade_level"], str) else field_mapping["grade_level"], default="5")
+                subject = self._get_field_value(item, [field_mapping["subject"]] if isinstance(field_mapping["subject"], str) else field_mapping["subject"], default="Toán")
+                difficulty = self._get_field_value(item, [field_mapping["difficulty"]] if isinstance(field_mapping["difficulty"], str) else field_mapping["difficulty"], default="Trung bình")
                 
                 sample = EvaluationSample(
                     id=item.get("id", str(i)),

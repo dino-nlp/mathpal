@@ -90,7 +90,7 @@ class OpikClient:
         metrics: List[Any]
     ) -> List[Any]:
         """
-        Evaluate a batch of requests using Opik.
+        Evaluate a batch of requests using Opik with retry logic.
         
         Args:
             requests: List of evaluation requests
@@ -100,7 +100,7 @@ class OpikClient:
             List of evaluation results from Opik metrics
             
         Raises:
-            OpikError: If evaluation fails
+            OpikError: If evaluation fails after all retries
         """
         self.logger.info(f"Evaluating {len(requests)} samples with {len(metrics)} metrics")
         
@@ -113,15 +113,15 @@ class OpikClient:
                 # Rate limiting
                 self._check_rate_limit()
                 
-                # Evaluate single request with Opik metrics
-                request_results = self._evaluate_single_with_opik(request, metrics)
+                # Evaluate single request with retry logic
+                request_results = self._evaluate_single_with_retry(request, metrics)
                 results.extend(request_results)
                 
                 # Update rate limiting
                 self._update_rate_limit()
                 
             except Exception as e:
-                self.logger.error(f"Error evaluating request {i}: {e}")
+                self.logger.error(f"Error evaluating request {i} after all retries: {e}")
                 # Add placeholder results for failed request
                 for metric in metrics:
                     if hasattr(metric, 'name'):
@@ -130,12 +130,48 @@ class OpikClient:
                             placeholder_result = score_result.ScoreResult(
                                 name=metric.name,
                                 value=0.0,
-                                reason=f"Error: {str(e)}"
+                                reason=f"Error after retries: {str(e)}"
                             )
                             results.append(placeholder_result)
         
         self.logger.info(f"Evaluation completed: {len(results)} results")
         return results
+    
+    def _evaluate_single_with_retry(
+        self,
+        request: OpikEvaluationRequest,
+        metrics: List[Any],
+        max_retries: int = 3,
+        base_delay: float = 1.0
+    ) -> List[Any]:
+        """
+        Evaluate a single request with exponential backoff retry logic.
+        
+        Args:
+            request: Evaluation request
+            metrics: List of Opik metric objects
+            max_retries: Maximum number of retry attempts
+            base_delay: Base delay for exponential backoff
+            
+        Returns:
+            List of evaluation results from Opik metrics
+        """
+        for attempt in range(max_retries + 1):
+            try:
+                return self._evaluate_single_with_opik(request, metrics)
+                
+            except Exception as e:
+                if attempt == max_retries:
+                    # Final attempt failed, re-raise the exception
+                    raise OpikError(f"Failed after {max_retries} retries: {e}")
+                
+                # Calculate delay with exponential backoff
+                delay = base_delay * (2 ** attempt)
+                self.logger.warning(f"Attempt {attempt + 1} failed: {e}. Retrying in {delay:.2f}s...")
+                
+                # Wait before retrying
+                import time
+                time.sleep(delay)
     
     def _evaluate_single_with_opik(
         self,

@@ -199,11 +199,19 @@ class Gemma3NInferenceEngine:
                 else:
                     self.logger.info("Skipping torch.compile for quantized model")
 
-            self.logger.info("Gemma 3N model loaded successfully")
+            self.logger.info("Model loaded successfully")
             self._log_model_info()
 
         except Exception as e:
-            raise ModelError(f"Error loading Gemma 3N model: {e}")
+            self.logger.error(f"Error loading model: {e}", exc_info=True)
+            self.logger.error(f"Model path: {model_path}")
+            self.logger.error(f"Model config: {self.model_config.dict()}")
+            self.logger.error(f"Device: {self.device}")
+            self.logger.error(f"CUDA available: {torch.cuda.is_available()}")
+            if torch.cuda.is_available():
+                self.logger.error(f"CUDA device count: {torch.cuda.device_count()}")
+                self.logger.error(f"CUDA device name: {torch.cuda.get_device_name()}")
+            raise ModelError(f"Error loading model: {e}")
 
     def _prepare_inference_inputs(self, question: str) -> Dict[str, Any]:
         """Prepare inputs using chat template when available."""
@@ -344,6 +352,11 @@ class Gemma3NInferenceEngine:
                 **kwargs
             )
             
+            # Log input details
+            self.logger.info(f"Generating response for prompt: {question[:100]}...")
+            self.logger.info(f"Input tokens: {inputs['input_ids'].shape}")
+            self.logger.info(f"Generation config: {generation_config}")
+            
             # Generate
             with torch.no_grad():
                 outputs = self.model.generate(
@@ -356,6 +369,11 @@ class Gemma3NInferenceEngine:
                 outputs[0][inputs['input_ids'].shape[1]:],
                 skip_special_tokens=True
             )
+            
+            # Log output details
+            self.logger.info(f"Generated response: {response[:200]}...")
+            self.logger.info(f"Response length: {len(response)} characters")
+            self.logger.info(f"Total tokens generated: {len(outputs[0]) - inputs['input_ids'].shape[1]}")
             
             # Update statistics
             self._update_stats(start_time, len(outputs[0]) - inputs['input_ids'].shape[1])
@@ -594,3 +612,42 @@ class Gemma3NInferenceEngine:
         
         self.clear_cache()
         self.logger.info("Model unloaded")
+    
+    def cleanup(self) -> None:
+        """
+        Comprehensive cleanup of all resources.
+        
+        This method should be called when the inference engine is no longer needed.
+        """
+        try:
+            self.logger.info("Cleaning up inference engine resources...")
+            
+            # Unload model and tokenizer
+            self.unload_model()
+            
+            # Clear any cached data
+            if hasattr(self, 'matformer_optimizer') and self.matformer_optimizer is not None:
+                self.matformer_optimizer = None
+            
+            # Reset statistics
+            self.inference_stats = {
+                "total_requests": 0,
+                "total_tokens": 0,
+                "total_time": 0.0,
+                "avg_tokens_per_second": 0.0
+            }
+            
+            self.logger.info("Inference engine cleanup completed")
+            
+        except Exception as e:
+            self.logger.error(f"Error during inference engine cleanup: {e}", exc_info=True)
+    
+    def __del__(self):
+        """
+        Destructor to ensure cleanup is called.
+        """
+        try:
+            self.cleanup()
+        except Exception:
+            # Ignore errors in destructor
+            pass

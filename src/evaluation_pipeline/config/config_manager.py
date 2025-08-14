@@ -231,16 +231,81 @@ class ConfigManager:
     
     def _validate_config(self) -> None:
         """Validate the configuration."""
-        # Check required environment variables
-        if not os.getenv("OPENROUTER_API_KEY"):
-            raise ConfigurationError("OPENROUTER_API_KEY environment variable is required")
-        if not os.getenv("OPIK_API_KEY"):
-            raise ConfigurationError("OPIK_API_KEY environment variable is required")
+        try:
+            # Check required environment variables
+            if not os.getenv("OPENROUTER_API_KEY"):
+                raise ConfigurationError("OPENROUTER_API_KEY environment variable is required")
+            if not os.getenv("OPIK_API_KEY"):
+                raise ConfigurationError("OPIK_API_KEY environment variable is required")
+            
+            # Validate evaluation mode
+            valid_modes = ["quick", "comprehensive"]
+            if self.config.evaluation.mode not in valid_modes:
+                raise ConfigurationError(f"Invalid evaluation mode: {self.config.evaluation.mode}")
+            
+            # Validate model configuration
+            self._validate_model_config()
+            
+            # Validate dataset configuration
+            self._validate_dataset_config()
+            
+            # Validate hardware configuration
+            self._validate_hardware_config()
+            
+        except Exception as e:
+            raise ConfigurationError(f"Configuration validation failed: {e}")
+    
+    def _validate_model_config(self) -> None:
+        """Validate model configuration."""
+        model_config = self.config.model
         
-        # Validate evaluation mode
-        valid_modes = ["quick", "comprehensive"]
-        if self.config.evaluation.mode not in valid_modes:
-            raise ConfigurationError(f"Invalid evaluation mode: {self.config.evaluation.mode}")
+        # Check model name
+        if not model_config.name:
+            raise ConfigurationError("Model name is required")
+        
+        # Check batch size
+        if model_config.batch_size <= 0:
+            raise ConfigurationError("Batch size must be positive")
+        
+        # Check sequence length
+        if model_config.max_seq_length <= 0:
+            raise ConfigurationError("Max sequence length must be positive")
+        
+        # Check quantization settings
+        if model_config.load_in_4bit and model_config.load_in_8bit:
+            raise ConfigurationError("Cannot use both 4-bit and 8-bit quantization")
+    
+    def _validate_dataset_config(self) -> None:
+        """Validate dataset configuration."""
+        dataset_config = self.config.dataset
+        
+        # Check dataset source
+        valid_sources = ["huggingface", "local", "predefined"]
+        if dataset_config.source not in valid_sources:
+            raise ConfigurationError(f"Invalid dataset source: {dataset_config.source}")
+        
+        # Check max samples
+        if dataset_config.max_samples <= 0:
+            raise ConfigurationError("Max samples must be positive")
+        
+        # Check field mapping
+        required_fields = ["question", "answer"]
+        for field in required_fields:
+            if field not in dataset_config.field_mapping:
+                raise ConfigurationError(f"Required field mapping missing: {field}")
+    
+    def _validate_hardware_config(self) -> None:
+        """Validate hardware configuration."""
+        hardware_config = self.config.hardware
+        
+        # Check device
+        valid_devices = ["auto", "cpu", "cuda", "mps"]
+        if hardware_config.device not in valid_devices:
+            raise ConfigurationError(f"Invalid device: {hardware_config.device}")
+        
+        # Check memory fraction
+        if not (0.0 < hardware_config.memory_fraction <= 1.0):
+            raise ConfigurationError("Memory fraction must be between 0.0 and 1.0")
     
     def save_config(self, config_path: Union[str, Path]) -> None:
         """Save configuration to YAML file."""

@@ -15,6 +15,7 @@ install: ## Install dependencies with Poetry
 	@poetry env use 3.11
 	@poetry install --without superlinked_rag
 	@echo "✅ Installation completed"
+## eval $(poetry env activate)
 
 setup-env: ## Setup environment variables
 	@echo "🔧 Setting up environment..."

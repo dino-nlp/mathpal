@@ -576,6 +576,19 @@ metrics = evaluator.evaluate(
 4. Use type hints and docstrings
 5. Follow the established naming conventions
 
+## 🔧 Issues & Improvements
+
+For a comprehensive list of known issues and planned improvements, see:
+- **[ISSUES_SUMMARY.md](./ISSUES_SUMMARY.md)** - Quick overview and status
+- **[ISSUES_AND_IMPROVEMENTS.md](./ISSUES_AND_IMPROVEMENTS.md)** - Detailed analysis and solutions
+
+These documents include:
+- 🔴 High priority issues that need immediate attention
+- 🟡 Medium priority improvements for better stability
+- 🟢 Low priority enhancements for long-term development
+- Detailed code examples and solutions
+- Implementation roadmap and timeline
+
 ## 📄 License
 
 This evaluation pipeline is part of the MathPal project and follows the same license terms.
@@ -587,6 +600,7 @@ For issues and questions:
 2. Review configuration examples
 3. Run tests to verify setup
 4. Check logs for detailed error messages
+5. Review the [Issues & Improvements](./ISSUES_AND_IMPROVEMENTS.md) document
 
 ---
 
