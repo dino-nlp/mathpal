@@ -605,3 +605,145 @@ For issues and questions:
 ---
 
 **MathPal Evaluation Pipeline** - Comprehensive evaluation for Vietnamese math AI models 🧮✨
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Makefile
+    participant CLI as CLI Main
+    participant ConfigMgr as ConfigManager
+    participant EvalMgr as EvaluationManager
+    participant DatasetMgr as DatasetManager
+    participant MetricsMgr as MetricsManager
+    participant ModelFactory
+    participant GemmaModel as Gemma3NModel
+    participant InferenceEngine as Gemma3NInferenceEngine
+    participant OpikEval as OpikEvaluator
+    participant OpenRouter as OpenRouterProvider
+    participant VNMathEval as VietnameseMathMetrics
+    participant FileSystem
+
+    User->>Makefile: make evaluate-quick
+    Makefile->>CLI: python3 -m src.evaluation_pipeline.cli.main<br/>-c configs/evaluation_quick.yaml<br/>evaluate -m unsloth/gemma-3n-E2B-it
+
+    Note over CLI: CLI Initialization
+    CLI->>CLI: @cli.group() decorator
+    CLI->>CLI: @cli.command() evaluate
+    CLI->>CLI: cli(ctx, config, log_level, log_file, verbose)
+
+    Note over CLI: Configuration Loading
+    CLI->>ConfigMgr: ConfigManager.from_yaml(config)
+    ConfigMgr->>FileSystem: load_yaml_config("configs/evaluation_quick.yaml")
+    FileSystem-->>ConfigMgr: YAML config data
+    ConfigMgr-->>CLI: ConfigManager instance
+
+    Note over CLI: Setup Logging
+    CLI->>CLI: setup_logging(level, log_file)
+    CLI->>CLI: setup_rich_logger()
+
+    Note over CLI: Evaluation Command Execution
+    CLI->>CLI: evaluate(ctx, model_path, dataset, output, mode, batch_size, max_samples, save_predictions, dry_run)
+
+    Note over CLI: Step 1: Initialize Evaluation Manager
+    CLI->>CLI: print_step_header("Initializing Evaluation Manager", 1, 5)
+    CLI->>EvalMgr: EvaluationManager(config)
+    EvalMgr->>EvalMgr: __init__(config)
+    EvalMgr->>DatasetMgr: DatasetManager(self.config)
+    EvalMgr->>MetricsMgr: MetricsManager(self.config)
+    EvalMgr-->>CLI: EvaluationManager instance
+    CLI->>CLI: print_success_message("Evaluation manager initialized successfully")
+
+    Note over CLI: Step 2: Load Dataset
+    CLI->>CLI: print_step_header("Loading Dataset", 2, 5)
+    CLI->>EvalMgr: eval_manager.dataset_manager.get_default_dataset()
+    EvalMgr->>DatasetMgr: get_default_dataset()
+    DatasetMgr->>DatasetMgr: _load_huggingface_dataset("ngohongthai/exam-sixth_grade-instruct-dataset")
+    DatasetMgr->>DatasetMgr: load_dataset(dataset_id, split="test")
+    DatasetMgr->>DatasetMgr: _validate_samples(raw_samples)
+    DatasetMgr->>DatasetMgr: _validate_single_sample(sample)
+    DatasetMgr-->>EvalMgr: List[EvaluationSample] (3 samples)
+    EvalMgr-->>CLI: samples list
+    CLI->>CLI: print_dataset_info(dataset_name, sample_count, source)
+
+    Note over CLI: Step 3: Model Information
+    CLI->>CLI: print_step_header("Model Information", 3, 5)
+    CLI->>CLI: print_model_info(model_name, model_path, device)
+
+    Note over CLI: Step 4: Run Evaluation
+    CLI->>CLI: print_step_header("Running Evaluation", 4, 5)
+    CLI->>EvalMgr: eval_manager.evaluate_model(model_path, samples)
+    
+    Note over EvalMgr: Evaluation Process
+    EvalMgr->>EvalMgr: evaluate_model(model_path, samples)
+    EvalMgr->>MetricsMgr: metrics_manager.evaluate_model_on_dataset(model_path, dataset)
+    
+    Note over MetricsMgr: Get Model Predictions
+    MetricsMgr->>ModelFactory: ModelFactory.create_model(config, "gemma3n")
+    ModelFactory->>GemmaModel: Gemma3NModel(config)
+    GemmaModel->>InferenceEngine: Gemma3NInferenceEngine(model_config, hardware_config)
+    MetricsMgr->>GemmaModel: model.load_model(model_path)
+    GemmaModel->>InferenceEngine: load_model(model_path)
+    InferenceEngine->>InferenceEngine: AutoTokenizer.from_pretrained(model_path)
+    InferenceEngine->>InferenceEngine: AutoModelForCausalLM.from_pretrained(model_path)
+    InferenceEngine-->>GemmaModel: Model loaded
+    GemmaModel-->>MetricsMgr: Model instance
+    
+    Note over MetricsMgr: Generate Predictions
+    MetricsMgr->>MetricsMgr: _get_model_predictions_with_progress(model_path, dataset)
+    MetricsMgr->>GemmaModel: model.generate(prompt=question)
+    GemmaModel->>InferenceEngine: generate(question=prompt)
+    InferenceEngine->>InferenceEngine: generate_batch(questions=[question])
+    InferenceEngine->>InferenceEngine: model.generate(**inputs, **gen_config)
+    InferenceEngine-->>GemmaModel: generated_text
+    GemmaModel-->>MetricsMgr: prediction
+    MetricsMgr-->>MetricsMgr: List[str] predictions (3 items)
+    
+    Note over MetricsMgr: Calculate Opik Metrics
+    MetricsMgr->>MetricsMgr: _calculate_opik_metrics_with_progress(dataset, predictions)
+    MetricsMgr->>OpikEval: OpikEvaluator(config)
+    MetricsMgr->>OpikEval: opik_evaluator.evaluate(questions, contexts, answers, expected_answers)
+    OpikEval-->>MetricsMgr: Dict[str, float] opik_metrics
+    
+    Note over MetricsMgr: Calculate Custom Metrics
+    MetricsMgr->>MetricsMgr: _calculate_custom_metrics_with_progress(dataset, predictions)
+    MetricsMgr->>VNMathEval: VietnameseMathMetrics()
+    MetricsMgr->>VNMathEval: evaluate_mathematical_accuracy(question, answer, expected_answer)
+    MetricsMgr->>VNMathEval: evaluate_vietnamese_language_quality(question, answer)
+    VNMathEval-->>MetricsMgr: Dict[str, float] custom_metrics
+    
+    Note over MetricsMgr: Calculate LLM-as-a-Judge Metrics
+    MetricsMgr->>MetricsMgr: _calculate_llm_as_judge_metrics_with_progress(dataset, predictions)
+    MetricsMgr->>OpenRouter: OpenRouterProvider(config)
+    MetricsMgr->>OpenRouter: provider.evaluate_as_judge(question, context, answer, expected_answer)
+    OpenRouter-->>MetricsMgr: Dict[str, float] llm_metrics
+    
+    Note over MetricsMgr: Calculate Overall Score
+    MetricsMgr->>MetricsMgr: _calculate_overall_score(metrics)
+    MetricsMgr-->>EvalMgr: Dict[str, float] all_metrics
+    
+    Note over EvalMgr: Create Results
+    EvalMgr->>EvalMgr: EvaluationResult(...)
+    EvalMgr-->>CLI: EvaluationResult instance
+    
+    Note over CLI: Step 5: Save Results
+    CLI->>CLI: print_step_header("Saving Results", 5, 5)
+    CLI->>EvalMgr: eval_manager.save_results(results)
+    EvalMgr->>FileSystem: save_evaluation_results(results_dict, output_dir, filename)
+    FileSystem-->>EvalMgr: saved_file_path
+    EvalMgr-->>CLI: saved_file_path
+    
+    Note over CLI: Display Results
+    CLI->>CLI: print_evaluation_results(results.metrics, model_name)
+    CLI->>CLI: print_success_message("Evaluation completed successfully!")
+    CLI->>CLI: Display top metrics
+    
+    Note over CLI: Cleanup
+    CLI->>EvalMgr: eval_manager.cleanup()
+    EvalMgr->>DatasetMgr: dataset_manager.cleanup()
+    EvalMgr->>MetricsMgr: metrics_manager.cleanup()
+    EvalMgr->>GemmaModel: model.cleanup()
+    GemmaModel->>InferenceEngine: cleanup()
+    InferenceEngine->>InferenceEngine: torch.cuda.empty_cache()
+    
+    CLI-->>User: Evaluation completed
+```
