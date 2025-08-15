@@ -8,72 +8,52 @@ model:
   name: "unsloth/gemma-3n-E2B-it"
   max_seq_length: 2048
   load_in_4bit: true
+  load_in_8bit: false
   batch_size: 4
+  device: "auto"
+
+generation: # Recommended Gemma-3n generation settings
+  max_new_tokens: 512
+  temperature: 1.0
+  top_p: 0.95
+  top_k: 64
+  do_sample: true
 
 dataset:
   source: "huggingface"
   dataset_id: "ngohongthai/exam-sixth_grade-instruct-dataset"
   split: "test"
   max_samples: 3  # Quick test with only 3 samples
-  
-  # Field mapping for this specific dataset
-  field_mapping:
-    question: "question"
-    answer: "solution"  # Dataset uses 'solution' instead of 'answer'
-    context: "question"  # Use question as context if needed
-    grade_level: []  # No grade_level field in dataset, will use default
-    subject: []  # No subject field in dataset, will use default
-    difficulty: []  # No difficulty field in dataset, will use default
+  instruction_column: "question"
+  answer_column: "solution"
 
 evaluation:
-  mode: "quick"
-  save_predictions: false
-  
+  save_predictions: false 
   # Simplified metrics
   metrics:
     opik:
       enabled: true
       metrics: ["answer_relevance", "usefulness"]
-    
     vietnamese_math:
       enabled: true
       metrics: ["mathematical_accuracy", "vietnamese_language_quality"]
+    llm_as_judge:
+      enabled: false
+      metrics: ["accuracy", "completeness", "clarity", "relevance", "helpfulness"]
 
 openrouter:
-  # API key will be read from OPENROUTER_API_KEY environment variable
   base_url: "https://openrouter.ai/api/v1"
   models:
-    primary: "qwen/qwen3-8b:free"
+    primary: "openai/gpt-oss-20b:free"
     fallback: "openai/gpt-oss-20b:free"
+    judge: "openai/gpt-oss-20b:free"
 
 opik:
-  # API key will be read from OPIK_API_KEY environment variable
   workspace: "mathpal"
-  project: "vietnamese-math-evaluation"
-  batch_size: 4
-  max_samples: 3
-  
-  # Metrics to evaluate
-  metrics:
-    - "answer_relevance"
-    - "usefulness"
-  
-  # LLM-as-a-judge configuration
-  llm_judge:
-    provider: "openai"
-    model: "gpt-4o"
-    temperature: 0.0
-    max_tokens: 1000
+  project: "mathpal-gemma3n"
 
-hardware:
-  device: "auto"
-  memory_efficient: true
 
 logging:
   level: "DEBUG"
-  format: "json"
+  format: "text"
   output: "console"
-
-performance:
-  enable_profiling: false
-  enable_metrics: false

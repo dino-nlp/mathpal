@@ -238,7 +238,6 @@ model:
   name: "google/gemma-3n-2b-it"
   max_seq_length: 2048
   load_in_4bit: true
-  use_matformer: true
   batch_size: 8
 ```
 

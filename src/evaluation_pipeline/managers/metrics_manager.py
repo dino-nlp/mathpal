@@ -114,16 +114,9 @@ class MetricsManager:
         Returns:
             Dictionary of metric scores
         """
-        import time
-        
-        start_time = time.time()
-        
         self.logger.info(f"Starting evaluation of model {model_path} on {len(dataset)} samples")
         
         try:
-            # Import tqdm for progress tracking
-            from tqdm import tqdm
-            
             # Get model predictions with progress bar
             self.logger.info("Getting model predictions...")
             predictions = self._get_model_predictions_with_progress(model_path, dataset)
@@ -149,10 +142,7 @@ class MetricsManager:
             # Calculate overall score
             overall_score = self._calculate_overall_score(metrics)
             metrics["overall_score"] = overall_score
-            
-            evaluation_time = time.time() - start_time
-            
-            self.logger.info(f"Evaluation completed in {evaluation_time:.2f}s")
+        
             self.logger.info(f"Overall score: {overall_score:.3f}")
             
             return metrics

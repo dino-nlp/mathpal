@@ -61,9 +61,7 @@ class BaseEvaluationManager(ABC):
         
         # Setup logging
         logging_config = config.get_logging_config()
-        if logging_config.log_file:
-            self.logger = get_logger(f"{self.__class__.__name__}")
-        
+        self.logger = get_logger(f"{self.__class__.__name__}")
         # Create output directory
         self.output_dir = create_output_directory(
             config.config.output_dir,
@@ -119,25 +117,6 @@ class BaseEvaluationManager(ABC):
         self.logger.info(f"Saved results to: {file_path}")
         return file_path
     
-    def get_experiment_info(self) -> Dict[str, Any]:
-        """
-        Get experiment information.
-        
-        Returns:
-            Experiment information
-        """
-        return self.config.get_experiment_info()
-    
-    def get_system_info(self) -> Dict[str, Any]:
-        """
-        Get system information.
-        
-        Returns:
-            System information
-        """
-        return self.config.get_system_info()
-
-
 class EvaluationManager(BaseEvaluationManager):
     """
     Main evaluation manager for the evaluation pipeline.
@@ -163,12 +142,7 @@ class EvaluationManager(BaseEvaluationManager):
         
         self.logger.info("Evaluation manager initialized")
     
-    def evaluate_model(
-        self, 
-        model_path: Union[str, Path],
-        dataset_path: Optional[Union[str, Path]] = None,
-        samples: Optional[List] = None
-    ) -> EvaluationResult:
+    def evaluate_model(self, model_path: Union[str, Path], samples: Optional[List] = None) -> EvaluationResult:
         """
         Evaluate a model.
         
@@ -185,31 +159,6 @@ class EvaluationManager(BaseEvaluationManager):
         start_time = time.time()
         
         self.logger.info(f"Starting evaluation of model: {model_path}")
-        
-        # Validate model path (support both local paths and Hugging Face model names)
-        if "/" in str(model_path) and not Path(model_path).exists():
-            # This might be a Hugging Face model name, skip local path validation
-            self.logger.info(f"Using Hugging Face model: {model_path}")
-        else:
-            model_path = Path(model_path)
-            if not model_path.exists():
-                raise EvaluationPipelineError(f"Model path does not exist: {model_path}")
-        
-        # Managers are already initialized in __init__
-        
-        # Use pre-loaded samples if provided, otherwise load dataset
-        if samples is not None:
-            dataset = samples
-        elif dataset_path:
-            dataset = self.dataset_manager.load_dataset(dataset_path)
-        else:
-            dataset = self.dataset_manager.get_default_dataset()
-        
-        # Apply max_samples limit from config
-        max_samples = self.config.config.dataset.max_samples
-        if max_samples and len(dataset) > max_samples:
-            dataset = dataset[:max_samples]
-            self.logger.info(f"Limited evaluation to {max_samples} samples")
         
         # Run evaluation
         metrics = self.metrics_manager.evaluate_model_on_dataset(model_path, dataset)
@@ -253,69 +202,6 @@ class EvaluationManager(BaseEvaluationManager):
         # This method would be used for dataset-specific evaluation
         # For now, we'll use the model evaluation with the specified dataset
         raise NotImplementedError("Dataset evaluation not yet implemented")
-    
-    def run_quick_evaluation(
-        self, 
-        model_path: Union[str, Path], 
-        num_samples: int = 10
-    ) -> EvaluationResult:
-        """
-        Run a quick evaluation with limited samples.
-        
-        Args:
-            model_path: Path to the model to evaluate
-            num_samples: Number of samples to evaluate
-            
-        Returns:
-            Evaluation result
-        """
-        self.logger.info(f"Running quick evaluation with {num_samples} samples")
-        
-        # Temporarily update config for quick evaluation
-        original_max_samples = self.config.config.opik.max_samples
-        self.config.config.opik.max_samples = num_samples
-        
-        try:
-            result = self.evaluate_model(model_path)
-            return result
-        finally:
-            # Restore original config
-            self.config.config.opik.max_samples = original_max_samples
-    
-    def run_comprehensive_evaluation(
-        self, 
-        model_path: Union[str, Path]
-    ) -> EvaluationResult:
-        """
-        Run a comprehensive evaluation with all metrics.
-        
-        Args:
-            model_path: Path to the model to evaluate
-            
-        Returns:
-            Evaluation result
-        """
-        self.logger.info("Running comprehensive evaluation")
-        
-        # Ensure all metrics are enabled
-        all_metrics = [
-            "hallucination", "context_precision", "context_recall",
-            "answer_relevance", "usefulness", "moderation",
-            "conversational_coherence", "session_completeness_quality",
-            "user_frustration", "mathematical_accuracy",
-            "vietnamese_language_quality", "step_by_step_reasoning",
-            "grade_level_appropriateness", "problem_solving_approach"
-        ]
-        
-        original_metrics = self.config.config.opik.metrics
-        self.config.config.opik.metrics = all_metrics
-        
-        try:
-            result = self.evaluate_model(model_path)
-            return result
-        finally:
-            # Restore original metrics
-            self.config.config.opik.metrics = original_metrics
     
     def cleanup(self):
         """

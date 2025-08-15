@@ -105,22 +105,9 @@ class Gemma3NModel(BaseModel):
         
         # Get model and hardware config
         model_config = config.get_model_config()
-        hardware_config = config.get_hardware_config()
-        
-        # Create ModelConfig dataclass
-        from ..inference.gemma3n_inference import ModelConfig
-        model_config_obj = ModelConfig(
-            name=model_config.name,
-            max_seq_length=model_config.max_seq_length,
-            load_in_4bit=model_config.load_in_4bit,
-            load_in_8bit=model_config.load_in_8bit,
-            batch_size=model_config.batch_size,
-            torch_dtype=model_config.torch_dtype,
-            device_map=model_config.device_map
-        )
         
         # Initialize inference engine
-        self.inference_engine = Gemma3NInferenceEngine(model_config_obj, hardware_config)
+        self.inference_engine = Gemma3NInferenceEngine(model_config)
         
         self.logger.info("Gemma 3N model initialized")
     
@@ -196,37 +183,3 @@ class Gemma3NModel(BaseModel):
         }
 
 
-class ModelFactory:
-    """
-    Factory for creating model instances.
-    """
-    
-    @staticmethod
-    def create_model(config: ConfigManager, model_type: str = "gemma3n") -> BaseModel:
-        """
-        Create a model instance.
-        
-        Args:
-            config: Configuration manager
-            model_type: Type of model to create
-            
-        Returns:
-            Model instance
-            
-        Raises:
-            ModelError: If model type is not supported
-        """
-        if model_type.lower() == "gemma3n":
-            return Gemma3NModel(config)
-        else:
-            raise ModelError(f"Unsupported model type: {model_type}")
-    
-    @staticmethod
-    def get_supported_models() -> list:
-        """
-        Get list of supported model types.
-        
-        Returns:
-            List of supported model types
-        """
-        return ["gemma3n"]

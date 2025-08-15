@@ -12,7 +12,8 @@ import structlog
 def setup_logging(
     level: str = "INFO",
     log_file: Optional[str] = None,
-    use_structlog: bool = True
+    use_structlog: bool = True,
+    format: str = "text"
 ) -> logging.Logger:
     """
     Setup logging for the evaluation pipeline.
@@ -21,6 +22,7 @@ def setup_logging(
         level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
         log_file: Optional log file path
         use_structlog: Whether to use structlog for structured logging
+        format: Log format ("json" or "text")
         
     Returns:
         Configured logger
@@ -29,13 +31,30 @@ def setup_logging(
     log_level = getattr(logging, level.upper(), logging.INFO)
     
     if use_structlog:
-        return _setup_structlog(log_level, log_file)
+        return _setup_structlog(log_level, log_file, format)
     else:
         return _setup_standard_logging(log_level, log_file)
 
 
-def _setup_structlog(level: int, log_file: Optional[str]) -> logging.Logger:
+def _setup_structlog(level: int, log_file: Optional[str], format: str = "text") -> logging.Logger:
     """Setup structured logging with structlog."""
+    
+    # Choose the appropriate renderer based on format
+    if format.lower() == "json":
+        renderer = structlog.processors.JSONRenderer()
+    else:
+        # Use a human-readable text format
+        renderer = structlog.dev.ConsoleRenderer(
+            colors=True,
+            exception_formatter=structlog.dev.default_exception_formatter,
+            level_styles={
+                "debug": "dim",
+                "info": "green",
+                "warning": "yellow", 
+                "error": "red",
+                "critical": "red bold",
+            }
+        )
     
     # Configure structlog
     structlog.configure(
@@ -48,7 +67,7 @@ def _setup_structlog(level: int, log_file: Optional[str]) -> logging.Logger:
             structlog.processors.StackInfoRenderer(),
             structlog.processors.format_exc_info,
             structlog.processors.UnicodeDecoder(),
-            structlog.processors.JSONRenderer()
+            renderer
         ],
         context_class=dict,
         logger_factory=structlog.stdlib.LoggerFactory(),

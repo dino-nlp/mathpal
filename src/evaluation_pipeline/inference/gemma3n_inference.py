@@ -23,20 +23,6 @@ from ..utils import (
     get_device_info
 )
 
-
-@dataclass
-class ModelConfig:
-    """Configuration for model loading and inference."""
-    
-    name: str
-    max_seq_length: int = 2048
-    load_in_4bit: bool = True
-    load_in_8bit: bool = False
-    batch_size: int = 8
-    torch_dtype: str = "float16"
-    device_map: str = "auto"
-
-
 class ChatFormatter:
     """Simple chat formatter for evaluation pipeline."""
     
@@ -77,7 +63,6 @@ class ChatFormatter:
             inputs = {k: v.to("cuda") for k, v in inputs.items()}
         return inputs
 
-
 class Gemma3NInferenceEngine:
     """
     Gemma 3N inference engine for evaluation pipeline.
@@ -85,7 +70,7 @@ class Gemma3NInferenceEngine:
     Follows the pattern from training_pipeline/inference/inference_engine.py
     """
     
-    def __init__(self, model_config: ModelConfig, hardware_config: Dict[str, Any]):
+    def __init__(self, model_config: ModelConfig):
         """
         Initialize Gemma 3N inference engine.
         
@@ -94,8 +79,6 @@ class Gemma3NInferenceEngine:
             hardware_config: Hardware configuration
         """
         self.model_config = model_config
-        self.hardware_config = hardware_config
-        self.logger = get_logger("Gemma3NInferenceEngine")
         
         # Setup device
         self.device = self._setup_device()
@@ -129,7 +112,7 @@ class Gemma3NInferenceEngine:
         
         return device
     
-    def load_model(self, model_path: Union[str, Path]) -> None:
+    def model_config(self, model_path: Union[str, Path]) -> None:
         """
         Load Gemma 3N model with optimizations.
         
@@ -142,25 +125,7 @@ class Gemma3NInferenceEngine:
         try:
             self.logger.info(f"Loading Gemma 3N model from {model_path}")
             
-            # Load tokenizer
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                model_path,
-                trust_remote_code=True
-            )
-            if self.tokenizer.pad_token is None:
-                self.tokenizer.pad_token = self.tokenizer.eos_token
             
-            # Initialize chat formatter
-            self.chat_formatter = ChatFormatter(self.tokenizer)
-            
-            # Prepare model kwargs with only valid parameters
-            model_kwargs = self._prepare_model_kwargs()
-            
-            # Load model
-            self.model = AutoModelForCausalLM.from_pretrained(
-                model_path,
-                **model_kwargs
-            )
             
             # Setup model for inference
             self._setup_for_inference()

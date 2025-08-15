@@ -21,7 +21,8 @@ from src.evaluation_pipeline.utils.logger import (
     print_dataset_info,
     print_step_header,
     print_error_summary,
-    print_success_message
+    print_success_message,
+    print_warning_message
 )
 
 
@@ -64,17 +65,22 @@ def cli(ctx, config, log_level, log_file, verbose):
     if verbose:
         log_level = 'DEBUG'
     
-    logger = setup_logging(
-        level=log_level,
-        log_file=log_file
-    )
-    
-    # Load configuration
+    # Load configuration first to get logging format
     try:
         if config:
             config_manager = ConfigManager.from_yaml(config)
         else:
-            config_manager = ConfigManager.create_default("cli")
+            raise ValueError("No configuration file provided")
+        
+        # Get logging format from config
+        logging_config = config_manager.get_logging_config()
+        log_format = logging_config.format
+        
+        logger = setup_logging(
+            level=log_level,
+            log_file=log_file,
+            format=log_format
+        )
         
         ctx.obj['config'] = config_manager
         ctx.obj['logger'] = logger
@@ -82,6 +88,12 @@ def cli(ctx, config, log_level, log_file, verbose):
         logger.info("CLI initialized successfully")
         
     except Exception as e:
+        # Fallback to default logging if config loading fails
+        logger = setup_logging(
+            level=log_level,
+            log_file=log_file,
+            format="text"  # Default to text format
+        )
         click.echo(f"Error initializing CLI: {e}", err=True)
         sys.exit(1)
 
@@ -91,8 +103,7 @@ def cli(ctx, config, log_level, log_file, verbose):
     '--model-path',
     '-m',
     type=str,
-    required=True,
-    help='Path to the model to evaluate (local path or Hugging Face model name)'
+    help='Path to the model to evaluate (local path or Hugging Face model name). If not provided, will use model from config file.'
 )
 @click.option(
     '--dataset',
@@ -108,15 +119,8 @@ def cli(ctx, config, log_level, log_file, verbose):
     help='Output file path for results'
 )
 @click.option(
-    '--mode',
-    type=click.Choice(['quick', 'comprehensive'], case_sensitive=False),
-    default='comprehensive',
-    help='Evaluation mode'
-)
-@click.option(
     '--batch-size',
     type=int,
-    default=8,
     help='Batch size for model inference'
 )
 @click.option(
@@ -129,13 +133,8 @@ def cli(ctx, config, log_level, log_file, verbose):
     is_flag=True,
     help='Save model predictions to file'
 )
-@click.option(
-    '--dry-run',
-    is_flag=True,
-    help='Run without actual model evaluation (for testing)'
-)
 @click.pass_context
-def evaluate(ctx, model_path, dataset, output, mode, batch_size, max_samples, save_predictions, dry_run):
+def evaluate(ctx, model_path, dataset, output, batch_size, max_samples, save_predictions):
     """
     Evaluate a Vietnamese math AI model.
     
@@ -144,6 +143,11 @@ def evaluate(ctx, model_path, dataset, output, mode, batch_size, max_samples, sa
     - Vietnamese math-specific metrics
     - LLM-as-a-judge evaluation via OpenRouter
     - Custom educational metrics
+    
+    Configuration Priority:
+    - Command line arguments override config file settings
+    - If command line argument is not provided, uses value from config file
+    - If neither is available, uses sensible defaults
     """
     from src.evaluation_pipeline.managers import EvaluationManager
     
@@ -152,66 +156,115 @@ def evaluate(ctx, model_path, dataset, output, mode, batch_size, max_samples, sa
     
     # Print evaluation header
     print_evaluation_header()
-    
     eval_manager = None
     try:
         # Step 1: Create evaluation manager
-        print_step_header("Initializing Evaluation Manager", 1, 5)
+        print_step_header("Initializing Evaluation Manager", 1, 6)
         eval_manager = EvaluationManager(config)
         print_success_message("Evaluation manager initialized successfully")
         
-        # Step 2: Load dataset
-        print_step_header("Loading Dataset", 2, 5)
-        if dataset:
-            # Check if it's a predefined dataset name
-            predefined_datasets = config.config.dataset.predefined
-            if dataset in predefined_datasets:
-                samples = eval_manager.dataset_manager.load_predefined_dataset(dataset)
-            else:
-                samples = eval_manager.dataset_manager.load_dataset(dataset)
-        else:
-            samples = eval_manager.dataset_manager.get_default_dataset()
+        # Step 2: Load initial configuration from config file
+        print_step_header("Loading Configuration", 2, 6)
         
-        # Print dataset info
+        # Initialize all configuration values from config file
+        logger.info("Loading configuration from config file...")
+        
+        # Model configuration
+        model_path = model_path or config.config.model.name
+        logger.info(f"Model from config: {model_path}")
+        
+        # Batch size configuration
+        batch_size = batch_size or config.config.model.batch_size
+        logger.info(f"Batch size from config: {batch_size}")
+        
+        # Save predictions configuration
+        save_predictions = save_predictions if save_predictions is not None else config.config.evaluation.save_predictions
+        logger.info(f"Save predictions from config: {save_predictions}")
+        
+        # Output path configuration
+        if not output:
+            output = Path(config.config.output_dir) / f"{config.config.experiment_name}_results.json"
+        logger.info(f"Output path from config: {output}")
+        
+        # Dataset configuration
+        dataset_name = dataset or config.config.dataset.dataset_id
+        logger.info(f"Dataset from config: {dataset_name}")
+        
+        # Max samples configuration
+        config_max_samples = getattr(config.config.dataset, 'max_samples', None)
+        if config_max_samples:
+            logger.info(f"Max samples from config: {config_max_samples}")
+        
+        # Step 3: Apply command line overrides
+        logger.info("Applying command line overrides...")
+        
+        # Model path override
+        if model_path != config.config.model.name:
+            logger.info(f"Model path overridden by command line: {model_path}")
+            config.config.model.name = model_path
+        
+        # Batch size override
+        if batch_size != config.config.model.batch_size:
+            logger.info(f"Batch size overridden by command line: {batch_size}")
+            config.config.model.batch_size = batch_size
+        
+        # Save predictions override
+        if save_predictions != config.config.evaluation.save_predictions:
+            logger.info(f"Save predictions overridden by command line: {save_predictions}")
+            config.config.evaluation.save_predictions = save_predictions
+        
+        # Output path override
+        if output != Path(config.config.output_dir) / f"{config.config.experiment_name}_results.json":
+            logger.info(f"Output path overridden by command line: {output}")
+            config.config.output_dir = str(output.parent) if hasattr(output, 'parent') else str(output)
+        
+        # Step 3: Load dataset with overrides
+        print_step_header("Loading Dataset", 3, 6)
+        
+        # Load dataset based on configuration
+        if dataset_name:
+            samples = eval_manager.dataset_manager.load_dataset()
+        else:
+            raise ValueError("No dataset provided")
+        
+        # Apply max_samples limit
+        if max_samples is not None:
+            # Command line max_samples overrides config
+            logger.info(f"Max samples overridden by command line: {max_samples}")
+            if len(samples) > max_samples:
+                samples = samples[:max_samples]
+                logger.info(f"Limited evaluation to {max_samples} samples")
+        elif config_max_samples and len(samples) > config_max_samples:
+            # Use max_samples from config
+            logger.info(f"Applying max samples from config: {config_max_samples}")
+            samples = samples[:config_max_samples]
+            logger.info(f"Limited evaluation to {config_max_samples} samples from config")
+        
+        # Print final dataset info
         print_dataset_info(
-            dataset_name=dataset or "Default Dataset",
+            dataset_name=dataset_name,
             sample_count=len(samples),
             source=config.config.dataset.source
         )
-        
-        # Limit samples if specified
-        if max_samples and len(samples) > max_samples:
-            samples = samples[:max_samples]
-            logger.info(f"Limited evaluation to {max_samples} samples")
-        
-        # Update config for this run
-        config.config.model.batch_size = batch_size
-        config.config.evaluation.mode = mode
-        config.config.evaluation.save_predictions = save_predictions
-        
-        if dry_run:
-            logger.info("DRY RUN MODE - No actual evaluation will be performed")
-            print_warning_message("Dry run completed successfully")
-            return
-        
-        # Step 3: Print model info
-        print_step_header("Model Information", 3, 5)
+                
+        # Step 4: Print model info
+        print_step_header("Model Information", 4, 6)
         print_model_info(
             model_name=model_path.split("/")[-1] if "/" in model_path else model_path,
             model_path=model_path,
-            device=config.config.hardware.device
+            device=config.config.model.device
         )
         
-        # Step 4: Run evaluation
-        print_step_header("Running Evaluation", 4, 5)
+        # Step 5: Run evaluation
+        print_step_header("Running Evaluation", 5, 6)
         logger.info(f"Starting evaluation of {len(samples)} samples")
         results = eval_manager.evaluate_model(
             model_path=model_path,
             samples=samples
         )
         
-        # Step 5: Save and display results
-        print_step_header("Saving Results", 5, 5)
+        # Step 6: Save and display results
+        print_step_header("Saving Results", 6, 6)
         eval_manager.save_results(results)
         
         # Display results with beautiful formatting
@@ -251,226 +304,6 @@ def evaluate(ctx, model_path, dataset, output, mode, batch_size, max_samples, sa
                 eval_manager.cleanup()
             except Exception as cleanup_error:
                 logger.warning(f"Cleanup failed: {cleanup_error}")
-
-
-@cli.command()
-@click.option(
-    '--dataset-name',
-    type=str,
-    help='Name of predefined dataset to show info for'
-)
-@click.pass_context
-def dataset_info(ctx, dataset_name):
-    """
-    Show information about available datasets.
-    
-    Shows information about:
-    - Default dataset configuration
-    - Predefined datasets
-    - Dataset field mappings
-    """
-    config = ctx.obj['config']
-    logger = ctx.obj['logger']
-    
-    try:
-        from src.evaluation_pipeline.managers import EvaluationManager
-        eval_manager = EvaluationManager(config)
-        
-        click.echo("📚 Dataset Information")
-        click.echo("="*50)
-        
-        # Show default dataset info
-        default_info = eval_manager.dataset_manager.get_dataset_info()
-        click.echo(f"Default Dataset:")
-        click.echo(f"  Source: {default_info['source']}")
-        click.echo(f"  ID: {default_info['id']}")
-        click.echo(f"  Split: {default_info['split']}")
-        
-        if 'info' in default_info:
-            info = default_info['info']
-            click.echo(f"  Name: {info['name']}")
-            click.echo(f"  Description: {info['description']}")
-            click.echo(f"  Total Samples: {info['total_samples']}")
-            click.echo(f"  Grade Levels: {', '.join(info['grade_levels'])}")
-            click.echo(f"  Subjects: {', '.join(info['subjects'])}")
-            click.echo(f"  Language: {info['language']}")
-            click.echo(f"  Source: {info['source']}")
-        
-        click.echo()
-        
-        # Show predefined datasets
-        predefined_datasets = config.config.dataset.predefined
-        click.echo("Predefined Datasets:")
-        for name, info in predefined_datasets.items():
-            click.echo(f"  {name}:")
-            click.echo(f"    ID: {info['id']}")
-            click.echo(f"    Split: {info['split']}")
-            click.echo(f"    Description: {info['description']}")
-            click.echo(f"    Samples: {info['samples']}")
-            click.echo(f"    Grade Level: {info['grade_level']}")
-            click.echo(f"    Subject: {info['subject']}")
-            click.echo()
-        
-        # Show field mapping
-        field_mapping = config.config.dataset.field_mapping
-        click.echo("Field Mapping (Hugging Face → Internal):")
-        for internal_field, huggingface_fields in field_mapping.items():
-            click.echo(f"  {internal_field}: {', '.join(huggingface_fields)}")
-        
-        # Show specific dataset info if requested
-        if dataset_name:
-            click.echo()
-            click.echo(f"📋 Detailed Info for '{dataset_name}':")
-            specific_info = eval_manager.dataset_manager.get_dataset_info(dataset_name)
-            if 'error' in specific_info:
-                click.echo(f"  ❌ {specific_info['error']}")
-            else:
-                for key, value in specific_info.items():
-                    click.echo(f"  {key}: {value}")
-        
-    except Exception as e:
-        logger.error(f"Error showing dataset info: {e}")
-        click.echo(f"❌ Error: {e}")
-
-
-@cli.command()
-@click.option(
-    '--verbose', '-v',
-    is_flag=True,
-    help='Enable verbose test output'
-)
-@click.pass_context
-def test(ctx, verbose):
-    """
-    Run tests for the evaluation pipeline.
-    
-    Runs comprehensive tests for:
-    - Configuration management
-    - Core imports and dependencies
-    - CLI interface functionality
-    """
-    import subprocess
-    import sys
-    
-    click.echo("🧪 Running evaluation pipeline tests...")
-    
-    try:
-        result = subprocess.run([
-            sys.executable, "src/evaluation_pipeline/test_evaluation.py"
-        ], cwd=project_root, capture_output=not verbose)
-        
-        if result.returncode == 0:
-            click.echo("✅ All tests passed")
-        else:
-            click.echo("❌ Some tests failed")
-            if verbose:
-                click.echo(result.stdout.decode())
-                click.echo(result.stderr.decode())
-                
-    except Exception as e:
-        click.echo(f"❌ Error running tests: {e}")
-
-
-@cli.command()
-@click.option(
-    '--show-defaults',
-    is_flag=True,
-    help='Show default configuration values'
-)
-@click.option(
-    '--validate',
-    is_flag=True,
-    help='Validate current configuration'
-)
-@click.option(
-    '--create-default',
-    type=click.Path(path_type=Path),
-    help='Create default configuration file'
-)
-@click.pass_context
-def config(ctx, show_defaults, validate, create_default):
-    """
-    Manage evaluation pipeline configuration.
-    """
-    config = ctx.obj['config']
-    
-    if show_defaults:
-        click.echo("📋 Default Configuration:")
-        click.echo(config.config.model_dump_json(indent=2))
-    
-    elif validate:
-        try:
-            # Validate configuration
-            config.validate()
-            click.echo("✅ Configuration is valid")
-        except Exception as e:
-            click.echo(f"❌ Configuration validation failed: {e}")
-    
-    elif create_default:
-        try:
-            config.save_config(create_default)
-            click.echo(f"✅ Default configuration created at: {create_default}")
-        except Exception as e:
-            click.echo(f"❌ Failed to create configuration: {e}")
-    
-    else:
-        click.echo("📋 Current Configuration:")
-        click.echo(config.config.model_dump_json(indent=2))
-
-
-@cli.command()
-@click.pass_context
-def info(ctx):
-    """
-    Display information about the evaluation pipeline.
-    """
-    click.echo("🤖 MathPal Evaluation Pipeline")
-    click.echo("=" * 50)
-    click.echo("A comprehensive evaluation pipeline for Vietnamese math education AI models.")
-    click.echo()
-    
-    click.echo("📊 Supported Metrics:")
-    click.echo("  • Opik Metrics (hallucination, context precision, etc.)")
-    click.echo("  • Vietnamese Math Metrics (accuracy, language quality, etc.)")
-    click.echo("  • LLM-as-a-Judge (via OpenRouter)")
-    click.echo("  • Custom Educational Metrics")
-    click.echo()
-    
-    click.echo("🚀 Supported Models:")
-    click.echo("  • Gemma 3N with MatFormer optimization")
-    click.echo("  • Custom model integration")
-    click.echo()
-    
-    click.echo("🔧 Features:")
-    click.echo("  • Batch processing with memory optimization")
-    click.echo("  • Streaming generation support")
-    click.echo("  • Rate limiting and cost tracking")
-    click.echo("  • Comprehensive logging and monitoring")
-    click.echo()
-    
-    click.echo("📁 Project Structure:")
-    click.echo("  • Modular architecture")
-    click.echo("  • Configuration management")
-    click.echo("  • CLI interface")
-    click.echo("  • Production-ready evaluation")
-    click.echo()
-    
-    click.echo("🎯 Use Cases:")
-    click.echo("  • Vietnamese math education model evaluation")
-    click.echo("  • Grade 5-6 transition assessment")
-    click.echo("  • Educational AI quality assurance")
-    click.echo("  • Research and development validation")
-    click.echo()
-    
-    click.echo("💡 Usage Examples:")
-    click.echo("  # Evaluate model with default config")
-    click.echo("  python -m src.evaluation_pipeline.cli.main evaluate -m /path/to/model")
-    click.echo()
-    click.echo("  # Evaluate with custom config")
-    click.echo("  python -m src.evaluation_pipeline.cli.main -c config.yaml evaluate -m /path/to/model")
-    click.echo()
-    click.echo("  # Quick evaluation with limited samples")
-    click.echo("  python -m src.evaluation_pipeline.cli.main evaluate -m /path/to/model --mode quick --max-samples 10")
 
 
 if __name__ == '__main__':
