@@ -99,42 +99,8 @@ def cli(ctx, config, log_level, log_file, verbose):
 
 
 @cli.command()
-@click.option(
-    '--model-path',
-    '-m',
-    type=str,
-    help='Path to the model to evaluate (local path or Hugging Face model name). If not provided, will use model from config file.'
-)
-@click.option(
-    '--dataset',
-    '-d',
-    type=str,
-    help='Path to evaluation dataset (JSON), Hugging Face dataset ID (e.g., "username/dataset_name"), or predefined dataset name (e.g., "ngohongthai")'
-)
-@click.option(
-    '--output',
-    '-o',
-    type=click.Path(path_type=Path),
-    default='evaluation_results.json',
-    help='Output file path for results'
-)
-@click.option(
-    '--batch-size',
-    type=int,
-    help='Batch size for model inference'
-)
-@click.option(
-    '--max-samples',
-    type=int,
-    help='Maximum number of samples to evaluate'
-)
-@click.option(
-    '--save-predictions',
-    is_flag=True,
-    help='Save model predictions to file'
-)
 @click.pass_context
-def evaluate(ctx, model_path, dataset, output, batch_size, max_samples, save_predictions):
+def evaluate(ctx):
     """
     Evaluate a Vietnamese math AI model.
     
@@ -150,116 +116,49 @@ def evaluate(ctx, model_path, dataset, output, batch_size, max_samples, save_pre
     - If neither is available, uses sensible defaults
     """
     from src.evaluation_pipeline.managers import EvaluationManager
+    from src.evaluation_pipeline.managers.dataset_manager import DatasetManager
     
-    config = ctx.obj['config']
+    config = ctx.obj['config'] # ConfigManager
     logger = ctx.obj['logger']
     
     # Print evaluation header
     print_evaluation_header()
-    eval_manager = None
     try:
-        # Step 1: Create evaluation manager
-        print_step_header("Initializing Evaluation Manager", 1, 6)
+        # Step 1: Load initial configuration from config file
+        print_step_header("Loading Configuration", 1, 6)
+        logger.info(config.summary())
+       
+        # Step 2: Create evaluation manager
+        print_step_header("Initializing Evaluation Manager", 2, 6)
         eval_manager = EvaluationManager(config)
         print_success_message("Evaluation manager initialized successfully")
-        
-        # Step 2: Load initial configuration from config file
-        print_step_header("Loading Configuration", 2, 6)
-        
-        # Initialize all configuration values from config file
-        logger.info("Loading configuration from config file...")
-        
-        # Model configuration
-        model_path = model_path or config.config.model.name
-        logger.info(f"Model from config: {model_path}")
-        
-        # Batch size configuration
-        batch_size = batch_size or config.config.model.batch_size
-        logger.info(f"Batch size from config: {batch_size}")
-        
-        # Save predictions configuration
-        save_predictions = save_predictions if save_predictions is not None else config.config.evaluation.save_predictions
-        logger.info(f"Save predictions from config: {save_predictions}")
-        
-        # Output path configuration
-        if not output:
-            output = Path(config.config.output_dir) / f"{config.config.experiment_name}_results.json"
-        logger.info(f"Output path from config: {output}")
-        
-        # Dataset configuration
-        dataset_name = dataset or config.config.dataset.dataset_id
-        logger.info(f"Dataset from config: {dataset_name}")
-        
-        # Max samples configuration
-        config_max_samples = getattr(config.config.dataset, 'max_samples', None)
-        if config_max_samples:
-            logger.info(f"Max samples from config: {config_max_samples}")
-        
-        # Step 3: Apply command line overrides
-        logger.info("Applying command line overrides...")
-        
-        # Model path override
-        if model_path != config.config.model.name:
-            logger.info(f"Model path overridden by command line: {model_path}")
-            config.config.model.name = model_path
-        
-        # Batch size override
-        if batch_size != config.config.model.batch_size:
-            logger.info(f"Batch size overridden by command line: {batch_size}")
-            config.config.model.batch_size = batch_size
-        
-        # Save predictions override
-        if save_predictions != config.config.evaluation.save_predictions:
-            logger.info(f"Save predictions overridden by command line: {save_predictions}")
-            config.config.evaluation.save_predictions = save_predictions
-        
-        # Output path override
-        if output != Path(config.config.output_dir) / f"{config.config.experiment_name}_results.json":
-            logger.info(f"Output path overridden by command line: {output}")
-            config.config.output_dir = str(output.parent) if hasattr(output, 'parent') else str(output)
         
         # Step 3: Load dataset with overrides
         print_step_header("Loading Dataset", 3, 6)
         
         # Load dataset based on configuration
-        if dataset_name:
-            samples = eval_manager.dataset_manager.load_dataset()
-        else:
-            raise ValueError("No dataset provided")
-        
-        # Apply max_samples limit
-        if max_samples is not None:
-            # Command line max_samples overrides config
-            logger.info(f"Max samples overridden by command line: {max_samples}")
-            if len(samples) > max_samples:
-                samples = samples[:max_samples]
-                logger.info(f"Limited evaluation to {max_samples} samples")
-        elif config_max_samples and len(samples) > config_max_samples:
-            # Use max_samples from config
-            logger.info(f"Applying max samples from config: {config_max_samples}")
-            samples = samples[:config_max_samples]
-            logger.info(f"Limited evaluation to {config_max_samples} samples from config")
+        dataset_manager = DatasetManager(config)
+        evaluation_samples = dataset_manager.load_dataset()
         
         # Print final dataset info
         print_dataset_info(
-            dataset_name=dataset_name,
-            sample_count=len(samples),
-            source=config.config.dataset.source
+            dataset_name=config.get_dataset_config().dataset_id,
+            sample_count=len(evaluation_samples)
         )
                 
-        # Step 4: Print model info
-        print_step_header("Model Information", 4, 6)
-        print_model_info(
-            model_name=model_path.split("/")[-1] if "/" in model_path else model_path,
-            model_path=model_path,
-            device=config.config.model.device
-        )
+        # Step 4: Load model
+        print_step_header("Loading model", 4, 6)
+        #TODO: Dùng model_factory để load model
+        # print_model_info(
+        #     model_name=model_path.split("/")[-1] if "/" in model_path else model_path,
+        #     model_path=model_path,
+        #     device=config.config.model.device
+        # )
         
         # Step 5: Run evaluation
         print_step_header("Running Evaluation", 5, 6)
         logger.info(f"Starting evaluation of {len(samples)} samples")
         results = eval_manager.evaluate_model(
-            model_path=model_path,
             samples=samples
         )
         

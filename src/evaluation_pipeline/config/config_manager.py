@@ -5,7 +5,7 @@ Simplified configuration manager for the evaluation pipeline.
 import os
 from pathlib import Path
 from typing import Dict, Any, Optional, Union, List
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field
 
 from ..utils import (
     ConfigurationError,
@@ -92,10 +92,8 @@ class LoggingConfig(BaseModel):
 
 class EvaluationConfig(BaseModel):
     """Main evaluation configuration."""
-    # Experiment settings
     experiment_name: str = Field(description="Name of the evaluation experiment")
     output_dir: str = Field(default="./evaluation_outputs", description="Output directory")
-    # Component configurations
     model: ModelConfig = Field(default_factory=ModelConfig, description="Model configuration")
     generation: GenerationConfig = Field(default_factory=GenerationConfig, description="Generation configuration")
     dataset: DatasetConfig = Field(default_factory=DatasetConfig, description="Dataset configuration")
@@ -167,3 +165,10 @@ class ConfigManager:
         """Get logging configuration."""
         return self.config.logging
     
+    def summary(self) -> str:
+        """Get summary of configuration."""
+        return f"""
+        Configuration:
+        - Model: {self.config.model.name}
+        - Dataset: {self.config.dataset.dataset_id}
+        """

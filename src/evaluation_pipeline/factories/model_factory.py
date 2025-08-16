@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Dict, Any, Optional, Union
 import torch
+from unsloth import FastModel, get_chat_template
 
 from ..config import ConfigManager
 from ..utils import (
@@ -16,80 +17,7 @@ from ..utils import (
 from ..inference import Gemma3NInferenceEngine
 
 
-class BaseModel(ABC):
-    """
-    Base class for all models in the evaluation pipeline.
-    """
-    
-    def __init__(self, config: ConfigManager):
-        """
-        Initialize base model.
-        
-        Args:
-            config: Configuration manager
-        """
-        self.config = config
-        self.logger = get_logger(f"{self.__class__.__name__}")
-        self.device = self._setup_device()
-        
-    def _setup_device(self) -> torch.device:
-        """
-        Setup device for model inference.
-        
-        Returns:
-            Device to use for inference
-        """
-        device_info = get_device_info()
-        
-        if device_info["cuda_available"]:
-            device = torch.device("cuda")
-            self.logger.info(f"Using CUDA device: {device_info['device_name']}")
-        else:
-            device = torch.device("cpu")
-            self.logger.info("Using CPU device")
-        
-        return device
-    
-    @abstractmethod
-    def load_model(self, model_path: Union[str, Path]) -> None:
-        """
-        Load model from path.
-        
-        Args:
-            model_path: Path to model
-        """
-        pass
-    
-    @abstractmethod
-    def generate(self, prompt: str, **kwargs) -> str:
-        """
-        Generate response for given prompt.
-        
-        Args:
-            prompt: Input prompt
-            **kwargs: Additional generation parameters
-            
-        Returns:
-            Generated response
-        """
-        pass
-    
-    @abstractmethod
-    def batch_generate(self, prompts: list, **kwargs) -> list:
-        """
-        Generate responses for multiple prompts.
-        
-        Args:
-            prompts: List of input prompts
-            **kwargs: Additional generation parameters
-            
-        Returns:
-            List of generated responses
-        """
-        pass
-
-
-class Gemma3NModel(BaseModel):
+class Gemma3NModel:
     """
     Gemma 3N model with optimized inference.
     """

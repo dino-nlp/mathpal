@@ -65,7 +65,7 @@ class DatasetManager:
             DatasetError: If dataset cannot be loaded or is invalid
         """
         if self.dataset_config.source == "huggingface":
-            raw_samples = self._load_huggingface_dataset(self.dataset_config.dataset_id, self.dataset_config.split)
+            raw_samples = self._load_huggingface_dataset(self.dataset_config.dataset_id, f"{self.dataset_config.split}[:self.dataset_config.max_samples]")
         else:
             raise NotImplementedError(f"Dataset source {self.dataset_config.source} not implemented")
         

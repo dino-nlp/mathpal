@@ -42,82 +42,8 @@ class EvaluationResult:
         }
 
 
-class BaseEvaluationManager(ABC):
-    """
-    Base class for evaluation managers.
-    
-    Provides common functionality for managing evaluation processes.
-    """
-    
-    def __init__(self, config: ConfigManager):
-        """
-        Initialize evaluation manager.
-        
-        Args:
-            config: Configuration manager
-        """
-        self.config = config
-        self.logger = get_logger(f"{self.__class__.__name__}")
-        
-        # Setup logging
-        logging_config = config.get_logging_config()
-        self.logger = get_logger(f"{self.__class__.__name__}")
-        # Create output directory
-        self.output_dir = create_output_directory(
-            config.config.output_dir,
-            config.config.experiment_name
-        )
-        
-        self.logger.info(f"Initialized {self.__class__.__name__}")
-        self.logger.info(f"Output directory: {self.output_dir}")
-    
-    @abstractmethod
-    def evaluate_model(self, model_path: Union[str, Path]) -> EvaluationResult:
-        """
-        Evaluate a model.
-        
-        Args:
-            model_path: Path to the model to evaluate
-            
-        Returns:
-            Evaluation result
-        """
-        pass
-    
-    @abstractmethod
-    def evaluate_dataset(self, dataset_path: Union[str, Path]) -> EvaluationResult:
-        """
-        Evaluate a dataset.
-        
-        Args:
-            dataset_path: Path to the dataset to evaluate
-            
-        Returns:
-            Evaluation result
-        """
-        pass
-    
-    def save_results(self, results: EvaluationResult) -> Path:
-        """
-        Save evaluation results.
-        
-        Args:
-            results: Evaluation results
-            
-        Returns:
-            Path to saved results file
-        """
-        results_dict = results.to_dict()
-        file_path = save_evaluation_results(
-            results_dict,
-            self.output_dir,
-            f"{results.experiment_name}_results.json"
-        )
-        
-        self.logger.info(f"Saved results to: {file_path}")
-        return file_path
-    
-class EvaluationManager(BaseEvaluationManager):
+  
+class EvaluationManager:
     """
     Main evaluation manager for the evaluation pipeline.
     
@@ -134,15 +60,12 @@ class EvaluationManager(BaseEvaluationManager):
         super().__init__(config)
         
         # Initialize sub-managers
-        from .dataset_manager import DatasetManager
         from .metrics_manager import MetricsManager
         
-        self.dataset_manager = DatasetManager(self.config)
         self.metrics_manager = MetricsManager(self.config)
-        
         self.logger.info("Evaluation manager initialized")
     
-    def evaluate_model(self, model_path: Union[str, Path], samples: Optional[List] = None) -> EvaluationResult:
+    def evaluate_model(self, samples: Optional[List] = None) -> EvaluationResult:
         """
         Evaluate a model.
         
@@ -158,10 +81,10 @@ class EvaluationManager(BaseEvaluationManager):
         
         start_time = time.time()
         
-        self.logger.info(f"Starting evaluation of model: {model_path}")
+        self.logger.info(f"Starting evaluation ")
         
         # Run evaluation
-        metrics = self.metrics_manager.evaluate_model_on_dataset(model_path, dataset)
+        metrics = self.metrics_manager.evaluate_model_on_dataset(samples)
         
         # Calculate evaluation time
         evaluation_time = time.time() - start_time
@@ -176,7 +99,7 @@ class EvaluationManager(BaseEvaluationManager):
                 "system_info": self.get_system_info(),
                 "dataset_info": self.dataset_manager.get_dataset_info()
             },
-            samples_evaluated=len(dataset),
+            samples_evaluated=len(samples),
             evaluation_time=evaluation_time,
             output_path=str(self.output_dir)
         )
@@ -185,23 +108,9 @@ class EvaluationManager(BaseEvaluationManager):
         self.save_results(result)
         
         self.logger.info(f"Evaluation completed in {evaluation_time:.2f}s")
-        self.logger.info(f"Evaluated {len(dataset)} samples")
+        self.logger.info(f"Evaluated {len(samples)} samples")
         
         return result
-    
-    def evaluate_dataset(self, dataset_path: Union[str, Path]) -> EvaluationResult:
-        """
-        Evaluate a dataset (placeholder for future implementation).
-        
-        Args:
-            dataset_path: Path to the dataset to evaluate
-            
-        Returns:
-            Evaluation result
-        """
-        # This method would be used for dataset-specific evaluation
-        # For now, we'll use the model evaluation with the specified dataset
-        raise NotImplementedError("Dataset evaluation not yet implemented")
     
     def cleanup(self):
         """
@@ -212,12 +121,7 @@ class EvaluationManager(BaseEvaluationManager):
         """
         try:
             self.logger.info("Cleaning up evaluation manager resources...")
-            
-            # Cleanup sub-managers
-            if hasattr(self, 'dataset_manager') and self.dataset_manager is not None:
-                if hasattr(self.dataset_manager, 'cleanup'):
-                    self.dataset_manager.cleanup()
-            
+             
             if hasattr(self, 'metrics_manager') and self.metrics_manager is not None:
                 if hasattr(self.metrics_manager, 'cleanup'):
                     self.metrics_manager.cleanup()

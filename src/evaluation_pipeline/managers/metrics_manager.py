@@ -100,8 +100,7 @@ class MetricsManager:
         }
     
     def evaluate_model_on_dataset(
-        self, 
-        model_path: Union[str, Path], 
+        self,
         dataset: List[EvaluationSample]
     ) -> Dict[str, float]:
         """
@@ -114,6 +113,7 @@ class MetricsManager:
         Returns:
             Dictionary of metric scores
         """
+        model_path = self.config.model.name
         self.logger.info(f"Starting evaluation of model {model_path} on {len(dataset)} samples")
         
         try:
