@@ -32,7 +32,7 @@ class InferenceEngine:
         self.device = device
         self.generation_config = config_manager.get_generation_config()
         # Generation parameters
-        self.generation_config["pad_token_id"] = tokenizer.eos_token_id
+        # self.generation_config["pad_token_id"] = tokenizer.eos_token_id
         self.logger = get_logger(f"{self.__class__.__name__}")
     
     
@@ -132,7 +132,7 @@ class InferenceEngine:
             # Prepare batch inputs
             batch_inputs = []
             for question in batch_questions:
-                inputs = self.chat_formatter.prepare_inference_inputs(
+                inputs = self._prepare_inference_input(
                     question=question,
                     device=self.device
                 )
@@ -197,13 +197,37 @@ class InferenceEngine:
         if len(batch_inputs) == 1:
             return batch_inputs[0]
         
-        # Stack input_ids and attention_mask
-        input_ids = torch.stack([inputs['input_ids'] for inputs in batch_inputs])
-        attention_mask = torch.stack([inputs['attention_mask'] for inputs in batch_inputs])
+        # Extract input_ids and attention_mask
+        input_ids_list = [inputs['input_ids'].squeeze(0) for inputs in batch_inputs]
+        attention_mask_list = [inputs['attention_mask'].squeeze(0) for inputs in batch_inputs]
+        
+        # Find the maximum length
+        max_length = max(len(ids) for ids in input_ids_list)
+        
+        # Pad sequences manually
+        padded_input_ids = []
+        padded_attention_mask = []
+        
+        for input_ids, attention_mask in zip(input_ids_list, attention_mask_list):
+            # Pad input_ids with pad_token_id (use eos_token_id as pad_token_id)
+            pad_length = max_length - len(input_ids)
+            if pad_length > 0:
+                padded_ids = torch.cat([input_ids, torch.full((pad_length,), self.tokenizer.eos_token_id, dtype=input_ids.dtype, device=input_ids.device)])
+                padded_mask = torch.cat([attention_mask, torch.zeros(pad_length, dtype=attention_mask.dtype, device=attention_mask.device)])
+            else:
+                padded_ids = input_ids
+                padded_mask = attention_mask
+            
+            padded_input_ids.append(padded_ids)
+            padded_attention_mask.append(padded_mask)
+        
+        # Stack the padded tensors
+        batched_input_ids = torch.stack(padded_input_ids)
+        batched_attention_mask = torch.stack(padded_attention_mask)
         
         return {
-            'input_ids': input_ids,
-            'attention_mask': attention_mask
+            'input_ids': batched_input_ids,
+            'attention_mask': batched_attention_mask
         }
     
     def _decode_batch_outputs(

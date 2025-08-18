@@ -165,6 +165,23 @@ class ConfigManager:
         """Get logging configuration."""
         return self.config.logging
     
+    def get_experiment_config(self) -> EvaluationConfig:
+        """Get experiment configuration."""
+        return self.config
+    
+    def get_output_config(self) -> EvaluationConfig:
+        """Get output configuration."""
+        return self.config
+    
+    def get_experiment_info(self) -> Dict[str, Any]:
+        """Get experiment information."""
+        return {
+            "experiment_name": self.config.experiment_name,
+            "model": self.config.model.dict(),
+            "dataset": self.config.dataset.dict(),
+            "generation": self.config.generation.dict(),
+        }
+    
     def summary(self) -> str:
         """Get summary of configuration."""
         return f"""

@@ -52,8 +52,8 @@ class Gemma3NModel:
         )
         self.tokenizer = get_chat_template(self.tokenizer, "gemma-3n")
         FastModel.for_inference(self.model)
-        if hasattr(self.model, 'to'):
-            self.model = self.model.to(self.model_config.device)
+        # if hasattr(self.model, 'to'):
+        #     self.model = self.model.to(self.model_config.device)
         self.logger.info("Model loaded successfully")
         return self.model, self.tokenizer
     

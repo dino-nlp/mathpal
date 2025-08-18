@@ -27,6 +27,8 @@ from src.evaluation_pipeline.utils.logger import (
 
 from src.evaluation_pipeline.factories.model_factory import Gemma3NModel
 from src.evaluation_pipeline.inference.inference_engine import InferenceEngine
+from src.evaluation_pipeline.managers.evaluation_manager import EvaluationManager
+from src.evaluation_pipeline.managers.dataset_manager import DatasetManager
 
 @click.group()
 @click.option(
@@ -157,19 +159,30 @@ def evaluate(ctx):
         # Step 5: Generate response
         print_step_header("Generating Response", 5, 7)
         inference_engine = InferenceEngine(model, tokenizer, config, device=config.get_model_config().device)
-        predictions = inference_engine.generate_batch(evaluation_samples)
+        
+        # Extract questions from evaluation samples
+        questions = [sample.question for sample in evaluation_samples]
+        predictions = inference_engine.generate_batch(questions)
         
         print_success_message("Response generated successfully")
         print("========= Question[0] =========\n")
-        print(evaluation_samples[0]['question'])
+        print(evaluation_samples[0].question)
         print("========= Response =========\n")
         print(predictions[0])
         print("========= End of Question[0] =========\n")
         
         print_step_header("Running Evaluation", 6, 7)
-        logger.info(f"Starting evaluation of {len(samples)} samples")
+        logger.info(f"Starting evaluation of {len(evaluation_samples)} samples")
+        
+        # Create samples with predictions for evaluation
+        samples_with_predictions = []
+        for i, sample in enumerate(evaluation_samples):
+            sample_dict = sample.to_dict()
+            sample_dict['prediction'] = predictions[i]
+            samples_with_predictions.append(sample_dict)
+        
         results = eval_manager.evaluate_model(
-            samples=samples
+            samples=samples_with_predictions
         )
         
         # Step 6: Save and display results
@@ -179,11 +192,11 @@ def evaluate(ctx):
         # Display results with beautiful formatting
         print_evaluation_results(
             results=results.metrics,
-            model_name=model_path.split("/")[-1] if "/" in model_path else model_path
+            model_name=config.get_model_config().name
         )
         
         # Display summary
-        print_success_message(f"Evaluation completed successfully! Results saved to: {output}")
+        print_success_message(f"Evaluation completed successfully! Results saved to: {config.get_output_config().output_dir}")
         
         # Show top metrics
         click.echo(f"\n🏆 Top Metrics:")

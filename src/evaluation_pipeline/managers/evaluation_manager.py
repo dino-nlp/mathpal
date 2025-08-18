@@ -69,9 +69,7 @@ class EvaluationManager:
         Evaluate a model.
         
         Args:
-            model_path: Path to the model to evaluate
-            dataset_path: Optional path to custom dataset
-            samples: Optional pre-loaded dataset samples
+            samples: Optional pre-loaded dataset samples with predictions
             
         Returns:
             Evaluation result
@@ -80,7 +78,7 @@ class EvaluationManager:
         
         start_time = time.time()
         
-        self.logger.info(f"Starting evaluation ")
+        self.logger.info(f"Starting evaluation of {len(samples)} samples")
         
         # Run evaluation
         metrics = self.metrics_manager.evaluate_model_on_dataset(samples)
@@ -90,26 +88,61 @@ class EvaluationManager:
         
         # Create result
         result = EvaluationResult(
-            experiment_name=self.config.config.experiment_name,
-            model_path=str(model_path),
+            experiment_name=self.config.get_experiment_config().experiment_name,
+            model_path=self.config.get_model_config().name,
             metrics=metrics,
             metadata={
                 "config": self.config.get_experiment_info(),
                 "system_info": self.get_system_info(),
-                "dataset_info": self.dataset_manager.get_dataset_info()
             },
             samples_evaluated=len(samples),
             evaluation_time=evaluation_time,
-            output_path=str(self.output_dir)
+            output_path=str(self.config.get_output_config().output_dir)
         )
-        
-        # Save results
-        self.save_results(result)
         
         self.logger.info(f"Evaluation completed in {evaluation_time:.2f}s")
         self.logger.info(f"Evaluated {len(samples)} samples")
         
         return result
+    
+    def save_results(self, result: EvaluationResult) -> None:
+        """
+        Save evaluation results to file.
+        
+        Args:
+            result: Evaluation result to save
+        """
+        try:
+            output_dir = Path(self.config.get_output_config().output_dir)
+            output_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Save results to JSON file
+            output_file = output_dir / f"{result.experiment_name}_results.json"
+            save_evaluation_results(result.to_dict(), output_file)
+            
+            self.logger.info(f"Results saved to: {output_file}")
+            
+        except Exception as e:
+            self.logger.error(f"Error saving results: {e}", exc_info=True)
+            raise
+    
+    def get_system_info(self) -> Dict[str, Any]:
+        """
+        Get system information for metadata.
+        
+        Returns:
+            System information dictionary
+        """
+        import platform
+        import torch
+        
+        return {
+            "platform": platform.platform(),
+            "python_version": platform.python_version(),
+            "torch_version": torch.__version__,
+            "cuda_available": torch.cuda.is_available(),
+            "cuda_version": torch.version.cuda if torch.cuda.is_available() else None,
+        }
     
     def cleanup(self):
         """

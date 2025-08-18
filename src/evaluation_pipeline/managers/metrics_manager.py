@@ -101,7 +101,7 @@ class MetricsManager:
     
     def evaluate_model_on_dataset(
         self,
-        dataset: List[EvaluationSample]
+        dataset: List[Union[EvaluationSample, Dict[str, Any]]]
     ) -> Dict[str, float]:
         """
         Evaluate a model on a dataset with progress tracking.
@@ -117,9 +117,31 @@ class MetricsManager:
         self.logger.info(f"Starting evaluation of model {model_path} on {len(dataset)} samples")
         
         try:
-            # Get model predictions with progress bar
-            self.logger.info("Getting model predictions...")
-            predictions = self._get_model_predictions_with_progress(model_path, dataset)
+            # Extract predictions from dataset if they exist
+            predictions = []
+            questions = []
+            expected_answers = []
+            
+            for sample in dataset:
+                if isinstance(sample, dict) and 'prediction' in sample:
+                    # Sample is a dict with prediction
+                    predictions.append(sample['prediction'])
+                    questions.append(sample['question'])
+                    expected_answers.append(sample.get('expected_answer', ''))
+                elif hasattr(sample, 'prediction'):
+                    # Sample is an object with prediction attribute
+                    predictions.append(sample.prediction)
+                    questions.append(sample.question)
+                    expected_answers.append(sample.expected_answer or '')
+                else:
+                    # No prediction available, skip this sample
+                    self.logger.warning(f"Sample {sample} has no prediction, skipping")
+                    continue
+            
+            if not predictions:
+                raise ValueError("No predictions found in dataset")
+            
+            self.logger.info(f"Using {len(predictions)} predictions from dataset")
             
             # Calculate metrics with progress tracking
             metrics = {}
