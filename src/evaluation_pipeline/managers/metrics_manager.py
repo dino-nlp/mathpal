@@ -101,7 +101,7 @@ class MetricsManager:
     
     def evaluate_model_on_dataset(
         self,
-        dataset: List[Dict[str, Any]] # List of dicts with 'prediction', 'question', and 'solution'
+        dataset: List[EvaluationSample] # List of dicts with 'prediction', 'question', and 'expected_answer'
     ) -> Dict[str, float]:
         """
         Evaluate a model on a dataset with progress tracking.
@@ -118,9 +118,11 @@ class MetricsManager:
         
         try:
             # Extract predictions from dataset if they exist
-            predictions = [sample['prediction'] for sample in dataset]
-            questions = [sample['question'] for sample in dataset]
-            expected_answers = [sample['solution'] for sample in dataset]
+            predictions = [sample.prediction    for sample in dataset]
+            questions = [sample.question for sample in dataset]
+            expected_answers = [sample.expected_answer for sample in dataset]
+            
+            
             
             # Calculate metrics with progress tracking
             metrics = {}
