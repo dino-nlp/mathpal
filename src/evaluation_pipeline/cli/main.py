@@ -25,6 +25,8 @@ from src.evaluation_pipeline.utils.logger import (
     print_warning_message
 )
 
+from src.evaluation_pipeline.factories.model_factory import ModelFactory
+from src.evaluation_pipeline.inference.inference_engine import InferenceEngine
 
 @click.group()
 @click.option(
@@ -127,7 +129,6 @@ def evaluate(ctx):
         # Step 1: Load initial configuration from config file
         print_step_header("Loading Configuration", 1, 6)
         logger.info(config.summary())
-       
         # Step 2: Create evaluation manager
         print_step_header("Initializing Evaluation Manager", 2, 6)
         eval_manager = EvaluationManager(config)
@@ -148,14 +149,17 @@ def evaluate(ctx):
                 
         # Step 4: Load model
         print_step_header("Loading model", 4, 6)
-        #TODO: Dùng model_factory để load model
-        # print_model_info(
-        #     model_name=model_path.split("/")[-1] if "/" in model_path else model_path,
-        #     model_path=model_path,
-        #     device=config.config.model.device
-        # )
+        model_factory = ModelFactory(config)
+        model, tokenizer = model_factory.load_model()
+
         
-        # Step 5: Run evaluation
+        # Step 5: Generate response
+        print_step_header("Generating Response", 5, 6)
+        inference_engine = InferenceEngine(model, tokenizer, config, device=config.get_model_config().device)
+        response = inference_engine.generate(evaluation_samples[0]['question'])
+        print_success_message("Response generated successfully")
+        print(response)
+        
         print_step_header("Running Evaluation", 5, 6)
         logger.info(f"Starting evaluation of {len(samples)} samples")
         results = eval_manager.evaluate_model(

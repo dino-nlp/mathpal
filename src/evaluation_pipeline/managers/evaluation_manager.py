@@ -42,7 +42,7 @@ class EvaluationResult:
         }
 
 
-  
+
 class EvaluationManager:
     """
     Main evaluation manager for the evaluation pipeline.

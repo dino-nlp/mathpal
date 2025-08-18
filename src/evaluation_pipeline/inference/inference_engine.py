@@ -33,24 +33,7 @@ class InferenceEngine:
         # Generation parameters
         self.generation_config["pad_token_id"] = tokenizer.eos_token_id
         
-        # Prepare model for inference
-        self._setup_for_inference()
     
-    def _setup_for_inference(self) -> None:
-        """Setup model for inference."""
-        try:
-            # Use Unsloth optimization if available
-            from unsloth import FastModel
-            FastModel.for_inference(self.model)
-            print("🚀 Model optimized for inference with Unsloth")
-        except:
-            # Fallback to standard setup
-            self.model.eval()
-            print("📝 Model set to evaluation mode")
-        
-        # Move to device if needed
-        if hasattr(self.model, 'to'):
-            self.model = self.model.to(self.device)
     
     def _format_inference_input(self, question: str) -> List[Dict[str, Any]]:
         """
@@ -164,8 +147,6 @@ class InferenceEngine:
             
             # Update generation config
             gen_config = self.generation_config.copy()
-            if generation_config:
-                gen_config.update(generation_config)
             
             # Generate for batch
             with torch.no_grad():
