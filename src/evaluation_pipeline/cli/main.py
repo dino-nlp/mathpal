@@ -127,15 +127,15 @@ def evaluate(ctx):
     print_evaluation_header()
     try:
         # Step 1: Load initial configuration from config file
-        print_step_header("Loading Configuration", 1, 6)
+        print_step_header("Loading Configuration", 1, 7)
         logger.info(config.summary())
         # Step 2: Create evaluation manager
-        print_step_header("Initializing Evaluation Manager", 2, 6)
+        print_step_header("Initializing Evaluation Manager", 2, 7)
         eval_manager = EvaluationManager(config)
         print_success_message("Evaluation manager initialized successfully")
         
         # Step 3: Load dataset with overrides
-        print_step_header("Loading Dataset", 3, 6)
+        print_step_header("Loading Dataset", 3, 7)
         
         # Load dataset based on configuration
         dataset_manager = DatasetManager(config)
@@ -144,30 +144,36 @@ def evaluate(ctx):
         # Print final dataset info
         print_dataset_info(
             dataset_name=config.get_dataset_config().dataset_id,
-            sample_count=len(evaluation_samples)
+            sample_count=len(evaluation_samples), 
+            source=config.get_dataset_config().source
         )
                 
         # Step 4: Load model
-        print_step_header("Loading model", 4, 6)
+        print_step_header("Loading model", 4, 7)
         gemma3n_model = Gemma3NModel(config)
         model, tokenizer = gemma3n_model.load_model()
 
         
         # Step 5: Generate response
-        print_step_header("Generating Response", 5, 6)
+        print_step_header("Generating Response", 5, 7)
         inference_engine = InferenceEngine(model, tokenizer, config, device=config.get_model_config().device)
-        response = inference_engine.generate(evaluation_samples[0]['question'])
-        print_success_message("Response generated successfully")
-        print(response)
+        predictions = inference_engine.generate_batch(evaluation_samples)
         
-        print_step_header("Running Evaluation", 5, 6)
+        print_success_message("Response generated successfully")
+        print("========= Question[0] =========\n")
+        print(evaluation_samples[0]['question'])
+        print("========= Response =========\n")
+        print(predictions[0])
+        print("========= End of Question[0] =========\n")
+        
+        print_step_header("Running Evaluation", 6, 7)
         logger.info(f"Starting evaluation of {len(samples)} samples")
         results = eval_manager.evaluate_model(
             samples=samples
         )
         
         # Step 6: Save and display results
-        print_step_header("Saving Results", 6, 6)
+        print_step_header("Saving Results", 7, 7)
         eval_manager.save_results(results)
         
         # Display results with beautiful formatting

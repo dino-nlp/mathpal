@@ -28,14 +28,12 @@ class Gemma3NModel:
         Args:
             config: Configuration manager
         """
-        super().__init__(config)
-        
         # Get model and hardware config
         self.model_config = config.get_model_config()
         self.logger = get_logger(f"{self.__class__.__name__}")
         self.logger.info("Gemma 3N model initialized")
     
-    def load_model(self, model_path: Union[str, Path]) -> None:
+    def load_model(self):
         """
         Load Gemma 3N model from path.
         
@@ -54,7 +52,8 @@ class Gemma3NModel:
         )
         self.tokenizer = get_chat_template(self.tokenizer, "gemma-3n")
         FastModel.for_inference(self.model)
-        self.model.to(self.model_config.device)
+        if hasattr(self.model, 'to'):
+            self.model = self.model.to(self.model_config.device)
         self.logger.info("Model loaded successfully")
         return self.model, self.tokenizer
     
