@@ -39,15 +39,8 @@ test-env: ## Test environment setup
 
 evaluate-quick: ## Run quick evaluation (3 samples)
 	@echo "⚡ Starting quick evaluation..."
-	@PYTHONPATH=$(PYTHONPATH) python3 -m src.evaluation_pipeline.cli.main -c configs/evaluation_quick.yaml evaluate
+	@PYTHONPATH=$(PYTHONPATH) python3 -m src.inference_pipeline.mathpal
 
-evaluate-production: ## Run production evaluation (full test set)
-	@echo "📊 Starting production evaluation..."
-	@PYTHONPATH=$(PYTHONPATH)  python3 -m src.evaluation_pipeline.cli.main -c configs/evaluation_production.yaml evaluate
-
-evaluate-custom: ## Run evaluation with custom config (usage: make evaluate-custom CONFIG=path/to/config.yaml)
-	@echo "📋 Starting evaluation with config: $(CONFIG)..."
-	@PYTHONPATH=$(PYTHONPATH)  python3 -m src.evaluation_pipeline.cli.main -c $(CONFIG) evaluate
 
 # ======================================
 # ----------- Training Pipeline --------
