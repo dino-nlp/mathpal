@@ -149,6 +149,12 @@ class InferenceEngine:
             # Update generation config
             gen_config = self.generation_config.copy()
             
+            # Convert GenerationConfig to dict if it's a Pydantic model
+            if hasattr(gen_config, 'model_dump'):
+                gen_config = gen_config.model_dump()
+            elif hasattr(gen_config, 'dict'):
+                gen_config = gen_config.dict()
+            
             # Generate for batch
             with torch.no_grad():
                 batch_outputs = self.model.generate(**batch_inputs, **gen_config)
