@@ -32,6 +32,7 @@ class Gemma3NModel:
         
         # Get model and hardware config
         self.model_config = config.get_model_config()
+        self.logger = get_logger(f"{self.__class__.__name__}")
         self.logger.info("Gemma 3N model initialized")
     
     def load_model(self, model_path: Union[str, Path]) -> None:

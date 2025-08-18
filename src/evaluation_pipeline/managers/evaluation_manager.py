@@ -57,12 +57,11 @@ class EvaluationManager:
         Args:
             config: Configuration manager
         """
-        super().__init__(config)
-        
         # Initialize sub-managers
         from .metrics_manager import MetricsManager
-        
-        self.metrics_manager = MetricsManager(self.config)
+        self.config = config
+        self.metrics_manager = MetricsManager(config)
+        self.logger = get_logger(f"{self.__class__.__name__}")
         self.logger.info("Evaluation manager initialized")
     
     def evaluate_model(self, samples: Optional[List] = None) -> EvaluationResult:

@@ -3,6 +3,7 @@
 import torch
 from typing import Dict, Any, List, Optional, Union
 from ..config import ConfigManager
+from ..utils import get_logger
 
 class InferenceEngine:
     """Handles model inference with various generation options."""
@@ -32,7 +33,7 @@ class InferenceEngine:
         self.generation_config = config_manager.get_generation_config()
         # Generation parameters
         self.generation_config["pad_token_id"] = tokenizer.eos_token_id
-        
+        self.logger = get_logger(f"{self.__class__.__name__}")
     
     
     def _format_inference_input(self, question: str) -> List[Dict[str, Any]]:
