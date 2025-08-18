@@ -206,13 +206,13 @@ class MetricsManager:
         from tqdm import tqdm
         import time
         
-        from ..factories import ModelFactory
+        from ..factories import Gemma3NModel
         
         self.logger.info(f"Getting model predictions for {len(dataset)} samples")
         
         try:
             # Create model instance
-            model = ModelFactory.create_model(self.config, "gemma3n")
+            model = Gemma3NModel(self.config)
             
             # Load model
             model.load_model(model_path)
@@ -312,13 +312,13 @@ class MetricsManager:
         Returns:
             List of model predictions
         """
-        from ..factories import ModelFactory
+        from ..factories import Gemma3NModel
         
         self.logger.info(f"Getting model predictions for {len(dataset)} samples")
         
         try:
             # Create model instance
-            model = ModelFactory.create_model(self.config, "gemma3n")
+            model = Gemma3NModel(self.config)
             
             # Load model
             model.load_model(model_path)

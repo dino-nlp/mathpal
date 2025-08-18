@@ -25,7 +25,7 @@ from src.evaluation_pipeline.utils.logger import (
     print_warning_message
 )
 
-from src.evaluation_pipeline.factories.model_factory import ModelFactory
+from src.evaluation_pipeline.factories.model_factory import Gemma3NModel
 from src.evaluation_pipeline.inference.inference_engine import InferenceEngine
 
 @click.group()
@@ -149,8 +149,8 @@ def evaluate(ctx):
                 
         # Step 4: Load model
         print_step_header("Loading model", 4, 6)
-        model_factory = ModelFactory(config)
-        model, tokenizer = model_factory.load_model()
+        gemma3n_model = Gemma3NModel(config)
+        model, tokenizer = gemma3n_model.load_model()
 
         
         # Step 5: Generate response
