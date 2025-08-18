@@ -79,7 +79,7 @@ class EvaluationManager:
         start_time = time.time()
         
         self.logger.info(f"Starting evaluation of {len(samples)} samples")
-        
+        self.logger.info(f"Samples: {samples}")
         # Run evaluation
         metrics = self.metrics_manager.evaluate_model_on_dataset(samples)
         

@@ -169,6 +169,8 @@ def evaluate(ctx):
         print(evaluation_samples[0].question)
         print("========= Response =========\n")
         print(predictions[0])
+        print("========= Expected Answer =========\n")
+        print(evaluation_samples[0].solution)
         print("========= End of Question[0] =========\n")
         
         print_step_header("Running Evaluation", 6, 7)
