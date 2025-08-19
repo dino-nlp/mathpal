@@ -2,14 +2,11 @@ from core.config import settings
 from transformers import AutoProcessor, AutoTokenizer
 
 
-def compute_num_tokens(text: str) -> int:
-    #TODO: Update to use unsloth processor
-    return len(text.split())
-    # tokenizer = AutoTokenizer.from_pretrained(settings.MODEL_ID)
-    # return len(tokenizer.encode(text, add_special_tokens=False))
+def compute_num_tokens(text: str, tokenizer) -> int:
+    return len(tokenizer.encode(text, add_special_tokens=False))
 
 
-def truncate_text_to_max_tokens(text: str, max_tokens: int) -> tuple[str, int]:
+def truncate_text_to_max_tokens(text: str, max_tokens: int, tokenizer) -> tuple[str, int]:
     """Truncates text to not exceed max_tokens while trying to preserve complete sentences.
 
     Args:
@@ -20,12 +17,11 @@ def truncate_text_to_max_tokens(text: str, max_tokens: int) -> tuple[str, int]:
         Truncated text that fits within max_tokens and the number of tokens in the truncated text.
     """
 
-    current_tokens = compute_num_tokens(text)
+    current_tokens = compute_num_tokens(text, tokenizer)
 
     if current_tokens <= max_tokens:
         return text, current_tokens
 
-    tokenizer = AutoTokenizer.from_pretrained(settings.MODEL_ID)
     tokens = tokenizer.encode(text, add_special_tokens=False)
 
     # Take first max_tokens tokens and decode
@@ -37,6 +33,6 @@ def truncate_text_to_max_tokens(text: str, max_tokens: int) -> tuple[str, int]:
     if last_period > 0:
         truncated_text = truncated_text[: last_period + 1]
 
-    truncated_tokens = compute_num_tokens(truncated_text)
+    truncated_tokens = compute_num_tokens(truncated_text, tokenizer)
 
     return truncated_text, truncated_tokens

@@ -40,7 +40,7 @@ class MathPal:
         Returns:
             Formatted messages for chat template
         """
-        prompt, num_tokens = truncate_text_to_max_tokens(question, settings.MAX_INPUT_TOKENS)
+        prompt, num_tokens = truncate_text_to_max_tokens(question, settings.MAX_INPUT_TOKENS, self.processor)
         messages = [{
             "role": "user",
             "content": [{
@@ -110,7 +110,7 @@ class MathPal:
             top_k=64
         )
         answer = response
-        num_answer_tokens = compute_num_tokens(answer)
+        num_answer_tokens = compute_num_tokens(answer, self.processor)
         
         opik_context.update_current_trace(
             tags=["mathpal_generate"],
