@@ -40,61 +40,19 @@ class MathPal:
         Returns:
             Formatted messages for chat template
         """
-        prompt, num_tokens = truncate_text_to_max_tokens(question, settings.MAX_INPUT_TOKENS, self.processor)
         messages = [{
             "role": "user",
             "content": [{
                 "type": "text",
-                "text": prompt,
+                "text": question,
             }]
         }]
             
-        return messages, num_tokens
+        return messages
         
-    def _decode_batch_outputs(
-        self, 
-        processor,
-        batch_outputs: torch.Tensor, 
-        batch_inputs: Dict[str, Any], 
-        return_full_text: bool
-    ) -> List[str]:
-        """
-        Decode batch outputs to text responses.
-        
-        Args:
-            batch_outputs: Model outputs tensor
-            batch_inputs: Input dictionary used for generation
-            return_full_text: Whether to return full text
-            
-        Returns:
-            List of decoded text responses
-        """
-        responses = []
-        
-        if return_full_text:
-            # Return full generated text for each item
-            for i in range(batch_outputs.shape[0]):
-                generated_text = processor.decode(
-                    batch_outputs[i], 
-                    skip_special_tokens=True
-                )
-                responses.append(generated_text.strip())
-        else:
-            # Return only new tokens for each item
-            input_length = batch_inputs['input_ids'].shape[1]
-            for i in range(batch_outputs.shape[0]):
-                new_tokens = batch_outputs[i][input_length:]
-                generated_text = processor.decode(
-                    new_tokens, 
-                    skip_special_tokens=True
-                )
-                responses.append(generated_text.strip())
-        
-        return responses
-    
     @opik.track(name="inference_pipeline.generate")
     def generate(self, question: str, sample_for_evaluation: bool = False) -> str:
-        messages, num_tokens = self._format_inference_input(question)
+        messages = self._format_inference_input(question)
         
         response = self.model.generate(
             **self.processor.apply_chat_template(
@@ -110,7 +68,6 @@ class MathPal:
             top_k=64
         )
         answer = response
-        num_answer_tokens = compute_num_tokens(answer, self.processor)
         
         opik_context.update_current_trace(
             tags=["mathpal_generate"],
@@ -118,9 +75,6 @@ class MathPal:
                 "question": question,
                 "response": answer,
                 "model_id": settings.MODEL_ID,
-                "input_tokens": num_tokens,
-                "output_tokens": num_answer_tokens,
-                "total_tokens": num_tokens + num_answer_tokens,
             }
         )
         answer = {"answer": answer, "question": question}
