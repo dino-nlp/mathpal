@@ -16,7 +16,7 @@ class Settings(BaseSettings):
 
     # OpenRouter config
     OPENROUTER_KEY: str | None = None
-    OPENROUTER_BASE_MODEL: str = "google/gemini-2.5-flash-lite-preview-06-17"
+    OPENROUTER_BASE_MODEL: str = "openrouter/openai/gpt-oss-20b:free"
 
     # QdrantDB config
     QDRANT_DATABASE_HOST: str = "localhost"  # Or 'qdrant' if running inside Docker

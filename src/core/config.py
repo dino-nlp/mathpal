@@ -35,7 +35,7 @@ class AppSettings(BaseSettings):
     
     # OpenRouter config
     OPENROUTER_KEY: str | None = None
-    OPENROUTER_BASE_MODEL: str = "google/gemini-2.5-flash-lite-preview-06-17"
+    OPENROUTER_BASE_MODEL: str = "openrouter/openai/gpt-oss-20b:free"
 
     # CometML config
     COMET_API_KEY: str | None = None

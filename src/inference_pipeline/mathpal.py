@@ -18,8 +18,23 @@ class MathPal:
         self.processor, self.model = self._load_model(model_id, device)
         
     def _load_model(self, model_id: str, device: str = "auto"):
-        processor = AutoProcessor.from_pretrained(model_id, device_map=device)
-        model = AutoModelForImageTextToText.from_pretrained(model_id, torch_dtype="auto" ,device_map=device)
+        # Select device without relying on Accelerate's infer_auto_device to avoid warnings
+        if device == "auto":
+            resolved_device = "cuda" if torch.cuda.is_available() else "cpu"
+        else:
+            resolved_device = device
+
+        processor = AutoProcessor.from_pretrained(model_id)
+        model = AutoModelForImageTextToText.from_pretrained(
+            model_id,
+            torch_dtype="auto",
+        )
+        try:
+            if hasattr(model, "tie_weights"):
+                model.tie_weights()
+        except Exception:
+            pass
+        model.to(resolved_device)
         model.eval()
         return processor, model
 
