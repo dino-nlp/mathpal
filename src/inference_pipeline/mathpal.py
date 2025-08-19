@@ -16,6 +16,8 @@ logger = logger_utils.get_logger(__name__)
 class MathPal:
     def __init__(self, model_id: str, device: str = "auto"):
         self.model, self.processor = self._load_model(model_id)
+        self.processor = get_chat_template(self.processor, "gemma-3n")
+        FastModel.for_inference(self.model)
         
     def _load_model(self, model_id: str):
         model, tokenizer = FastModel.from_pretrained(
@@ -25,8 +27,6 @@ class MathPal:
             load_in_4bit=True,
             load_in_8bit=False
         )
-        FastModel.for_inference(self.model)
-        tokenizer = get_chat_template(tokenizer, "gemma-3n")
         return model, tokenizer
 
     @opik.track(name="inference_pipeline.format_inference_input")
