@@ -1,5 +1,6 @@
 import argparse
 import os
+import torch
 
 from config import settings
 from core.logger_utils import get_logger
@@ -12,6 +13,11 @@ from .style import Style
 
 # Disable tokenizers parallelism to avoid deadlocks during forking
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+# Configure TorchDynamo to prevent recompile limit issues during evaluation
+# Use a more conservative compilation strategy for evaluation
+torch._dynamo.config.cache_size_limit = 256  # Increase cache size limit significantly
+torch._dynamo.config.one_graph = False  # Allow multiple graphs to avoid recompilation
 
 logger = get_logger(__name__)
 
