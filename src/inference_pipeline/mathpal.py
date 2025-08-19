@@ -25,6 +25,30 @@ class MathPal:
             resolved_device = device
 
         processor = AutoProcessor.from_pretrained(model_id)
+
+        # Try 4-bit quantization on CUDA to reduce memory usage
+        if resolved_device == "cuda":
+            try:
+                from transformers import BitsAndBytesConfig
+
+                quant_config = BitsAndBytesConfig(
+                    load_in_4bit=True,
+                    bnb_4bit_quant_type="nf4",
+                    bnb_4bit_use_double_quant=True,
+                    bnb_4bit_compute_dtype=torch.float16,
+                )
+
+                model = AutoModelForImageTextToText.from_pretrained(
+                    model_id,
+                    quantization_config=quant_config,
+                    device_map="auto",
+                )
+                model.eval()
+                return processor, model
+            except Exception:
+                # Fallback to FP16 if bitsandbytes is unavailable or model doesn't support 4-bit
+                pass
+
         load_dtype = torch.float16 if resolved_device == "cuda" else "auto"
         model = AutoModelForImageTextToText.from_pretrained(
             model_id,
