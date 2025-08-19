@@ -15,7 +15,7 @@ logger = logger_utils.get_logger(__name__)
 
 class MathPal:
     def __init__(self, model_id: str, device: str = "auto"):
-        self.model, self.tokenizer = self._load_model(model_id)
+        self.model, self.processor = self._load_model(model_id)
         
     def _load_model(self, model_id: str):
         model, tokenizer = FastModel.from_pretrained(
@@ -53,7 +53,7 @@ class MathPal:
         
     def _decode_batch_outputs(
         self, 
-        processor: AutoProcessor,
+        processor,
         batch_outputs: torch.Tensor, 
         batch_inputs: Dict[str, Any], 
         return_full_text: bool
