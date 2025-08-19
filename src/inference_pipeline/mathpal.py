@@ -17,7 +17,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 # Configure TorchDynamo to prevent recompile limit issues during evaluation
 # Use a more conservative compilation strategy for evaluation
 torch._dynamo.config.cache_size_limit = 256  # Increase cache size limit significantly
-torch._dynamo.config.one_graph = False  # Allow multiple graphs to avoid recompilation
+torch._dynamo.config.suppress_errors = True   # Suppress compilation errors
 
 logger = logger_utils.get_logger(__name__)
 
