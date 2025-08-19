@@ -3,9 +3,10 @@ from transformers import AutoProcessor, AutoTokenizer
 
 
 def compute_num_tokens(text: str) -> int:
-    tokenizer = AutoTokenizer.from_pretrained(settings.MODEL_ID)
-
-    return len(tokenizer.encode(text, add_special_tokens=False))
+    #TODO: Update to use unsloth processor
+    return len(text.split())
+    # tokenizer = AutoTokenizer.from_pretrained(settings.MODEL_ID)
+    # return len(tokenizer.encode(text, add_special_tokens=False))
 
 
 def truncate_text_to_max_tokens(text: str, max_tokens: int) -> tuple[str, int]:
