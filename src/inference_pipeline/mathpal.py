@@ -25,9 +25,10 @@ class MathPal:
             resolved_device = device
 
         processor = AutoProcessor.from_pretrained(model_id)
+        load_dtype = torch.float16 if resolved_device == "cuda" else "auto"
         model = AutoModelForImageTextToText.from_pretrained(
             model_id,
-            torch_dtype="auto",
+            torch_dtype=load_dtype,
         )
         try:
             if hasattr(model, "tie_weights"):
@@ -114,7 +115,11 @@ class MathPal:
 
         # Generate output from the model
         with torch.no_grad():
-            outputs = self.model.generate(**input_ids, max_new_tokens=128)
+            if torch.cuda.is_available():
+                with torch.cuda.amp.autocast(dtype=torch.float16):
+                    outputs = self.model.generate(**input_ids, max_new_tokens=128)
+            else:
+                outputs = self.model.generate(**input_ids, max_new_tokens=128)
 
         # decode and print the output as text
         response = self._decode_batch_outputs(self.processor, outputs, input_ids, return_full_text=False)
