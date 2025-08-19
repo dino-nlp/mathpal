@@ -93,21 +93,22 @@ class MathPal:
     @opik.track(name="inference_pipeline.generate")
     def generate(self, question: str, sample_for_evaluation: bool = False) -> str:
         messages = self._format_inference_input(question)
+        input_ids = self.processor.apply_chat_template(
+            messages,
+            add_generation_prompt=True,
+            tokenize=True, return_dict=True,
+            return_tensors="pt",
+        ).to("cuda")
         
         response = self.model.generate(
-            **self.processor.apply_chat_template(
-                messages,
-                add_generation_prompt=True,
-                tokenize=True, return_dict=True,
-                return_tensors="pt",
-            ).to("cuda"),
+            **input_ids,
             max_new_tokens=512,
             do_sample=True,
             temperature=1.0,
             top_p=0.95,
             top_k=64
         )
-        answer = self.processor.tokenizer.decode(response, skip_special_tokens=True)
+        answer = self._decode_batch_outputs(response, input_ids, return_full_text=False)[0]
         
         opik_context.update_current_trace(
             tags=["mathpal_generate"],
