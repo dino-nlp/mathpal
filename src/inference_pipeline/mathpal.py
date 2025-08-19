@@ -72,7 +72,7 @@ class MathPal:
         if return_full_text:
             # Return full generated text for each item
             for i in range(batch_outputs.shape[0]):
-                generated_text = self.tokenizer.decode(
+                generated_text = self.processor.decode(
                     batch_outputs[i], 
                     skip_special_tokens=True
                 )
@@ -82,7 +82,7 @@ class MathPal:
             input_length = batch_inputs['input_ids'].shape[1]
             for i in range(batch_outputs.shape[0]):
                 new_tokens = batch_outputs[i][input_length:]
-                generated_text = self.tokenizer.decode(
+                generated_text = self.processor.decode(
                     new_tokens, 
                     skip_special_tokens=True
                 )
