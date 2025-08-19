@@ -1,15 +1,17 @@
+import os
 import pprint
-import opik
-
-from typing import Dict, List, Any, Optional
-# from config import settings
-# from core import logger_utils
-# from core.opik_utils import add_to_dataset_with_sampling
-# from opik import opik_context
 import torch
+import opik
+from opik import opik_context
+from typing import Dict, List, Any, Optional
+from inference_pipeline.config import settings
+from core import logger_utils
+from core.opik_utils import add_to_dataset_with_sampling
+from inference_pipeline.utils import compute_num_tokens, truncate_text_to_max_tokens
+
 from transformers import AutoProcessor, AutoModelForImageTextToText
 
-# logger = logger_utils.get_logger(__name__)
+logger = logger_utils.get_logger(__name__)
 
 class MathPal:
     def __init__(self, model_id: str, device: str = "auto"):
@@ -21,6 +23,7 @@ class MathPal:
         model.eval()
         return processor, model
 
+    @opik.track(name="inference_pipeline.format_inference_input")
     def _format_inference_input(self, question: str) -> List[Dict[str, Any]]:
         """
         Format a single question for inference.
@@ -31,13 +34,16 @@ class MathPal:
         Returns:
             Formatted messages for chat template
         """
-        return [{
+        prompt, num_tokens = truncate_text_to_max_tokens(question, settings.MAX_INPUT_TOKENS)
+        messages = [{
             "role": "user",
             "content": [{
                 "type": "text",
-                "text": question,
+                "text": prompt,
             }]
         }]
+            
+        return messages, num_tokens
         
     def _decode_batch_outputs(
         self, 
@@ -80,8 +86,9 @@ class MathPal:
         
         return responses
     
-    def generate(self, question: str) -> str:
-        messages = self._format_inference_input(question)
+    @opik.track(name="inference_pipeline.generate")
+    def generate(self, question: str, sample_for_evaluation: bool = False) -> str:
+        messages, num_tokens = self._format_inference_input(question)
         input_ids = self.processor.apply_chat_template(
                 messages,
                 add_generation_prompt=True,
@@ -96,11 +103,26 @@ class MathPal:
 
         # decode and print the output as text
         response = self._decode_batch_outputs(self.processor, outputs, input_ids, return_full_text=False)
-        return response[0]
+        answer = response[0]
+        num_answer_tokens = compute_num_tokens(answer)
+        
+        opik_context.update_current_trace(
+            tags=["mathpal_generate"],
+            metadata={
+                "question": question,
+                "response": answer,
+                "model_id": settings.MODEL_ID,
+                "input_tokens": num_tokens,
+                "output_tokens": num_answer_tokens,
+                "total_tokens": num_tokens + num_answer_tokens,
+            }
+        )
+        answer = {"answer": answer, "question": question}
+        
+        return answer
     
 if __name__ == "__main__":
-    mathpal = MathPal(model_id="unsloth/gemma-3n-E2B-it")
-    # mathpal = MathPal(model_id="ngohongthai/gemma-3n-E2B-it-mathpal-grade6-vi-fp16")
+    mathpal = MathPal(model_id=settings.MODEL_ID)
     question = "What is the sum of 1 and 2?"
-    pprint.pprint(mathpal.generate(question))
+    pprint.pprint(mathpal.generate(question, sample_for_evaluation=True))
         

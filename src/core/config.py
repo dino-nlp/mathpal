@@ -50,7 +50,8 @@ class AppSettings(BaseSettings):
 
     # LLM Model config
     HUGGINGFACE_ACCESS_TOKEN: str | None = None
-    MODEL_ID: str = "ngohongthai/MathPal-Gemma3n-E2B"
+    HF_TOKEN: str | None = None  # Alternative name for HuggingFace token
+    MODEL_ID: str = "unsloth/gemma-3n-E2B-it"
     DEPLOYMENT_ENDPOINT_NAME: str = "mathpal"
 
     MAX_INPUT_TOKENS: int = 1536  # Max length of input text.

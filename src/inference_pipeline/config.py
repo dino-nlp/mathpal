@@ -28,10 +28,6 @@ class Settings(BaseSettings):
     QDRANT_CLOUD_URL: str = "str"
     QDRANT_APIKEY: str | None = None
 
-    # RAG config
-    TOP_K: int = 5
-    KEEP_TOP_K: int = 5
-    EXPAND_N_QUERY: int = 5
 
     # CometML config
     COMET_API_KEY: str | None = None
@@ -42,7 +38,7 @@ class Settings(BaseSettings):
     HUGGINGFACE_ACCESS_TOKEN: str | None = None
     MODEL_ID: str = "unsloth/gemma-3n-E2B-it" # Change this with your Hugging Face model ID to test out your fine-tuned LLM
 
-    MAX_INPUT_TOKENS: int = 1536  # Max length of input text.
+    MAX_INPUT_TOKENS: int = 1024  # Max length of input text.
     MAX_TOTAL_TOKENS: int = 2048  # Max length of the generation (including input text).
     MAX_BATCH_TOTAL_TOKENS: int = 2048  # Limits the number of tokens that can be processed in parallel during the generation.
 
