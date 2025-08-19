@@ -49,6 +49,46 @@ class MathPal:
         }]
             
         return messages
+
+    def _decode_batch_outputs(
+        self, 
+        batch_outputs: torch.Tensor, 
+        batch_inputs: Dict[str, Any], 
+        return_full_text: bool
+    ) -> List[str]:
+        """
+        Decode batch outputs to text responses.
+        
+        Args:
+            batch_outputs: Model outputs tensor
+            batch_inputs: Input dictionary used for generation
+            return_full_text: Whether to return full text
+            
+        Returns:
+            List of decoded text responses
+        """
+        responses = []
+        
+        if return_full_text:
+            # Return full generated text for each item
+            for i in range(batch_outputs.shape[0]):
+                generated_text = self.tokenizer.decode(
+                    batch_outputs[i], 
+                    skip_special_tokens=True
+                )
+                responses.append(generated_text.strip())
+        else:
+            # Return only new tokens for each item
+            input_length = batch_inputs['input_ids'].shape[1]
+            for i in range(batch_outputs.shape[0]):
+                new_tokens = batch_outputs[i][input_length:]
+                generated_text = self.tokenizer.decode(
+                    new_tokens, 
+                    skip_special_tokens=True
+                )
+                responses.append(generated_text.strip())
+        
+        return responses
         
     @opik.track(name="inference_pipeline.generate")
     def generate(self, question: str, sample_for_evaluation: bool = False) -> str:
@@ -67,7 +107,7 @@ class MathPal:
             top_p=0.95,
             top_k=64
         )
-        answer = response
+        answer = self.processor.tokenizer.decode(response, skip_special_tokens=True)
         
         opik_context.update_current_trace(
             tags=["mathpal_generate"],
