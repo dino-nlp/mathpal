@@ -9,59 +9,25 @@ from core import logger_utils
 from core.opik_utils import add_to_dataset_with_sampling
 from inference_pipeline.utils import compute_num_tokens, truncate_text_to_max_tokens
 
-from transformers import AutoProcessor, AutoModelForImageTextToText
+from unsloth import FastModel, get_chat_template
 
 logger = logger_utils.get_logger(__name__)
 
 class MathPal:
     def __init__(self, model_id: str, device: str = "auto"):
-        self.processor, self.model = self._load_model(model_id, device)
+        self.model, self.tokenizer = self._load_model(model_id)
         
-    def _load_model(self, model_id: str, device: str = "auto"):
-        # Select device without relying on Accelerate's infer_auto_device to avoid warnings
-        if device == "auto":
-            resolved_device = "cuda" if torch.cuda.is_available() else "cpu"
-        else:
-            resolved_device = device
-
-        processor = AutoProcessor.from_pretrained(model_id)
-
-        # Try 4-bit quantization on CUDA to reduce memory usage
-        if resolved_device == "cuda":
-            try:
-                from transformers import BitsAndBytesConfig
-
-                quant_config = BitsAndBytesConfig(
-                    load_in_4bit=True,
-                    bnb_4bit_quant_type="nf4",
-                    bnb_4bit_use_double_quant=True,
-                    bnb_4bit_compute_dtype=torch.float16,
-                )
-
-                model = AutoModelForImageTextToText.from_pretrained(
-                    model_id,
-                    quantization_config=quant_config,
-                    device_map="auto",
-                )
-                model.eval()
-                return processor, model
-            except Exception:
-                # Fallback to FP16 if bitsandbytes is unavailable or model doesn't support 4-bit
-                pass
-
-        load_dtype = torch.float16 if resolved_device == "cuda" else "auto"
-        model = AutoModelForImageTextToText.from_pretrained(
-            model_id,
-            torch_dtype=load_dtype,
+    def _load_model(self, model_id: str):
+        model, tokenizer = FastModel.from_pretrained(
+            model_name=model_id,
+            dtype=None,  # Auto-detect
+            max_seq_length=settings.MAX_INPUT_TOKENS,
+            load_in_4bit=True,
+            load_in_8bit=False
         )
-        try:
-            if hasattr(model, "tie_weights"):
-                model.tie_weights()
-        except Exception:
-            pass
-        model.to(resolved_device)
-        model.eval()
-        return processor, model
+        FastModel.for_inference(self.model)
+        tokenizer = get_chat_template(tokenizer, "gemma-3n")
+        return model, tokenizer
 
     @opik.track(name="inference_pipeline.format_inference_input")
     def _format_inference_input(self, question: str) -> List[Dict[str, Any]]:
