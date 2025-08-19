@@ -11,6 +11,9 @@ from inference_pipeline.utils import compute_num_tokens, truncate_text_to_max_to
 
 from unsloth import FastModel, get_chat_template
 
+# Disable tokenizers parallelism to avoid deadlocks during forking
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 logger = logger_utils.get_logger(__name__)
 
 class MathPal:
@@ -20,14 +23,14 @@ class MathPal:
         FastModel.for_inference(self.model)
         
     def _load_model(self, model_id: str):
-        model, tokenizer = FastModel.from_pretrained(
+        model, processor  = FastModel.from_pretrained(
             model_name=model_id,
             dtype=None,  # Auto-detect
             max_seq_length=settings.MAX_INPUT_TOKENS,
             load_in_4bit=True,
             load_in_8bit=False
         )
-        return model, tokenizer
+        return model, processor
 
     @opik.track(name="inference_pipeline.format_inference_input")
     def _format_inference_input(self, question: str) -> List[Dict[str, Any]]:
@@ -52,7 +55,7 @@ class MathPal:
 
 
     @opik.track(name="inference_pipeline.generate")
-    def generate(self, question: str, sample_for_evaluation: bool = False) -> str:
+    def generate(self, question: str) -> str:
         messages = self._format_inference_input(question)
         input_ids = self.processor.apply_chat_template(
             messages,
@@ -69,7 +72,7 @@ class MathPal:
             top_p=0.95,
             top_k=64
         )
-        answer = self.processor.batch_decode(response, skip_special_tokens=False)
+        answer = self.processor.batch_decode(response, skip_special_tokens=False)[0]
         
         opik_context.update_current_trace(
             tags=["mathpal_generate"],
@@ -86,5 +89,5 @@ class MathPal:
 if __name__ == "__main__":
     mathpal = MathPal(model_id=settings.MODEL_ID)
     question = "What is the sum of 1 and 2?"
-    pprint.pprint(mathpal.generate(question, sample_for_evaluation=True))
+    pprint.pprint(mathpal.generate(question))
         

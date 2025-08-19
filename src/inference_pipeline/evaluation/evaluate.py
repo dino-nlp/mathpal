@@ -1,4 +1,5 @@
 import argparse
+import os
 
 from config import settings
 from core.logger_utils import get_logger
@@ -9,6 +10,9 @@ from opik.evaluation.metrics import Hallucination, LevenshteinRatio, Moderation
 
 from .style import Style
 
+# Disable tokenizers parallelism to avoid deadlocks during forking
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 logger = get_logger(__name__)
 
 
@@ -16,7 +20,6 @@ def make_evaluation_task(inference_pipeline: MathPal):
     def evaluation_task(x: dict) -> dict:
         answer = inference_pipeline.generate(
             question=x["question"],
-            sample_for_evaluation=True,
         )["answer"]
 
         return {
