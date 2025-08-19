@@ -95,25 +95,21 @@ class MathPal:
     @opik.track(name="inference_pipeline.generate")
     def generate(self, question: str, sample_for_evaluation: bool = False) -> str:
         messages, num_tokens = self._format_inference_input(question)
-        input_ids = self.processor.apply_chat_template(
+        
+        response = self.model.generate(
+            **self.processor.apply_chat_template(
                 messages,
                 add_generation_prompt=True,
                 tokenize=True, return_dict=True,
                 return_tensors="pt",
+            ).to("cuda"),
+            max_new_tokens=512,
+            do_sample=True,
+            temperature=1.0,
+            top_p=0.95,
+            top_k=64
         )
-        input_ids = input_ids.to(self.model.device, dtype=self.model.dtype)
-
-        # Generate output from the model
-        with torch.no_grad():
-            if torch.cuda.is_available():
-                with torch.cuda.amp.autocast(dtype=torch.float16):
-                    outputs = self.model.generate(**input_ids, max_new_tokens=128)
-            else:
-                outputs = self.model.generate(**input_ids, max_new_tokens=128)
-
-        # decode and print the output as text
-        response = self._decode_batch_outputs(self.processor, outputs, input_ids, return_full_text=False)
-        answer = response[0]
+        answer = response
         num_answer_tokens = compute_num_tokens(answer)
         
         opik_context.update_current_trace(
