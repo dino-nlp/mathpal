@@ -15,32 +15,34 @@ def test_progress_callback():
     """Test EvaluationProgressCallback functionality"""
     print("🧪 Testing EvaluationProgressCallback...")
     
-    from src.inference_pipeline.evaluation.evaluate import EvaluationProgressCallback
-    
-    # Test initialization
-    callback = EvaluationProgressCallback(total_samples=5, experiment_name="Test Evaluation")
-    assert callback.total_samples == 5
-    assert callback.experiment_name == "Test Evaluation"
-    assert callback.current_sample == 0
-    
-    # Test evaluation start
-    callback.on_evaluation_start()
-    assert callback.start_time is not None
-    assert callback.progress_bar is not None
-    
-    # Test sample processing
-    sample_data = {"question": "What is 2+2?"}
-    callback.on_sample_start(0, sample_data)
-    assert callback.current_sample == 0
-    
-    result = {"levenshtein_ratio": 0.85, "hallucination": 0.1}
-    callback.on_sample_complete(0, result)
-    
-    # Test evaluation complete
-    results = {"metrics": {"accuracy": 0.85, "precision": 0.90}}
-    callback.on_evaluation_complete(results)
-    
-    print("✅ EvaluationProgressCallback test passed!")
+    # Mock config module
+    with patch.dict('sys.modules', {'config': Mock()}):
+        from src.inference_pipeline.evaluation.evaluate import EvaluationProgressCallback
+        
+        # Test initialization
+        callback = EvaluationProgressCallback(total_samples=5, experiment_name="Test Evaluation")
+        assert callback.total_samples == 5
+        assert callback.experiment_name == "Test Evaluation"
+        assert callback.current_sample == 0
+        
+        # Test evaluation start
+        callback.on_evaluation_start()
+        assert callback.start_time is not None
+        assert callback.progress_bar is not None
+        
+        # Test sample processing
+        sample_data = {"question": "What is 2+2?"}
+        callback.on_sample_start(0, sample_data)
+        assert callback.current_sample == 0
+        
+        result = {"levenshtein_ratio": 0.85, "hallucination": 0.1}
+        callback.on_sample_complete(0, result)
+        
+        # Test evaluation complete
+        results = {"metrics": {"accuracy": 0.85, "precision": 0.90}}
+        callback.on_evaluation_complete(results)
+        
+        print("✅ EvaluationProgressCallback test passed!")
 
 
 def test_progress_metrics():
@@ -107,7 +109,7 @@ def test_evaluation_integration():
                 mock_evaluate.return_value = Mock()
                 mock_evaluate.return_value.metrics = {"accuracy": 0.85}
                 
-                # Import and test
+                # Import and test with proper module path
                 from src.inference_pipeline.evaluation.evaluate import main
                 
                 # Test with progress tracking
@@ -123,35 +125,37 @@ def test_command_line_options():
     """Test command line argument parsing"""
     print("🧪 Testing Command Line Options...")
     
-    from src.inference_pipeline.evaluation.evaluate import main
-    import argparse
-    
-    # Test argument parser
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--max_samples', type=int, default=None)
-    parser.add_argument('--experiment_name', type=str, default="Test")
-    parser.add_argument('--use_progress_metrics', action='store_true')
-    parser.add_argument('--no_progress_tracking', action='store_true')
-    
-    # Test default values
-    args = parser.parse_args([])
-    assert args.max_samples is None
-    assert args.experiment_name == "Test"
-    assert not args.use_progress_metrics
-    assert not args.no_progress_tracking
-    
-    # Test custom values
-    test_args = [
-        '--max_samples', '10',
-        '--experiment_name', 'Custom Test',
-        '--use_progress_metrics'
-    ]
-    args = parser.parse_args(test_args)
-    assert args.max_samples == 10
-    assert args.experiment_name == "Custom Test"
-    assert args.use_progress_metrics
-    
-    print("✅ Command line options test passed!")
+    # Mock config module
+    with patch.dict('sys.modules', {'config': Mock()}):
+        from src.inference_pipeline.evaluation.evaluate import main
+        import argparse
+        
+        # Test argument parser
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--max_samples', type=int, default=None)
+        parser.add_argument('--experiment_name', type=str, default="Test")
+        parser.add_argument('--use_progress_metrics', action='store_true')
+        parser.add_argument('--no_progress_tracking', action='store_true')
+        
+        # Test default values
+        args = parser.parse_args([])
+        assert args.max_samples is None
+        assert args.experiment_name == "Test"
+        assert not args.use_progress_metrics
+        assert not args.no_progress_tracking
+        
+        # Test custom values
+        test_args = [
+            '--max_samples', '10',
+            '--experiment_name', 'Custom Test',
+            '--use_progress_metrics'
+        ]
+        args = parser.parse_args(test_args)
+        assert args.max_samples == 10
+        assert args.experiment_name == "Custom Test"
+        assert args.use_progress_metrics
+        
+        print("✅ Command line options test passed!")
 
 
 def test_makefile_commands():
@@ -173,6 +177,30 @@ def test_makefile_commands():
     print("✅ Makefile commands test passed!")
 
 
+def test_metric_functions():
+    """Test metric utility functions"""
+    print("🧪 Testing Metric Utility Functions...")
+    
+    from src.inference_pipeline.evaluation.progress_metrics import (
+        setup_metric_progress_bars,
+        cleanup_metric_progress_bars,
+        ProgressTrackingMetric
+    )
+    
+    # Create mock metrics
+    class MockMetric(ProgressTrackingMetric):
+        def score(self, **kwargs):
+            return Mock()
+    
+    metrics = [MockMetric("test1"), MockMetric("test2")]
+    
+    # Test setup and cleanup
+    setup_metric_progress_bars(metrics, 5)
+    cleanup_metric_progress_bars(metrics)
+    
+    print("✅ Metric utility functions test passed!")
+
+
 def main():
     """Run all tests"""
     print("🚀 Starting MathPal Evaluation Progress Tests...")
@@ -183,7 +211,8 @@ def main():
         test_progress_metrics,
         test_evaluation_integration,
         test_command_line_options,
-        test_makefile_commands
+        test_makefile_commands,
+        test_metric_functions
     ]
     
     passed = 0
@@ -195,6 +224,8 @@ def main():
             passed += 1
         except Exception as e:
             print(f"❌ Test failed: {e}")
+            import traceback
+            traceback.print_exc()
     
     print("=" * 50)
     print(f"📊 Test Results: {passed}/{total} tests passed")
