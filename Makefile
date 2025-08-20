@@ -42,7 +42,8 @@ evaluate-quick: ## Run quick evaluation (3 samples)
 	@PYTHONPATH=$(PYTHONPATH) python3 -m src.inference_pipeline.mathpal
 
 evaluate-llm: # Run evaluation tests on the LLM model's performance using your Poetry env.
-	cd src/inference_pipeline && PYTHONPATH=$(PYTHONPATH) PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python -m evaluation.evaluate
+	@echo "⚡ Starting evaluation..."
+	@PYTHONPATH=$(PYTHONPATH) python3 -m src.inference_pipeline.evaluation.evaluate
 # ======================================
 # ----------- Training Pipeline --------
 # ======================================
