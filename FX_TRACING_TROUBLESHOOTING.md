@@ -40,8 +40,8 @@ Hệ thống đã được cập nhật để tự động xử lý lỗi FX tra
 
 1. **Tắt TorchDynamo** - `torch._dynamo.config.disable = True`
 2. **Set Environment Variables** - `TORCH_COMPILE_DISABLE=1`
-3. **Disable Compilation** - `compile=False` trong model loading
-4. **Safe Inference Mode** - `FastModel.for_inference(model, compile=False)`
+3. **Safe Model Loading** - Sử dụng cấu hình an toàn
+4. **Safe Inference Mode** - `FastModel.for_inference(model)`
 
 ## 📊 Cấu hình đã được áp dụng
 
@@ -63,8 +63,7 @@ torch._dynamo.config.disable = True
 ```python
 FastModel.from_pretrained(
     # ... other params
-    compile=False,  # Disable compilation
-    device_map="auto"
+    device_map="auto"  # Safe device mapping
 )
 ```
 

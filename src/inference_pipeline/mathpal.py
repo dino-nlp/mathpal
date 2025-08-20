@@ -30,9 +30,9 @@ class MathPal:
         self.model, self.processor = self._load_model(model_id)
         self.processor = get_chat_template(self.processor, "gemma-3n")
         
-        # Use safe inference mode without compilation
+        # Use safe inference mode
         try:
-            FastModel.for_inference(self.model, compile=False)
+            FastModel.for_inference(self.model)
             logger.info("✅ Model prepared for inference (safe mode)")
         except Exception as e:
             logger.warning(f"⚠️  Could not prepare model for inference: {e}")
@@ -51,8 +51,6 @@ class MathPal:
                 max_seq_length=settings.MAX_INPUT_TOKENS,
                 load_in_4bit=True,
                 load_in_8bit=False,
-                # Disable compilation to avoid FX tracing conflicts
-                compile=False,
                 # Use safe device mapping
                 device_map="auto" if torch.cuda.is_available() else "cpu"
             )
@@ -64,7 +62,7 @@ class MathPal:
             if "Some modules are dispatched on the CPU" in error_msg or "FX to symbolically trace" in error_msg:
                 logger.warning("⚠️  GPU RAM insufficient or FX tracing conflict, attempting CPU offload...")
                 try:
-                    # Try with CPU offload enabled and no compilation
+                    # Try with CPU offload enabled
                     model, processor = FastModel.from_pretrained(
                         model_name=model_id,
                         dtype=None,  # Auto-detect
@@ -72,8 +70,7 @@ class MathPal:
                         load_in_4bit=True,
                         load_in_8bit=False,
                         device_map="auto",  # Enable automatic device mapping
-                        llm_int8_enable_fp32_cpu_offload=True,  # Enable CPU offload
-                        compile=False  # Disable compilation
+                        llm_int8_enable_fp32_cpu_offload=True  # Enable CPU offload
                     )
                     logger.info("✅ Model loaded successfully with CPU offload")
                     return model, processor
@@ -90,8 +87,7 @@ class MathPal:
                             max_seq_length=settings.MAX_INPUT_TOKENS,
                             load_in_4bit=False,
                             load_in_8bit=True,
-                            device_map="auto",
-                            compile=False  # Disable compilation
+                            device_map="auto"
                         )
                         logger.info("✅ Model loaded successfully with 8-bit quantization")
                         return model, processor
@@ -100,7 +96,7 @@ class MathPal:
                         logger.error(f"❌ 8-bit quantization failed: {bit8_error}")
                         logger.info("🔄 Attempting to load without quantization...")
                         
-                        # Last resort: load without quantization and compilation
+                        # Last resort: load without quantization
                         try:
                             model, processor = FastModel.from_pretrained(
                                 model_name=model_id,
@@ -108,8 +104,7 @@ class MathPal:
                                 max_seq_length=settings.MAX_INPUT_TOKENS,
                                 load_in_4bit=False,
                                 load_in_8bit=False,
-                                device_map="auto",
-                                compile=False  # Disable compilation
+                                device_map="auto"
                             )
                             logger.info("✅ Model loaded successfully without quantization")
                             return model, processor

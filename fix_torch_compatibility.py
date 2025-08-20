@@ -122,7 +122,7 @@ def provide_recommendations():
     print("🎯 For FX tracing conflicts:")
     print("   1. ✅ TorchDynamo has been disabled")
     print("   2. ✅ Environment variables set")
-    print("   3. ✅ Model loading uses compile=False")
+    print("   3. ✅ Model loading uses safe configuration")
     
     print("\n🎯 For evaluation:")
     print("   1. Use: make evaluate-llm-safe")

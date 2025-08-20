@@ -69,6 +69,10 @@ git acheck-compatibility: ## Check Torch/Unsloth compatibility and fix issues
 	@echo "🔍 Checking Torch/Unsloth compatibility..."
 	@python3 fix_torch_compatibility.py
 
+test-model: ## Test model loading safely
+	@echo "🔍 Testing model loading..."
+	@python3 test_model_loading.py
+
 evaluate-llm-safe: ## Run evaluation with GPU memory check first
 	@echo "🔍 Checking GPU memory before evaluation..."
 	@python3 check_gpu_memory.py
@@ -168,6 +172,7 @@ info: ## Show detailed project information
 	@echo "  make evaluate-llm-compatible     # Evaluation with compatibility check"
 	@echo "  make check-gpu                   # Check GPU memory and system resources"
 	@echo "  make check-compatibility         # Check Torch/Unsloth compatibility"
+	@echo "  make test-model                  # Test model loading safely"
 	@echo ""
 	@echo "🚀 Available training commands:"
 	@echo "  make train                       # Start training"
@@ -180,4 +185,4 @@ info: ## Show detailed project information
 	@echo "  make clean                       # Clean up files"
 	@echo "  make status                      # Show project status"
 
-.PHONY: help install setup-env test-env evaluate-quick evaluate-llm evaluate-llm-progress evaluate-llm-quick evaluate-llm-fast evaluate-llm-custom evaluate-llm-safe evaluate-llm-compatible check-gpu check-compatibility train train-quick train-custom crawl process docker-start docker-stop docker-logs clean status info
+.PHONY: help install setup-env test-env evaluate-quick evaluate-llm evaluate-llm-progress evaluate-llm-quick evaluate-llm-fast evaluate-llm-custom evaluate-llm-safe evaluate-llm-compatible check-gpu check-compatibility test-model train train-quick train-custom crawl process docker-start docker-stop docker-logs clean status info
