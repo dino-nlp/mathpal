@@ -68,8 +68,8 @@ def main() -> None:
     }
     scoring_metrics = [
         LevenshteinRatio(),
-        Hallucination(),
-        Moderation(),
+        Hallucination(model=settings.OPENROUTER_BASE_MODEL),
+        Moderation(model=settings.OPENROUTER_BASE_MODEL),
         Style(),
     ]
     inference_pipeline = MathPal(model_id=settings.MODEL_ID)

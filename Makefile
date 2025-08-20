@@ -43,7 +43,7 @@ evaluate-quick: ## Run quick evaluation (3 samples)
 
 evaluate-llm: # Run evaluation tests on the LLM model's performance using your Poetry env.
 	@echo "⚡ Starting evaluation..."
-	@PYTHONPATH=$(PYTHONPATH) python3 -m src.inference_pipeline.evaluation.evaluate
+	cd src/inference_pipeline && PYTHONPATH=$(PYTHONPATH) python -m evaluation.evaluate
 # ======================================
 # ----------- Training Pipeline --------
 # ======================================
