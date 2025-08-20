@@ -12,11 +12,11 @@ from mathpal import MathPal
 from opik.evaluation import evaluate
 from opik.evaluation.metrics import Hallucination, LevenshteinRatio, Moderation
 
-from .style import Style
 from .progress_metrics import (
     create_progress_metrics, 
     setup_metric_progress_bars, 
-    cleanup_metric_progress_bars
+    cleanup_metric_progress_bars,
+    ProgressStyle
 )
 
 # Disable tokenizers parallelism to avoid deadlocks during forking
@@ -131,6 +131,7 @@ def make_evaluation_task(inference_pipeline: MathPal, progress_callback: Optiona
             "output": answer,
             "expected_output": x["solution"],
             "reference": x["solution"],
+            "problem": x["question"],  # Add problem field for Style metric
         }
         
         # Notify progress callback
@@ -156,8 +157,6 @@ def get_scoring_metrics(use_progress_metrics: bool = False, track_progress: bool
     if use_progress_metrics:
         logger.info("📊 Using custom progress metrics with detailed tracking")
         metrics = create_progress_metrics(track_progress=track_progress)
-        # Add Style metric (which doesn't have progress tracking)
-        metrics.append(Style())
         return metrics
     else:
         logger.info("📊 Using standard Opik metrics")
@@ -165,7 +164,7 @@ def get_scoring_metrics(use_progress_metrics: bool = False, track_progress: bool
             LevenshteinRatio(),
             Hallucination(model=settings.OPENROUTER_BASE_MODEL),
             Moderation(model=settings.OPENROUTER_BASE_MODEL),
-            Style(),
+            ProgressStyle(track_progress=False),  # Use ProgressStyle instead of Style
         ]
 
 

@@ -236,6 +236,68 @@ class ProgressModeration(ProgressTrackingMetric):
             )
 
 
+class ProgressStyle(ProgressTrackingMetric):
+    """
+    Style evaluation metric with progress tracking.
+    """
+    
+    def __init__(self, name: str = "progress_style", track_progress: bool = True):
+        super().__init__(name, track_progress)
+        
+    def score(self, output: str, problem: str = None, **kwargs) -> score_result.ScoreResult:
+        """Evaluate style with progress tracking"""
+        try:
+            # Simple style evaluation
+            # This is a simplified version - in practice, you'd use a more sophisticated approach
+            
+            # Check for mathematical notation and formatting
+            math_indicators = [
+                "=", "+", "-", "*", "/", "(", ")", "[", "]", "{", "}",
+                "x", "y", "z", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w",
+                "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"
+            ]
+            
+            # Check for clear explanations
+            explanation_indicators = [
+                "because", "therefore", "thus", "hence", "so", "since", "as", "for",
+                "step", "steps", "solution", "answer", "result", "calculate", "compute"
+            ]
+            
+            # Count math indicators
+            math_count = sum(1 for indicator in math_indicators if indicator in output)
+            
+            # Count explanation indicators
+            explanation_count = sum(1 for indicator in explanation_indicators if indicator.lower() in output.lower())
+            
+            # Calculate style score based on mathematical content and explanations
+            math_score = min(math_count / 10.0, 1.0)  # Normalize math content
+            explanation_score = min(explanation_count / 5.0, 1.0)  # Normalize explanations
+            
+            # Combined style score
+            style_score = (math_score + explanation_score) / 2.0
+            
+            # Update progress
+            self._update_progress({
+                "Score": f"{style_score:.3f}",
+                "Math": math_count,
+                "Explanations": explanation_count
+            })
+            
+            return score_result.ScoreResult(
+                name=self.name,
+                value=style_score,
+                reason=f"Style score: {style_score:.3f} - Math indicators: {math_count}, Explanation indicators: {explanation_count}"
+            )
+            
+        except Exception as e:
+            logger.error(f"Error in style evaluation: {e}")
+            return score_result.ScoreResult(
+                name=self.name,
+                value=0.5,  # Neutral score on error
+                reason=f"Error: {str(e)}"
+            )
+
+
 def create_progress_metrics(track_progress: bool = True) -> list:
     """
     Create a list of progress-tracking metrics.
@@ -250,6 +312,7 @@ def create_progress_metrics(track_progress: bool = True) -> list:
         ProgressLevenshteinRatio(track_progress=track_progress),
         ProgressHallucination(track_progress=track_progress),
         ProgressModeration(track_progress=track_progress),
+        ProgressStyle(track_progress=track_progress),
     ]
 
 
