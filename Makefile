@@ -41,9 +41,26 @@ evaluate-quick: ## Run quick evaluation (3 samples)
 	@echo "⚡ Starting quick evaluation..."
 	@PYTHONPATH=$(PYTHONPATH) python3 -m src.inference_pipeline.mathpal
 
-evaluate-llm: # Run evaluation tests on the LLM model's performance using your Poetry env.
+evaluate-llm: ## Run evaluation tests on the LLM model's performance using your Poetry env.
 	@echo "⚡ Starting evaluation..."
 	cd src/inference_pipeline && PYTHONPATH=$(PYTHONPATH) python -m evaluation.evaluate
+
+evaluate-llm-progress: ## Run evaluation with progress tracking and detailed metrics
+	@echo "📊 Starting evaluation with progress tracking..."
+	cd src/inference_pipeline && PYTHONPATH=$(PYTHONPATH) python -m evaluation.evaluate --use_progress_metrics
+
+evaluate-llm-quick: ## Run quick evaluation (5 samples) with progress tracking
+	@echo "⚡ Starting quick evaluation with progress tracking..."
+	cd src/inference_pipeline && PYTHONPATH=$(PYTHONPATH) python -m evaluation.evaluate --max_samples 5 --use_progress_metrics
+
+evaluate-llm-fast: ## Run evaluation without progress tracking (faster)
+	@echo "🚀 Starting fast evaluation without progress tracking..."
+	cd src/inference_pipeline && PYTHONPATH=$(PYTHONPATH) python -m evaluation.evaluate --no_progress_tracking
+
+evaluate-llm-custom: ## Run evaluation with custom parameters (usage: make evaluate-llm-custom SAMPLES=10 EXPERIMENT="My Test")
+	@echo "🔧 Starting custom evaluation..."
+	cd src/inference_pipeline && PYTHONPATH=$(PYTHONPATH) python -m evaluation.evaluate --max_samples $(SAMPLES) --experiment_name "$(EXPERIMENT)" --use_progress_metrics
+
 # ======================================
 # ----------- Training Pipeline --------
 # ======================================
@@ -118,14 +135,23 @@ info: ## Show detailed project information
 	@echo "📁 Available configurations:"
 	@ls -la configs/*.yaml 2>/dev/null || echo "No config files found"
 	@echo ""
-	@echo "📊 Available commands:"
-	@echo "  make evaluate-quick      # Quick evaluation (3 samples)"
-	@echo "  make evaluate-production # Full evaluation"
-	@echo "  make train              # Start training"
-	@echo "  make train-quick        # Quick training test"
-	@echo "  make crawl              # Start data crawling"
-	@echo "  make process            # Process data"
-	@echo "  make clean              # Clean up files"
-	@echo "  make status             # Show project status"
+	@echo "📊 Available evaluation commands:"
+	@echo "  make evaluate-quick              # Quick evaluation (3 samples)"
+	@echo "  make evaluate-llm                # Standard evaluation"
+	@echo "  make evaluate-llm-progress       # Evaluation with progress tracking"
+	@echo "  make evaluate-llm-quick          # Quick evaluation with progress (5 samples)"
+	@echo "  make evaluate-llm-fast           # Fast evaluation without progress tracking"
+	@echo "  make evaluate-llm-custom         # Custom evaluation (usage: SAMPLES=10 EXPERIMENT=\"My Test\")"
+	@echo ""
+	@echo "🚀 Available training commands:"
+	@echo "  make train                       # Start training"
+	@echo "  make train-quick                 # Quick training test"
+	@echo "  make train-custom                # Custom training (usage: CONFIG=path/to/config.yaml)"
+	@echo ""
+	@echo "🛠️  Available utility commands:"
+	@echo "  make crawl                       # Start data crawling"
+	@echo "  make process                     # Process data"
+	@echo "  make clean                       # Clean up files"
+	@echo "  make status                      # Show project status"
 
-.PHONY: help install setup-env test-env evaluate-quick evaluate-production evaluate-custom train train-quick train-custom crawl process docker-start docker-stop docker-logs clean status info
+.PHONY: help install setup-env test-env evaluate-quick evaluate-llm evaluate-llm-progress evaluate-llm-quick evaluate-llm-fast evaluate-llm-custom train train-quick train-custom crawl process docker-start docker-stop docker-logs clean status info
