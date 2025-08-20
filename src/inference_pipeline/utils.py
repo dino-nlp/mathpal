@@ -1,0 +1,38 @@
+from core.config import settings
+from transformers import AutoProcessor, AutoTokenizer
+
+
+def compute_num_tokens(text: str, processor) -> int:
+    return len(processor.tokenizer.encode(text, add_special_tokens=False))
+
+
+def truncate_text_to_max_tokens(text: str, max_tokens: int, processor) -> tuple[str, int]:
+    """Truncates text to not exceed max_tokens while trying to preserve complete sentences.
+
+    Args:
+        text: The text to truncate
+        max_tokens: Maximum number of tokens allowed
+
+    Returns:
+        Truncated text that fits within max_tokens and the number of tokens in the truncated text.
+    """
+
+    current_tokens = compute_num_tokens(text, processor)
+
+    if current_tokens <= max_tokens:
+        return text, current_tokens
+
+    tokens = processor.tokenizer.encode(text, add_special_tokens=False)
+
+    # Take first max_tokens tokens and decode
+    truncated_tokens = tokens[:max_tokens]
+    truncated_text = processor.tokenizer.decode(truncated_tokens)
+
+    # Try to end at last complete sentence
+    last_period = truncated_text.rfind(".")
+    if last_period > 0:
+        truncated_text = truncated_text[: last_period + 1]
+
+    truncated_tokens = compute_num_tokens(truncated_text, processor)
+
+    return truncated_text, truncated_tokens

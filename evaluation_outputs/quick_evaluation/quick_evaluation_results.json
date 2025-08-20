@@ -1,0 +1,63 @@
+{
+  "experiment_name": "quick_evaluation",
+  "model_path": "unsloth/gemma-3n-E2B-it",
+  "metrics": {
+    "answer_relevance_metric": 0.4166666666666667,
+    "UsefulnessMetric": 0.39999999999999997,
+    "mathematical_accuracy": 0.5,
+    "vietnamese_language_quality": 0.5,
+    "accuracy": 4.333333333333333,
+    "completeness": 4.333333333333333,
+    "clarity": 4.666666666666667,
+    "relevance": 5.333333333333333,
+    "helpfulness": 3.6666666666666665,
+    "overall_score": 2.6111111111111107
+  },
+  "metadata": {
+    "config": {
+      "experiment_name": "quick_evaluation",
+      "output_dir": "./evaluation_outputs",
+      "model": "unsloth/gemma-3n-E2B-it",
+      "dataset": "ngohongthai/exam-sixth_grade-instruct-dataset",
+      "evaluation_mode": "comprehensive",
+      "max_samples": 3
+    },
+    "system_info": {
+      "device_info": {
+        "cuda_available": false,
+        "device_count": 0,
+        "current_device": "cpu",
+        "device_name": "CPU",
+        "memory_info": {}
+      },
+      "environment_variables": {
+        "OPENROUTER_API_KEY": "sk-or-v1...",
+        "OPENAI_API_KEY": "sk-proj-...",
+        "PYTHONPATH": "/home/dino/Documents/mathpal/src",
+        "PWD": "/home/dino/Documents/mathpal"
+      },
+      "hardware_config": {
+        "device": "auto",
+        "memory_efficient": true,
+        "memory_fraction": 0.9,
+        "gradient_checkpointing": true,
+        "optimize_for": "auto"
+      },
+      "performance_config": {
+        "enable_profiling": false,
+        "profile_output": "profiles/evaluation_profile.json",
+        "enable_metrics": false,
+        "metrics_port": 8000
+      }
+    },
+    "dataset_info": {
+      "source": "huggingface",
+      "id": "ngohongthai/exam-sixth_grade-instruct-dataset",
+      "split": "test",
+      "info": {}
+    }
+  },
+  "samples_evaluated": 3,
+  "evaluation_time": 81.09198546409607,
+  "output_path": "evaluation_outputs/quick_evaluation"
+}

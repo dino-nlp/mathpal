@@ -113,6 +113,14 @@ logging:
     - "comet_ml"  # Enable Comet ML for production tracking
 
 # =============================================================================
+# EVALUATION PIPELINE LOGGING CONFIGURATION
+# =============================================================================
+evaluation_logging:
+  level: "INFO"
+  format: "text"  # Human-readable format for easier debugging
+  output: "console"
+
+# =============================================================================
 # SYSTEM CONFIGURATION
 # =============================================================================
 system:

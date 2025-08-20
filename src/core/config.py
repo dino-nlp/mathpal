@@ -35,7 +35,7 @@ class AppSettings(BaseSettings):
     
     # OpenRouter config
     OPENROUTER_KEY: str | None = None
-    OPENROUTER_BASE_MODEL: str = "google/gemini-2.5-flash-lite-preview-06-17"
+    OPENROUTER_BASE_MODEL: str = "openrouter/openai/gpt-oss-20b:free"
 
     # CometML config
     COMET_API_KEY: str | None = None
@@ -50,7 +50,8 @@ class AppSettings(BaseSettings):
 
     # LLM Model config
     HUGGINGFACE_ACCESS_TOKEN: str | None = None
-    MODEL_ID: str = "ngohongthai/MathPal-Gemma3n-E2B"
+    HF_TOKEN: str | None = None  # Alternative name for HuggingFace token
+    MODEL_ID: str = "unsloth/gemma-3n-E2B-it"
     DEPLOYMENT_ENDPOINT_NAME: str = "mathpal"
 
     MAX_INPUT_TOKENS: int = 1536  # Max length of input text.

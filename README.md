@@ -1,442 +1,254 @@
-# 🧮 MathPal - Vietnamese Math Education AI Platform
+# MathPal - AI-Powered Math Education Platform
 
-A comprehensive AI platform for Vietnamese math education, featuring data crawling, processing, model training, and inference capabilities. MathPal is designed to help students learn mathematics through intelligent tutoring and personalized assistance.
+[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/)
+[![Poetry](https://img.shields.io/badge/poetry-1.0+-blue.svg)](https://python-poetry.org/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-## 🌟 Features
+MathPal is an intelligent AI-powered math education platform designed to help Vietnamese students transition smoothly from 5th to 6th grade mathematics. The system combines advanced language models, RAG (Retrieval-Augmented Generation), and comprehensive data pipelines to provide personalized math tutoring and problem-solving assistance.
 
-### 📊 Data Pipeline
-- **Web Crawling**: Automated data collection from Vietnamese math education websites
-- **Data Processing**: Intelligent cleaning, chunking, and embedding of math problems
-- **Stream Processing**: Real-time data flow with Bytewax integration
-- **Quality Control**: Automated validation and filtering of educational content
+## 🏗️ System Architecture
 
-### 🤖 AI Training Pipeline
-- **Modular Architecture**: Clean, maintainable, and extensible training pipeline
-- **Hardware Optimization**: Pre-configured for Tesla T4 (16GB) and A100 (40GB/80GB)
-- **Unsloth Integration**: Optimized speed and memory usage
-- **Multiple Training Methods**: Support for LoRA, QLoRA, and full fine-tuning
-- **Experiment Tracking**: Comet ML integration for experiment monitoring
-- **Flexible Configuration**: YAML-based configuration management
-- **Multiple Save Formats**: Model saving in various formats (LoRA, merged, GGUF)
+MathPal is built as a microservices-based architecture with the following core components:
 
-### 🎯 Inference Engine
-- **Real-time Generation**: Fast inference with optimized models
-- **Vietnamese Math Focus**: Specialized for Vietnamese mathematics
-- **Batch Processing**: Efficient handling of multiple queries
-- **Quality Assessment**: Built-in evaluation metrics
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Data Crawling │    │   Data CDC      │    │ Feature Pipeline│
+│   (Web Scraping)│    │ (Change Stream) │    │ (Streaming)     │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   MongoDB       │    │   RabbitMQ      │    │   Qdrant        │
+│   (Raw Data)    │    │   (Message Q)   │    │   (Vector DB)   │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                │                       │
+                                ▼                       ▼
+                       ┌─────────────────┐    ┌─────────────────┐
+                       │ Training Pipeline│    │Inference Pipeline│
+                       │ (Fine-tuning)   │    │ (RAG + LLM)     │
+                       └─────────────────┘    └─────────────────┘
+```
 
-## 🏗️ Project Architecture
+## 🚀 Key Features
+
+- **Intelligent Data Crawling**: Automated web scraping of Vietnamese math education content
+- **Real-time Data Processing**: CDC (Change Data Capture) for live data ingestion
+- **Streaming Feature Pipeline**: Real-time data processing with Bytewax
+- **Advanced RAG System**: Multi-query expansion, reranking, and semantic search
+- **Fine-tuned LLM**: Custom-trained Gemma-3n model for Vietnamese math education
+- **Comprehensive Evaluation**: Multi-metric performance assessment
+- **Production-Ready**: Docker containerization and microservices architecture
+
+## 📦 Project Structure
 
 ```
 mathpal/
 ├── src/
-│   ├── data_crawling/           # Web crawling and data collection
-│   │   ├── crawlers/            # Website-specific crawlers
-│   │   ├── dispatcher.py        # Crawling orchestration
-│   │   └── main.py             # Crawling entry point
-│   │
-│   ├── feature_pipeline/        # Data processing and feature engineering
-│   │   ├── data_flow/          # Stream processing with Bytewax
-│   │   ├── data_logic/         # Data transformation logic
-│   │   ├── models/             # Data models and schemas
-│   │   ├── utils/              # Processing utilities
-│   │   └── main.py             # Pipeline orchestration
-│   │
-│   ├── training_pipeline/       # Model training and fine-tuning
-│   │   ├── config/             # Configuration management
-│   │   ├── managers/           # Training orchestration
-│   │   ├── factories/          # Object factories
-│   │   ├── training/           # Training logic
-│   │   ├── inference/          # Inference engine
-│   │   ├── experiments/        # Experiment tracking
-│   │   ├── cli/               # Command line interface
-│   │   └── utils/             # Training utilities
-│   │
-│   └── core/                   # Shared core components
-│       ├── db/                # Database connections
-│       ├── rag/               # Retrieval-Augmented Generation
-│       ├── mq/                # Message queue integration
-│       └── utils/             # Shared utilities
-│
+│   ├── core/                    # Core utilities and configurations
+│   ├── data_cdc/               # Change Data Capture service
+│   ├── data_crawling/          # Web scraping and data collection
+│   ├── feature_pipeline/       # Real-time data processing
+│   ├── inference_pipeline/     # RAG and LLM inference
+│   └── training_pipeline/      # Model fine-tuning
 ├── configs/                    # Configuration files
-│   ├── tesla_t4_optimized.yaml # Tesla T4 optimized config
-│   ├── a100_optimized.yaml     # A100 optimized config
-│   ├── quick_test.yaml         # Quick development testing
-│   ├── production.yaml         # Production configuration
-│   └── README_OPTIMIZATION.md  # Hardware optimization guide
-│
-├── data/                       # Data storage
-├── outputs/                    # Training outputs
-├── notebooks/                  # Jupyter notebooks
-└── scripts/                    # Utility scripts
+├── notebooks/                  # Jupyter notebooks for analysis
+├── scripts/                    # Utility scripts
+├── docker-compose.yml          # Infrastructure orchestration
+└── Makefile                    # Development commands
 ```
+
+## 🛠️ Technology Stack
+
+### Core Technologies
+- **Python 3.11** - Primary programming language
+- **Poetry** - Dependency management
+- **Docker & Docker Compose** - Containerization
+- **MongoDB** - Document database with replica set
+- **RabbitMQ** - Message queue system
+- **Qdrant** - Vector database for embeddings
+
+### AI/ML Stack
+- **Gemma-3n** - Base language model (Google)
+- **Unsloth** - Efficient fine-tuning framework
+- **Sentence Transformers** - Embedding models
+- **Bytewax** - Stream processing framework
+- **LangChain** - RAG framework
+- **OPIK** - Performance tracking and optimization
+
+### Development Tools
+- **CometML** - Experiment tracking
+- **Hugging Face** - Model hosting and datasets
+- **AWS Lambda** - Serverless functions
+- **Selenium** - Web scraping
+- **Pydantic** - Data validation
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- Python 3.8+
-- CUDA 11.8+ (recommended)
-- GPU with at least 8GB VRAM
-- Poetry (for dependency management)
+- Python 3.11+
+- Docker and Docker Compose
+- Poetry
+- GPU (recommended for training and inference)
 
 ### Installation
 
-```bash
-# Clone the repository
-git clone <repository-url>
-cd mathpal
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd mathpal
+   ```
 
-# Install dependencies
-make install
+2. **Install dependencies**
+   ```bash
+   make install
+   ```
 
-# Setup environment
-make setup-env
+3. **Setup environment**
+   ```bash
+   cp env.example .env
+   # Edit .env with your API keys and configurations
+   make setup-env
+   ```
 
-# Check environment
-make env-check
-```
+4. **Start infrastructure**
+   ```bash
+   make docker-start
+   ```
 
-### Data Collection
+### Basic Usage
 
+#### Data Pipeline
 ```bash
 # Start data crawling
-make local-start
+make crawl
 
-# Crawl specific websites
-make local-test-crawler
-
-# Ingest data from links
-make local-ingest-data
+# Process data through feature pipeline
+make process
 ```
 
-### Model Training
-
+#### Training
 ```bash
-# Tesla T4 (16GB VRAM)
-make train-tesla-t4
-
-# A100 (40GB/80GB VRAM)
-make train-a100
-
-# Quick test
+# Quick training test
 make train-quick
 
-# Production training
-make train-prod
+# Full production training
+make train
 ```
 
-## 🔧 Hardware Optimization
-
-MathPal provides pre-optimized configurations for different hardware:
-
-### Tesla T4 (16GB VRAM)
-- **Model**: Gemma-3n-E2B (smaller)
-- **Mixed Precision**: fp16 (required)
-- **Quantization**: 4-bit
-- **Batch Size**: 2 + gradient accumulation 8
-- **Training Time**: ~2-3 hours
-
-### A100 (40GB/80GB VRAM)
-- **Model**: Gemma-3n-E4B (full)
-- **Mixed Precision**: bf16 (optimal)
-- **Quantization**: 4-bit
-- **Batch Size**: 8 + gradient accumulation 4
-- **Training Time**: ~30-45 minutes
-
+#### Evaluation
 ```bash
-# View hardware optimization guide
-make show-hardware-guide
+# Quick evaluation
+make evaluate-quick
 
-# List all configurations
-make list-configs
+# Full evaluation with progress tracking
+make evaluate-llm-progress
 ```
 
-## 📊 Data Pipeline
+## 📊 System Components
 
-### Web Crawling
+### 1. Data Crawling (`data_crawling/`)
+Automated web scraping system for Vietnamese math education websites:
+- **LoiGiaiHay Crawler**: Extracts math problems and solutions
+- **AWS Lambda Integration**: Serverless deployment
+- **Grade-based Organization**: Structured data by educational level
 
-The data crawling system automatically collects Vietnamese math problems from educational websites:
+### 2. Change Data Capture (`data_cdc/`)
+Real-time data ingestion from MongoDB:
+- **MongoDB Change Streams**: Monitors database changes
+- **RabbitMQ Integration**: Publishes changes to message queue
+- **Event-driven Architecture**: Triggers downstream processing
 
-```python
-from src.data_crawling.main import start_crawling
+### 3. Feature Pipeline (`feature_pipeline/`)
+Real-time data processing with Bytewax:
+- **Stream Processing**: Continuous data transformation
+- **Multi-stage Pipeline**: Raw → Clean → Chunk → Embed
+- **Vector Storage**: Stores embeddings in Qdrant
 
-# Start crawling with configuration
-start_crawling(
-    websites=["loigiaihay.com", "vietjack.com"],
-    grade_levels=["grade_5", "grade_6"],
-    max_pages=1000
-)
-```
+### 4. Inference Pipeline (`inference_pipeline/`)
+RAG-based question answering system:
+- **Multi-query Expansion**: Generates multiple search queries
+- **Semantic Search**: Retrieves relevant documents
+- **Reranking**: Optimizes result relevance
+- **LLM Generation**: Produces final answers
 
-### Data Processing
+### 5. Training Pipeline (`training_pipeline/`)
+Model fine-tuning infrastructure:
+- **Gemma-3n Fine-tuning**: Custom training for Vietnamese math
+- **Experiment Tracking**: CometML integration
+- **Configuration Management**: Flexible training configs
+- **Evaluation Framework**: Comprehensive model assessment
 
-The feature pipeline processes raw data into training-ready format:
+## 🔧 Configuration
 
-```python
-from src.feature_pipeline.main import run_pipeline
+The system uses a hierarchical configuration system:
 
-# Process data with streaming
-run_pipeline(
-    input_data="data/raw/",
-    output_data="data/processed/",
-    chunk_size=512,
-    embedding_model="sentence-transformers/all-MiniLM-L6-v2"
-)
-```
+- **Environment Variables**: API keys and secrets
+- **YAML Configs**: Training and pipeline parameters
+- **Pydantic Settings**: Type-safe configuration validation
 
-## 🤖 Training Pipeline
+Key configuration files:
+- `configs/production.yaml` - Production training settings
+- `src/core/config.py` - Core application settings
+- `.env` - Environment variables
 
-### Configuration Management
+## 📈 Performance & Monitoring
 
-MathPal uses a unified configuration system:
+### Evaluation Metrics
+- **Accuracy**: Question-answering correctness
+- **Relevance**: Answer relevance to questions
+- **Completeness**: Answer completeness scores
+- **Progress Tracking**: Learning progression metrics
 
-```yaml
-# configs/tesla_t4_optimized.yaml
-model:
-  name: "unsloth/gemma-3n-E2B-it"
-  max_seq_length: 1024
-  load_in_4bit: true
+### Monitoring Tools
+- **OPIK**: Performance tracking and optimization
+- **CometML**: Experiment tracking and visualization
+- **Structured Logging**: Comprehensive logging system
 
-training:
-  max_steps: 200
-  per_device_train_batch_size: 2
-  gradient_accumulation_steps: 8
-  learning_rate: 3.0e-4
+## 🐳 Deployment
 
-lora:
-  r: 16
-  alpha: 32
-  dropout: 0.0
-```
-
-### Training Commands
-
+### Docker Deployment
 ```bash
-# Hardware-specific training
-make train-tesla-t4          # Tesla T4 optimized
-make train-a100              # A100 optimized
+# Start all services
+make docker-start
 
-# Development and testing
-make train-quick             # Quick test (20 steps)
-make train-dry-run-tesla-t4  # Validate Tesla T4 config
+# View logs
+make docker-logs
 
-# Custom training
-make train-custom-config CONFIG=my-config.yaml
-make train-custom EXPERIMENT=my-experiment
+# Stop services
+make docker-stop
 ```
 
-### Experiment Tracking
-
-```python
-from src.training_pipeline.experiments import CometTracker
-
-# Setup experiment tracking
-tracker = CometTracker(
-    workspace="mathpal",
-    project="vietnamese-math",
-    experiment_name="tesla-t4-training"
-)
-
-# Training automatically logs metrics
-trainer.train()
-```
-
-## 🎯 Inference
-
-### Basic Inference
-
-```python
-from src.training_pipeline.inference import InferenceEngine
-
-# Load trained model
-engine = InferenceEngine(
-    model_path="outputs/mathpal-tesla-t4-optimized/",
-    device="cuda"
-)
-
-# Generate responses
-questions = [
-    "Tính tổng của 15 + 27 = ?",
-    "Một hình chữ nhật có chiều dài 8cm và chiều rộng 5cm. Tính chu vi.",
-    "Lan có 24 cái kẹo, Lan cho bạn 8 cái. Hỏi Lan còn lại bao nhiêu?"
-]
-
-for question in questions:
-    answer = engine.generate(question)
-    print(f"Q: {question}")
-    print(f"A: {answer}\n")
-```
-
-### Batch Processing
-
-```python
-# Process multiple questions efficiently
-answers = engine.generate_batch(
-    questions=questions,
-    batch_size=4,
-    temperature=0.7
-)
-```
-
-### Quality Evaluation
-
-```python
-# Evaluate model performance
-evaluation_results = engine.evaluate_model(
-    test_dataset="data/test/",
-    metrics=["accuracy", "bleu", "rouge"]
-)
-
-print(f"Accuracy: {evaluation_results['accuracy']:.2f}")
-print(f"BLEU Score: {evaluation_results['bleu']:.2f}")
-```
-
-## 📈 Monitoring and Debugging
-
-### Environment Information
-
-```bash
-# Check system information
-make env-info
-
-# Monitor GPU usage
-make show-gpu-usage
-
-# Check memory usage
-make memory-info
-```
-
-### Training Monitoring
-
-```bash
-# Monitor training logs
-make monitor-training
-
-# Test configurations
-make test-configs
-
-# Validate specific config
-make validate-config CONFIG=configs/tesla_t4_optimized.yaml
-```
-
-## 🧪 Testing
-
-### Quick Testing
-
-```bash
-# Quick test on Tesla T4
-make train-tesla-t4-quick
-
-# Quick test on A100
-make train-a100-quick
-
-# Test all configurations
-make test-hardware-configs
-```
-
-### Data Pipeline Testing
-
-```bash
-# Test crawler
-make local-test-crawler
-
-# Test retriever
-make local-test-retriever
-```
-
-## 📊 Performance Benchmarks
-
-| Hardware | Training Time | VRAM Usage | Throughput | Model Size |
-|----------|---------------|------------|------------|------------|
-| Tesla T4 | ~2-3 hours | ~12-14GB | ~2-3 samples/sec | 2B parameters |
-| A100 | ~30-45 min | ~25-35GB | ~8-12 samples/sec | 4B parameters |
-
-## 🔧 Customization
-
-### Adding New Data Sources
-
-```python
-from src.data_crawling.crawlers.base import BaseCrawler
-
-class CustomCrawler(BaseCrawler):
-    def extract_math_problems(self, page_content):
-        # Custom extraction logic
-        return problems
-```
-
-### Custom Training Configuration
-
-```python
-from src.training_pipeline.config import ConfigManager
-
-# Create custom config
-config = ConfigManager()
-config.model.name = "custom-model"
-config.training.max_steps = 500
-config.save_config("configs/custom.yaml")
-```
-
-### Custom Evaluation Metrics
-
-```python
-from src.training_pipeline.managers import EvaluationManager
-
-class CustomEvaluator(EvaluationManager):
-    def custom_metric(self, predictions, targets):
-        # Custom evaluation logic
-        return score
-```
+### Production Considerations
+- **GPU Requirements**: Minimum 16GB VRAM for training
+- **Memory**: 32GB+ RAM recommended
+- **Storage**: SSD storage for vector database
+- **Network**: Stable internet for model downloads
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
 
-### Development Setup
-
-```bash
-# Setup development environment
-make setup-env
-
-# Run tests
-make test-configs
-make test-hardware-configs
-
-# Check code quality
-make env-check
-```
-
-## 📝 License
+## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
-- [Unsloth](https://github.com/unslothai/unsloth) - Fast LLM fine-tuning
-- [TRL](https://github.com/huggingface/trl) - Transformer Reinforcement Learning
-- [PEFT](https://github.com/huggingface/peft) - Parameter-Efficient Fine-Tuning
-- [Comet ML](https://www.comet.ml/) - Experiment tracking
-- [Gemma](https://deepmind.google/technologies/gemma/) - Base model
-- [Bytewax](https://bytewax.io/) - Stream processing
-- [Vietnamese Math Education Community](https://loigiaihay.com/) - Data sources
+- **Google** for the Gemma-3n model
+- **Unsloth** for efficient fine-tuning
+- **Vietnamese Math Education Community** for content and feedback
 
-## 📧 Contact
+## 📞 Support
 
-- **Project Maintainer**: [Your Name]
-- **Email**: your.email@example.com
-- **Project Link**: [https://github.com/username/mathpal](https://github.com/username/mathpal)
-
-## 📚 Documentation
-
-- [Hardware Optimization Guide](configs/README_OPTIMIZATION.md)
-- [Makefile Updates](MAKEFILE_UPDATES.md)
-- [Training Pipeline Architecture](src/training_pipeline/README.md)
-- [Data Pipeline Documentation](src/data_crawling/README.md)
+For questions and support:
+- Create an issue on GitHub
+- Contact: ngohongthai.uet@gmail.com
 
 ---
 
-**MathPal** - Empowering Vietnamese students with AI-powered math education! 🧮✨
+**MathPal** - Empowering Vietnamese students with AI-powered math education 🧮✨
